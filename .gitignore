@@ -4,6 +4,7 @@ dist
 *.egg-info
 *.whl
 *.pyd
+__pycache__/
 
 # CMake files
 CMakeCache.txt

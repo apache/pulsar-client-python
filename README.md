@@ -54,4 +54,19 @@ cmake --build build
 
 Then we will have `_pulsar.so` under the `build` directory.
 
-To verify it works, you should copy `_pulsar.so` into the project directory. Then run `python3 -c 'import pulsar'` to verify it.
+To verify it works, you should copy `_pulsar.so` into the project directory. Then run `python3 -c 'import pulsar'` to verify the library has been linked correctly.
+
+After that, you can run `test_consumer.py` and `test_producer.py` against a Pulsar standalone as a simple e2e test. You should see the similar outputs here:
+
+```
+Received message 'hello' id='(1,0,-1,0)'
+Received message 'hello' id='(1,1,-1,0)'
+Received message 'hello' id='(1,2,-1,0)'
+Received message 'hello' id='(1,3,-1,0)'
+Received message 'hello' id='(1,4,-1,0)'
+Received message 'hello' id='(1,5,-1,0)'
+Received message 'hello' id='(1,6,-1,0)'
+Received message 'hello' id='(1,7,-1,0)'
+Received message 'hello' id='(1,8,-1,0)'
+Received message 'hello' id='(1,9,-1,0)'
+```
