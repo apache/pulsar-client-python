@@ -18,7 +18,7 @@
  */
 #include "utils.h"
 #include <pulsar/ConsoleLoggerFactory.h>
-#include "lib/Utils.h"
+#include "pulsar-client-cpp/lib/Utils.h"
 #include <memory>
 
 template <typename T>

@@ -2,3 +2,17 @@ MANIFEST
 build
 dist
 *.egg-info
+*.whl
+*.pyd
+
+# CMake files
+CMakeCache.txt
+CMakeFiles
+Makefile
+_pulsar.so
+cmake_install.cmake
+# The documented CMake build directory in the README.md
+build/
+
+# https://github.com/MaskRay/ccls
+.ccls

@@ -23,7 +23,7 @@
 
 #include <pulsar/Client.h>
 #include <pulsar/MessageBatch.h>
-#include <lib/Utils.h>
+#include "pulsar-client-cpp/lib/Utils.h"
 
 using namespace pulsar;
 
