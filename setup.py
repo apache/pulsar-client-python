@@ -19,29 +19,19 @@
 
 from setuptools import setup
 from distutils.core import Extension
-from distutils.util import strtobool
-from os import environ
+from os import environ, path
 
 from distutils.command import build_ext
 
-import xml.etree.ElementTree as ET
-from os.path import dirname, realpath, join
 
 def get_version():
-    use_full_pom_name = strtobool(environ.get('USE_FULL_POM_NAME', 'False'))
-
-    # Get the pulsar version from pom.xml
-    TOP_LEVEL_PATH = dirname(dirname(dirname(realpath(__file__))))
-    POM_PATH = join(TOP_LEVEL_PATH, 'pom.xml')
-    root = ET.XML(open(POM_PATH).read())
-    version = root.find('{http://maven.apache.org/POM/4.0.0}version').text.strip()
-
-    if use_full_pom_name:
-        return version
-    else:
-        # Strip the '-incubating' suffix, since it prevents the packages
-        # from being uploaded into PyPI
-        return version.split('-')[0]
+    # Get the pulsar version from version.txt
+    root = path.dirname(path.realpath(__file__))
+    version_file = path.join(root, 'version.txt')
+    with open(version_file) as f:
+        for line in f.readlines():
+            if 'pulsar-client-python: ' in line:
+                return line.split()[-1].strip()
 
 
 def get_name():
@@ -53,8 +43,8 @@ def get_name():
 VERSION = get_version()
 NAME = get_name()
 
-print(VERSION)
-print(NAME)
+print('NAME: %s' % NAME)
+print('VERSION: %s' % VERSION)
 
 
 # This is a workaround to have setuptools to include

@@ -23,7 +23,7 @@
 
 #include <pulsar/Client.h>
 #include <pulsar/MessageBatch.h>
-#include <lib/Utils.h>
+#include "future.h"
 
 using namespace pulsar;
 
@@ -39,6 +39,29 @@ inline void CHECK_RESULT(Result res) {
         throw PulsarException(res);
     }
 }
+
+struct WaitForCallback {
+    Promise<bool, Result> m_promise;
+
+    WaitForCallback(Promise<bool, Result> promise) : m_promise(promise) {}
+
+    void operator()(Result result) { m_promise.setValue(result); }
+};
+
+template <typename T>
+struct WaitForCallbackValue {
+    Promise<Result, T>& m_promise;
+
+    WaitForCallbackValue(Promise<Result, T>& promise) : m_promise(promise) {}
+
+    void operator()(Result result, const T& value) {
+        if (result == ResultOk) {
+            m_promise.setValue(value);
+        } else {
+            m_promise.setFailed(result);
+        }
+    }
+};
 
 void waitForAsyncResult(std::function<void(ResultCallback)> func);
 
@@ -101,4 +124,37 @@ class CaptivePythonObjectMixin {
             PyGILState_Release(state);
         }
     }
+};
+
+/**
+ * Utility class that encloses an optional value
+ */
+template <typename T>
+class Optional {
+   public:
+    const T& value() const { return value_; }
+
+    bool is_present() const { return present_; }
+
+    bool is_empty() const { return !present_; }
+
+    /**
+     * Create an Optional with the bound value
+     */
+    static Optional<T> of(const T& value) { return Optional<T>(value); }
+    static Optional<T> of(T&& value) { return Optional<T>(std::move(value)); }
+
+    /**
+     * Create an empty optional
+     */
+    static Optional<T> empty() { return Optional<T>(); }
+
+    Optional() : value_(), present_(false) {}
+
+   private:
+    Optional(const T& value) : value_(value), present_(true) {}
+    Optional(T&& value) : value_(std::move(value)), present_(true) {}
+
+    T value_;
+    bool present_;
 };

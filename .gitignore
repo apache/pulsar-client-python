@@ -2,3 +2,10 @@ MANIFEST
 build
 dist
 *.egg-info
+.idea
+CMakeCache.txt
+CMakeFiles
+Makefile
+_pulsar.so
+cmake_install.cmake
+
