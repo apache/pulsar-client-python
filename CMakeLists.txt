@@ -26,10 +26,10 @@ find_package(Threads REQUIRED)
 MESSAGE(STATUS "Threads library: " ${CMAKE_THREAD_LIBS_INIT})
 
 
-find_library(PULSAR_LIBRARY REQUIRED NAMES libpulsar.a)
+find_library(PULSAR_LIBRARY NAMES libpulsar.a)
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
 
-find_path(PULSAR_INCLUDE REQUIRED pulsar/Client.h)
+find_path(PULSAR_INCLUDE pulsar/Client.h)
 message(STATUS "PULSAR_INCLUDE: ${PULSAR_INCLUDE}")
 
 SET(Boost_NO_BOOST_CMAKE ON)
@@ -72,19 +72,6 @@ if (APPLE)
 endif ()
 
 set(OPENSSL_USE_STATIC_LIBS TRUE)
-find_package(OpenSSL REQUIRED)
-set(RECORD_OPENSSL_SSL_LIBRARY ${OPENSSL_SSL_LIBRARY})
-set(RECORD_OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY})
-
-unset(OPENSSL_FOUND CACHE)
-unset(OPENSSL_INCLUDE_DIR CACHE)
-unset(OPENSSL_CRYPTO_LIBRARY CACHE)
-unset(OPENSSL_CRYPTO_LIBRARIES CACHE)
-unset(OPENSSL_SSL_LIBRARY CACHE)
-unset(OPENSSL_SSL_LIBRARIES CACHE)
-unset(OPENSSL_LIBRARIES CACHE)
-unset(OPENSSL_VERSION CACHE)
-
 find_package(OpenSSL REQUIRED)
 
 find_library(ZLIB_LIBRARIES REQUIRED NAMES libz.a z zlib)
@@ -187,10 +174,10 @@ message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
 if (APPLE)
     set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
-    target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS} ${COMMON_LIBS} ${ICU_LIBS})
+    target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})
 else ()
     if (NOT MSVC)
       set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
     endif()
-    target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS} ${COMMON_LIBS})
+    target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
 endif ()
