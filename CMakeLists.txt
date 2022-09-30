@@ -27,10 +27,7 @@ set(CMAKE_PREFIX_PATH
     ${CMAKE_PREFIX_PATH}
     ${CMAKE_SOURCE_DIR}/pulsar-client-cpp/build)
 
-set(PULSAR_CPP_INCLUDE_DIRS
-    ${CMAKE_SOURCE_DIR}/pulsar-client-cpp/include
-    ${CMAKE_SOURCE_DIR}
-)
+set(PULSAR_CPP_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/pulsar-client-cpp/include)
 
 # Enable this option if the Pulsar C++ client was built with LINK_STATIC=ON
 option(PULASR_CPPLINK_STATIC "Link against static libraries" OFF)
