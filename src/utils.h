@@ -125,36 +125,3 @@ class CaptivePythonObjectMixin {
         }
     }
 };
-
-/**
- * Utility class that encloses an optional value
- */
-template <typename T>
-class Optional {
-   public:
-    const T& value() const { return value_; }
-
-    bool is_present() const { return present_; }
-
-    bool is_empty() const { return !present_; }
-
-    /**
-     * Create an Optional with the bound value
-     */
-    static Optional<T> of(const T& value) { return Optional<T>(value); }
-    static Optional<T> of(T&& value) { return Optional<T>(std::move(value)); }
-
-    /**
-     * Create an empty optional
-     */
-    static Optional<T> empty() { return Optional<T>(); }
-
-    Optional() : value_(), present_(false) {}
-
-   private:
-    Optional(const T& value) : value_(value), present_(true) {}
-    Optional(T&& value) : value_(std::move(value)), present_(true) {}
-
-    T value_;
-    bool present_;
-};
