@@ -19,6 +19,7 @@
 
 project (pulsar-client-python)
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 MESSAGE(STATUS "CMAKE_BUILD_TYPE:  " ${CMAKE_BUILD_TYPE})
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
@@ -181,3 +182,18 @@ else ()
     endif()
     target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
 endif ()
+
+find_package(ClangTools)
+set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
+add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+        ${CLANG_FORMAT_BIN}
+        0
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${CMAKE_SOURCE_DIR}/src)
+
+# `make check-format` option (for CI test)
+add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+        ${CLANG_FORMAT_BIN}
+        1
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${CMAKE_SOURCE_DIR}/src)
