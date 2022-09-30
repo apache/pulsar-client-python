@@ -23,7 +23,7 @@
 
 #include <pulsar/Client.h>
 #include <pulsar/MessageBatch.h>
-#include <lib/Utils.h>
+#include "future.h"
 
 using namespace pulsar;
 
@@ -39,6 +39,29 @@ inline void CHECK_RESULT(Result res) {
         throw PulsarException(res);
     }
 }
+
+struct WaitForCallback {
+    Promise<bool, Result> m_promise;
+
+    WaitForCallback(Promise<bool, Result> promise) : m_promise(promise) {}
+
+    void operator()(Result result) { m_promise.setValue(result); }
+};
+
+template <typename T>
+struct WaitForCallbackValue {
+    Promise<Result, T>& m_promise;
+
+    WaitForCallbackValue(Promise<Result, T>& promise) : m_promise(promise) {}
+
+    void operator()(Result result, const T& value) {
+        if (result == ResultOk) {
+            m_promise.setValue(value);
+        } else {
+            m_promise.setFailed(result);
+        }
+    }
+};
 
 void waitForAsyncResult(std::function<void(ResultCallback)> func);
 

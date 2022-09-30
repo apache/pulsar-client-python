@@ -1,0 +1,5 @@
+
+pulsar-client-python: 3.0.0a1
+
+# Dependency
+pulsar-client-cpp: 2.10.1
