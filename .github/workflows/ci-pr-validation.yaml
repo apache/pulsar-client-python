@@ -17,11 +17,10 @@
 # under the License.
 #
 
-name: CI - C++ Build - PR validation
+name: PR validation
 on:
   pull_request:
-    branches:
-      - main
+    branches: ['main']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
