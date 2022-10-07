@@ -46,12 +46,7 @@ from _pulsar import ProducerConfiguration, ConsumerConfiguration
 
 from schema_test import *
 
-try:
-    # For Python 3.0 and later
-    from urllib.request import urlopen, Request
-except ImportError:
-    # Fall back to Python 2's urllib2
-    from urllib2 import urlopen, Request
+from urllib.request import urlopen, Request
 
 TM = 10000  # Do not wait forever in tests
 
@@ -324,9 +319,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth(self):
-        certs_dir = "/pulsar/pulsar-broker/src/test/resources/authentication/tls/"
-        if not os.path.exists(certs_dir):
-            certs_dir = "../../pulsar-broker/src/test/resources/authentication/tls/"
+        certs_dir = "test-conf/"
         client = Client(
             self.serviceUrlTls,
             tls_trust_certs_file_path=certs_dir + "cacert.pem",
@@ -349,9 +342,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth2(self):
-        certs_dir = "/pulsar/pulsar-broker/src/test/resources/authentication/tls/"
-        if not os.path.exists(certs_dir):
-            certs_dir = "../../pulsar-broker/src/test/resources/authentication/tls/"
+        certs_dir = "test-conf/"
         authPlugin = "org.apache.pulsar.client.impl.auth.AuthenticationTls"
         authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (certs_dir, certs_dir)
 
@@ -377,8 +368,8 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_encryption(self):
-        publicKeyPath = "/pulsar//pulsar-broker/src/test/resources/certificate/public-key.client-rsa.pem"
-        privateKeyPath = "/pulsar/pulsar-broker/src/test/resources/certificate/private-key.client-rsa.pem"
+        publicKeyPath = "test-conf/public-key.client-rsa.pem"
+        privateKeyPath = "test-conf/private-key.client-rsa.pem"
         crypto_key_reader = CryptoKeyReader(publicKeyPath, privateKeyPath)
         client = Client(self.serviceUrl)
         topic = "my-python-test-end-to-end-encryption"
@@ -409,9 +400,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth3(self):
-        certs_dir = "/pulsar/pulsar-broker/src/test/resources/authentication/tls/"
-        if not os.path.exists(certs_dir):
-            certs_dir = "../../pulsar-broker/src/test/resources/authentication/tls/"
+        certs_dir = "test-conf/"
         authPlugin = "tls"
         authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (certs_dir, certs_dir)
 
@@ -437,9 +426,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_auth_junk_params(self):
-        certs_dir = "/pulsar/pulsar-broker/src/test/resources/authentication/tls/"
-        if not os.path.exists(certs_dir):
-            certs_dir = "../../pulsar-broker/src/test/resources/authentication/tls/"
+        certs_dir = "test-conf/"
         authPlugin = "someoldjunk.so"
         authParams = "blah"
         client = Client(
@@ -1077,7 +1064,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_token_auth(self):
-        with open("/tmp/pulsar-test-data/tokens/token.txt") as tf:
+        with open(".test-token.txt") as tf:
             token = tf.read().strip()
 
         # Use adminUrl to test both HTTP request and binary protocol
@@ -1096,7 +1083,7 @@ class PulsarTest(TestCase):
 
     def test_token_auth_supplier(self):
         def read_token():
-            with open("/tmp/pulsar-test-data/tokens/token.txt") as tf:
+            with open(".test-token.txt") as tf:
                 return tf.read().strip()
 
         client = Client(self.serviceUrl, authentication=AuthenticationToken(read_token))

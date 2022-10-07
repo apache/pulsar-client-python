@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -29,9 +30,7 @@ def get_version():
     root = path.dirname(path.realpath(__file__))
     version_file = path.join(root, 'version.txt')
     with open(version_file) as f:
-        for line in f.readlines():
-            if 'pulsar-client-python: ' in line:
-                return line.split()[-1].strip()
+        return f.read().strip()
 
 
 def get_name():
