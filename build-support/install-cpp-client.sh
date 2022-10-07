@@ -20,17 +20,48 @@
 
 set -e -x
 
-ROOT_DIR=$(git rev-parse --show-toplevel)
+ROOT_DIR=$(dirname $(dirname $0))
+CPP_CLIENT_VERSION=$(cat $ROOT_DIR/pulsar-client-cpp-version.txt | xargs)
 
-cd $ROOT_DIR
+if [ $USER != "root" ]; then
+  SUDO="sudo"
+fi
 
-CPP_CLIENT_VERSION=$(cat pulsar-client-cpp-version.txt | xargs)
+# Get the flavor of Linux
+export $(cat /etc/*-release | grep "^ID=")
+
+cd /tmp
 
 # Fetch the client binaries
 ## TODO: Fetch from official release once it's available
-pushd /tmp
-  curl -L -O https://github.com/merlimat/pulsar-client-cpp/releases/download/${CPP_CLIENT_VERSION}/apache-pulsar-client.deb
-  curl -L -O https://github.com/merlimat/pulsar-client-cpp/releases/download/${CPP_CLIENT_VERSION}/apache-pulsar-client-dev.deb
-popd
+BASE_URL=https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp-${CPP_CLIENT_VERSION}-candidate-1
 
-sudo apt install /tmp/apache-pulsar-client.deb /tmp/apache-pulsar-client-dev.deb
+UNAME_ARCH=$(uname -m)
+if [ $UNAME_ARCH == 'aarch64' ]; then
+  PLATFORM=arm64
+else
+  PLATFORM=x86_64
+fi
+
+if [ $ID == 'ubuntu' ]; then
+  curl -L -O ${BASE_URL}/deb-${PLATFORM}/apache-pulsar-client.deb
+  curl -L -O ${BASE_URL}/deb-${PLATFORM}/apache-pulsar-client-dev.deb
+  $SUDO apt install -y /tmp/*.deb
+
+elif [ $ID == 'alpine' ]; then
+  curl -L -O ${BASE_URL}/apk-${PLATFORM}/apache-pulsar-client-${CPP_CLIENT_VERSION}-r0.apk
+  curl -L -O ${BASE_URL}/apk-${PLATFORM}/apache-pulsar-client-dev-${CPP_CLIENT_VERSION}-r0.apk
+  $SUDO apk add --allow-untrusted /tmp/*.apk
+
+elif [ $ID == '"centos"' ]; then
+  curl -L -O ${BASE_URL}/rpm-${PLATFORM}/${UNAME_ARCH}/apache-pulsar-client-${CPP_CLIENT_VERSION}-1.${UNAME_ARCH}.rpm
+  curl -L -O ${BASE_URL}/rpm-${PLATFORM}/${UNAME_ARCH}/apache-pulsar-client-devel-${CPP_CLIENT_VERSION}-1.${UNAME_ARCH}.rpm
+  $SUDO rpm -i /tmp/*.rpm
+
+else
+  echo "Unknown Linux distribution: '$ID'"
+  exit 1
+fi
+
+
+

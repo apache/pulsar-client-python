@@ -18,7 +18,7 @@
 #
 
 project (pulsar-client-python)
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 option(LINK_STATIC "Link against static libraries" OFF)
@@ -32,42 +32,22 @@ MESSAGE(STATUS "Threads library: " ${CMAKE_THREAD_LIBS_INIT})
 if (LINK_STATIC)
     find_library(PULSAR_LIBRARY NAMES libpulsar.a)
 else()
-    find_library(PULSAR_LIBRARY NAMES libpulsar.so)
+    find_library(PULSAR_LIBRARY NAMES libpulsar.so  libpulsar.dylib)
 endif()
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
 
 find_path(PULSAR_INCLUDE pulsar/Client.h)
 message(STATUS "PULSAR_INCLUDE: ${PULSAR_INCLUDE}")
 
-SET(Boost_NO_BOOST_CMAKE ON)
-SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
-
 SET(CMAKE_CXX_STANDARD 11)
 
-find_package(Boost)
-
-find_package (Python3 COMPONENTS Development)
+find_package (Python3 REQUIRED COMPONENTS Development.Module)
 MESSAGE(STATUS "PYTHON: " ${Python3_VERSION} " - " ${Python3_INCLUDE_DIRS})
 
-string(REPLACE "." ";" PYTHONLIBS_VERSION_NO_LIST ${Python3_VERSION})
-
-set(BOOST_PYTHON_NAME_POSTFIX ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
-# For python3 the lib name is boost_python3
-set(BOOST_PYTHON_NAME_LIST python${BOOST_PYTHON_NAME_POSTFIX};python37;python38;python39;python310;python3;python3-mt;python-py${BOOST_PYTHON_NAME_POSTFIX};python${BOOST_PYTHON_NAME_POSTFIX}-mt)
-
-foreach (BOOST_PYTHON_NAME IN LISTS BOOST_PYTHON_NAME_LIST)
-    find_package(Boost QUIET COMPONENTS ${BOOST_PYTHON_NAME})
-    if (${Boost_FOUND})
-        set(BOOST_PYTHON_NAME_FOUND ${BOOST_PYTHON_NAME})
-        break()
-    endif()
-endforeach()
-
-if (NOT ${Boost_FOUND})
-    MESSAGE(FATAL_ERROR "Could not find Boost Python library")
-endif ()
-
-MESSAGE(STATUS "BOOST_PYTHON_NAME_FOUND: " ${BOOST_PYTHON_NAME_FOUND})
+SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
+find_package(Boost REQUIRED COMPONENTS python3)
+MESSAGE(STATUS "Boost Python3: " ${Boost_PYTHON3_LIBRARY})
+MESSAGE(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
 
 ########################################################################################################################
 
@@ -99,55 +79,43 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -Qunused-arguments -undefined dynamic_lookup")
 endif()
 
-# Newer boost versions don't use the -mt suffix
-if (NOT DEFINED ${Boost_PYTHON37-MT_LIBRARY})
-  set(Boost_PYTHON37-MT_LIBRARY ${Boost_PYTHON37_LIBRARY})
-endif()
-
-if (NOT DEFINED ${Boost_PYTHON38-MT_LIBRARY})
-  set(Boost_PYTHON38-MT_LIBRARY ${Boost_PYTHON38_LIBRARY})
-endif()
-
-if (NOT DEFINED ${Boost_PYTHON39-MT_LIBRARY})
-  set(Boost_PYTHON39-MT_LIBRARY ${Boost_PYTHON39_LIBRARY})
-endif()
-
-if (NOT DEFINED ${Boost_PYTHON310-MT_LIBRARY})
-  set(Boost_PYTHON310-MT_LIBRARY ${Boost_PYTHON310_LIBRARY})
-endif()
-
 # Try all possible boost-python variable namings
 set(PYTHON_WRAPPER_LIBS ${PULSAR_LIBRARY}
-                        ${Boost_PYTHON_LIBRARY}
-                        ${Boost_PYTHON3_LIBRARY}
-                        ${Boost_PYTHON37-MT_LIBRARY}
-                        ${Boost_PYTHON38_LIBRARY}
-                        ${Boost_PYTHON39_LIBRARY}
-                        ${Boost_PYTHON310_LIBRARY}
-    )
-
-if (APPLE)
-    if (Boost_PYTHON37-MT_LIBRARY_RELEASE)
-        set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} ${Boost_PYTHON37-MT_LIBRARY_RELEASE})
-    endif ()
-    if (Boost_PYTHON38-MT_LIBRARY_RELEASE)
-        set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} ${Boost_PYTHON38-MT_LIBRARY_RELEASE})
-    endif ()
-    if (Boost_PYTHON39-MT_LIBRARY_RELEASE)
-        set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} ${Boost_PYTHON39-MT_LIBRARY_RELEASE})
-    endif ()
-    if (Boost_PYTHON310-MT_LIBRARY_RELEASE)
-        set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} ${Boost_PYTHON310-MT_LIBRARY_RELEASE})
-    endif ()
-endif()
-
-if (NOT PYTHON_WRAPPER_LIBS)
-    MESSAGE(FATAL_ERROR "Could not find Boost Python library")
-endif ()
+                        ${Boost_PYTHON3_LIBRARY})
 
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
 if (LINK_STATIC)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
+    # We need to include all the static libs individually because we cannot easily create a universal2 libpulsar.a
+    # with all the deps included.
+    find_package(OpenSSL REQUIRED)
+    message("OPENSSL_LIBRARIES: " ${OPENSSL_LIBRARIES})
+
+    find_package(Protobuf REQUIRED)
+    message("Protobuf_LIBRARIES: " ${Protobuf_LIBRARIES})
+
+    find_package(curl REQUIRED)
+    message("CURL_LIBRARIES: " ${CURL_LIBRARIES})
+
+    find_package(zlib)
+    message("ZLIB_LIBRARIES: " ${ZLIB_LIBRARIES})
+
+    find_library(LIB_ZSTD NAMES libzstd.a)
+    message(STATUS "ZStd: ${LIB_ZSTD}")
+    find_library(LIB_SNAPPY NAMES libsnappy.a)
+    message(STATUS "LIB_SNAPPY: ${LIB_SNAPPY}")
+
+    set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS}
+                        ${OPENSSL_LIBRARIES}
+                        ${Protobuf_LIBRARIES}
+                        ${ZLIB_LIBRARIES}
+                        ${LIB_ZSTD}
+                        ${LIB_SNAPPY}
+                        ${CURL_LIBRARIES}
+                        )
+
     if (APPLE)
         set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
         target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})

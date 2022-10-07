@@ -116,7 +116,6 @@ _schema = schema
 import re
 _retype = type(re.compile('x'))
 
-import certifi
 from datetime import timedelta
 
 
@@ -469,6 +468,7 @@ class Client:
         if tls_trust_certs_file_path:
             conf.tls_trust_certs_file_path(tls_trust_certs_file_path)
         else:
+            import certifi
             conf.tls_trust_certs_file_path(certifi.where())
         conf.tls_allow_insecure_connection(tls_allow_insecure_connection)
         conf.tls_validate_hostname(tls_validate_hostname)
