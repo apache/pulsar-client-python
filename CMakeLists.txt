@@ -21,20 +21,26 @@ project (pulsar-client-python)
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
+option(LINK_STATIC "Link against static libraries" OFF)
+MESSAGE(STATUS "LINK_STATIC:  " ${LINK_STATIC})
+
 MESSAGE(STATUS "CMAKE_BUILD_TYPE:  " ${CMAKE_BUILD_TYPE})
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 MESSAGE(STATUS "Threads library: " ${CMAKE_THREAD_LIBS_INIT})
 
-
-find_library(PULSAR_LIBRARY NAMES libpulsar.a)
+if (LINK_STATIC)
+    find_library(PULSAR_LIBRARY NAMES libpulsar.a)
+else()
+    find_library(PULSAR_LIBRARY NAMES libpulsar.so)
+endif()
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
 
 find_path(PULSAR_INCLUDE pulsar/Client.h)
 message(STATUS "PULSAR_INCLUDE: ${PULSAR_INCLUDE}")
 
 SET(Boost_NO_BOOST_CMAKE ON)
-SET(Boost_USE_STATIC_LIBS   ON)
+SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
 
 SET(CMAKE_CXX_STANDARD 11)
 
@@ -62,32 +68,6 @@ if (NOT ${Boost_FOUND})
 endif ()
 
 MESSAGE(STATUS "BOOST_PYTHON_NAME_FOUND: " ${BOOST_PYTHON_NAME_FOUND})
-
-set(OPENSSL_ROOT_DIR ${OPENSSL_ROOT_DIR} /usr/lib64/)
-
-### This part is to find and keep SSL dynamic libs in RECORD_OPENSSL_SSL_LIBRARY and RECORD_OPENSSL_CRYPTO_LIBRARY
-### After find the libs, will unset related cache, and will not affect another same call to find_package.
-if (APPLE)
-    set(OPENSSL_INCLUDE_DIR /usr/local/opt/openssl/include/ /opt/homebrew/opt/openssl/include)
-    set(OPENSSL_ROOT_DIR ${OPENSSL_ROOT_DIR} /usr/local/opt/openssl/ /opt/homebrew/opt/openssl)
-endif ()
-
-set(OPENSSL_USE_STATIC_LIBS TRUE)
-find_package(OpenSSL REQUIRED)
-
-find_library(ZLIB_LIBRARIES REQUIRED NAMES libz.a z zlib)
-message(STATUS "ZLIB_LIBRARIES: ${ZLIB_LIBRARIES}")
-
-find_library(CURL_LIBRARIES NAMES libcurl.a curl curl_a libcurl_a)
-message(STATUS "CURL_LIBRARIES: ${CURL_LIBRARIES}")
-find_library(Protobuf_LIBRARIES NAMES libprotobuf.a libprotobuf)
-message(STATUS "Protobuf: ${Protobuf_LIBRARIES}")
-find_library(CURL_LIBRARIES NAMES libcurl.a curl curl_a libcurl_a)
-message(STATUS "CURL_LIBRARIES: ${CURL_LIBRARIES}")
-find_library(LIB_ZSTD NAMES libzstd.a)
-message(STATUS "ZStd: ${LIB_ZSTD}")
-find_library(LIB_SNAPPY NAMES libsnappy.a)
-message(STATUS "LIB_SNAPPY: ${LIB_SNAPPY}")
 
 ########################################################################################################################
 
@@ -138,12 +118,6 @@ endif()
 
 # Try all possible boost-python variable namings
 set(PYTHON_WRAPPER_LIBS ${PULSAR_LIBRARY}
-                        ${OPENSSL_LIBRARIES}
-                        ${ZLIB_LIBRARIES}
-                        ${CURL_LIBRARIES}
-                        ${Protobuf_LIBRARIES}
-                        ${LIB_ZSTD}
-                        ${LIB_SNAPPY}
                         ${Boost_PYTHON_LIBRARY}
                         ${Boost_PYTHON3_LIBRARY}
                         ${Boost_PYTHON37-MT_LIBRARY}
@@ -173,13 +147,17 @@ endif ()
 
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
-if (APPLE)
-    set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
-    target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})
-else ()
-    if (NOT MSVC)
-      set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
-    endif()
+if (LINK_STATIC)
+    if (APPLE)
+        set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
+        target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})
+    else ()
+        if (NOT MSVC)
+          set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
+        endif()
+        target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
+    endif ()
+else()
     target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
 endif ()
 

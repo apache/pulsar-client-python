@@ -9,3 +9,6 @@ Makefile
 _pulsar.so
 cmake_install.cmake
 __pycache__
+.build
+.pulsar-mac-wheels-cache
+.DS_Store
