@@ -24,15 +24,24 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 option(LINK_STATIC "Link against static libraries" OFF)
 MESSAGE(STATUS "LINK_STATIC:  " ${LINK_STATIC})
 
+# The pre-built C++ client might not link to OpenSSL statically.
+# Enable this option to find OpenSSL when LINK_STATIC is ON.
+option(LINK_OPENSSL "Link against OpenSSL" OFF)
+message(STATUS "LINK_OPENSSL: " ${LINK_OPENSSL})
+
 MESSAGE(STATUS "CMAKE_BUILD_TYPE:  " ${CMAKE_BUILD_TYPE})
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 MESSAGE(STATUS "Threads library: " ${CMAKE_THREAD_LIBS_INIT})
 
 if (LINK_STATIC)
-    find_library(PULSAR_LIBRARY NAMES libpulsar.a)
+    find_library(PULSAR_LIBRARY NAMES libpulsarwithdeps.a)
+    if (LINK_OPENSSL)
+        find_package(OpenSSL REQUIRED)
+        message(STATUS "Found OPENSSL_LIBRARIES: " ${OPENSSL_LIBRARIES})
+    endif ()
 else()
-    find_library(PULSAR_LIBRARY NAMES libpulsar.so)
+    find_library(PULSAR_LIBRARY NAMES pulsar)
 endif()
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
 
@@ -150,12 +159,14 @@ message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 if (LINK_STATIC)
     if (APPLE)
         set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
-        target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})
+        target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS}
+            "-framework Foundation"
+            "-framework SystemConfiguration")
     else ()
         if (NOT MSVC)
           set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
         endif()
-        target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
+        target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
     endif ()
 else()
     target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
