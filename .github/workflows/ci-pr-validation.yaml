@@ -76,6 +76,9 @@ jobs:
       - name: Install OpenSSL
         run: sudo apt install libssl-dev
 
+      - name: Install Pulsar C++ client
+        run: build-support/install-cpp-client.sh
+
       - name: Install dependencies
         run: ./build-support/install-dependencies.sh ./deps
 
