@@ -22,8 +22,6 @@ on:
   push:
     tags:
       - '*'
-    branches:
-      - '*'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
