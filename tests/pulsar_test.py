@@ -1238,7 +1238,7 @@ class PulsarTest(TestCase):
         second_encode = schema.encode(record)
         self.assertEqual(first_encode, second_encode)
 
-    def configure_log_level(self):
+    def test_configure_log_level(self):
         client = pulsar.Client(
             service_url="pulsar://localhost:6650",
             logger=pulsar.ConsoleLogger(pulsar.LoggerLevel.Debug)
@@ -1250,7 +1250,7 @@ class PulsarTest(TestCase):
 
         producer.send(b'hello')
 
-    def configure_log_to_file(self):
+    def test_configure_log_to_file(self):
         client = pulsar.Client(
             service_url="pulsar://localhost:6650",
             logger=pulsar.FileLogger(pulsar.LoggerLevel.Debug, 'test.log')
