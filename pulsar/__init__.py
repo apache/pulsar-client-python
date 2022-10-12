@@ -103,7 +103,8 @@ To install the Python bindings:
 import logging
 import _pulsar
 
-from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType  # noqa: F401
+from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
+    LoggerLevel # noqa: F401
 
 from pulsar.exceptions import *
 
@@ -448,7 +449,6 @@ class Client:
         _check_type_or_none(str, tls_trust_certs_file_path, 'tls_trust_certs_file_path')
         _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
         _check_type(bool, tls_validate_hostname, 'tls_validate_hostname')
-        _check_type_or_none(logging.Logger, logger, 'logger')
         _check_type_or_none(str, listener_name, 'listener_name')
 
         conf = _pulsar.ClientConfiguration()
@@ -461,7 +461,16 @@ class Client:
         conf.concurrent_lookup_requests(concurrent_lookup_requests)
         if log_conf_file_path:
             conf.log_conf_file_path(log_conf_file_path)
-        conf.set_logger(self._prepare_logger(logger) if logger else None)
+
+        if isinstance(logger, logging.Logger):
+            conf.set_logger(self._prepare_logger(logger))
+        elif isinstance(logger, ConsoleLogger):
+            conf.set_console_logger(logger.log_level)
+        elif isinstance(logger, FileLogger):
+            conf.set_file_logger(logger.log_level, logger.log_file)
+        elif logger is not None:
+            raise ValueError("Logger is expected to be either None, logger.Logger, pulsar.ConsoleLogger or pulsar.FileLogger")
+
         if listener_name:
             conf.listener_name(listener_name)
         if use_tls or service_url.startswith('pulsar+ssl://') or service_url.startswith('https://'):
@@ -1404,6 +1413,36 @@ class CryptoKeyReader:
         _check_type(str, public_key_path, 'public_key_path')
         _check_type(str, private_key_path, 'private_key_path')
         self.cryptoKeyReader = _pulsar.CryptoKeyReader(public_key_path, private_key_path)
+
+
+class ConsoleLogger:
+    """
+    Logger that writes on standard output
+
+        **Args**
+
+        * `log_level`: The logging level. eg: `pulsar.LoggerLevel.Info`
+    """
+    def __init__(self, log_level=_pulsar.LoggerLevel.Info):
+        _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
+        self.log_level = log_level
+
+
+class FileLogger:
+    """
+    Logger that writes into a file
+
+        **Args**
+
+        * `log_level`: The logging level. eg: `pulsar.LoggerLevel.Info`
+        * `log_file`: The file where to write the logs
+    """
+    def __init__(self, log_level, log_file):
+        _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
+        _check_type(str, log_file, 'log_file')
+        self.log_level = log_level
+        self.log_file = log_file
+
 
 def _check_type(var_type, var, name):
     if not isinstance(var, var_type):

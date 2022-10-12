@@ -1238,6 +1238,30 @@ class PulsarTest(TestCase):
         second_encode = schema.encode(record)
         self.assertEqual(first_encode, second_encode)
 
+    def configure_log_level(self):
+        client = pulsar.Client(
+            service_url="pulsar://localhost:6650",
+            logger=pulsar.ConsoleLogger(pulsar.LoggerLevel.Debug)
+        )
+
+        producer = client.create_producer(
+            topic='test_log_level'
+        )
+
+        producer.send(b'hello')
+
+    def configure_log_to_file(self):
+        client = pulsar.Client(
+            service_url="pulsar://localhost:6650",
+            logger=pulsar.FileLogger(pulsar.LoggerLevel.Debug, 'test.log')
+        )
+
+        producer = client.create_producer(
+            topic='test_log_to_file'
+        )
+
+        producer.send(b'hello')
+
     def test_logger_thread_leaks(self):
         def _do_connect(close):
             logger = logging.getLogger(str(threading.current_thread().ident))

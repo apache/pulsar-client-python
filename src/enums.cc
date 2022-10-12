@@ -111,4 +111,10 @@ void export_enums() {
     enum_<ProducerConfiguration::BatchingType>("BatchingType", "Supported batching types")
         .value("Default", ProducerConfiguration::DefaultBatching)
         .value("KeyBased", ProducerConfiguration::KeyBasedBatching);
+
+    enum_<Logger::Level>("LoggerLevel")
+        .value("Debug", Logger::LEVEL_DEBUG)
+        .value("Info", Logger::LEVEL_INFO)
+        .value("Warn", Logger::LEVEL_WARN)
+        .value("Error", Logger::LEVEL_ERROR);
 }
