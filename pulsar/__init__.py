@@ -347,7 +347,7 @@ class AuthenticationBasic(Authentication):
     """
     Basic Authentication implementation
     """
-    def __init__(self, username=None, password=None, auth_params_string=None):
+    def __init__(self, username=None, password=None, method='basic', auth_params_string=None):
         """
         Create the Basic authentication provider instance.
 
@@ -362,17 +362,23 @@ class AuthenticationBasic(Authentication):
         **Args**
         * username : str, optional
         * password : str, optional
+        * method : str, optional
+            The authentication method name (default is 'basic')
         * auth_params_string : str, optional
-            The JSON presentation of username and password (default is None)
-            If it's not None, the parameters will be ignored
+            The JSON presentation of all fields above (default is None)
+            If it's not None, the other parameters will be ignored.
+            Here is an example JSON presentation:
+              {"username": "my-user", "password": "my-pass", "method": "oms3.0"}
+            The `username` and `password` fields are required. If the "method" field is not set,
+            it will be "basic" by default.
         """
         if auth_params_string is not None:
             _check_type(str, auth_params_string, 'auth_params_string')
-            self.auth = _pulsar.AuthenticationBasic('', '', auth_params_string)
+            self.auth = _pulsar.AuthenticationBasic('', '', '', auth_params_string)
         else:
             _check_type(str, username, 'username')
             _check_type(str, password, 'password')
-            self.auth = _pulsar.AuthenticationBasic(username, password, '')
+            self.auth = _pulsar.AuthenticationBasic(username, password, method, '')
 
 class Client:
     """

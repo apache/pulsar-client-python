@@ -1322,6 +1322,20 @@ class PulsarTest(TestCase):
             auth_params_string='{{"username": "{}","password": "{}"}}'.format(username, password)
         ))
 
+    def test_basic_auth_method(self):
+        username = "admin"
+        password = "123456"
+        self._test_basic_auth(2, AuthenticationBasic(username, password, 'basic'))
+        with self.assertRaises(pulsar.AuthorizationError):
+            self._test_basic_auth(3, AuthenticationBasic(username, password, 'unknown'))
+        self._test_basic_auth(4, AuthenticationBasic(
+            auth_params_string='{{"username": "{}","password": "{}", "method": "basic"}}'.format(username, password)
+        ))
+        with self.assertRaises(pulsar.AuthorizationError):
+            self._test_basic_auth(5, AuthenticationBasic(
+                auth_params_string='{{"username": "{}","password": "{}", "method": "unknown"}}'.format(username, password)
+            ))
+
     def test_invalid_basic_auth(self):
         username = "invalid"
         password = "123456"
