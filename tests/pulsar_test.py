@@ -49,6 +49,7 @@ from schema_test import *
 from urllib.request import urlopen, Request
 
 TM = 10000  # Do not wait forever in tests
+CERTS_DIR = os.path.dirname(__file__) + "/test-conf/"
 
 
 def doHttpPost(url, data):
@@ -319,12 +320,11 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth(self):
-        certs_dir = "test-conf/"
         client = Client(
             self.serviceUrlTls,
-            tls_trust_certs_file_path=certs_dir + "cacert.pem",
+            tls_trust_certs_file_path=CERTS_DIR + "cacert.pem",
             tls_allow_insecure_connection=False,
-            authentication=AuthenticationTLS(certs_dir + "client-cert.pem", certs_dir + "client-key.pem"),
+            authentication=AuthenticationTLS(CERTS_DIR + "client-cert.pem", CERTS_DIR + "client-key.pem"),
         )
 
         topic = "my-python-topic-tls-auth-" + str(time.time())
@@ -342,13 +342,12 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth2(self):
-        certs_dir = "test-conf/"
         authPlugin = "org.apache.pulsar.client.impl.auth.AuthenticationTls"
-        authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (certs_dir, certs_dir)
+        authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (CERTS_DIR, CERTS_DIR)
 
         client = Client(
             self.serviceUrlTls,
-            tls_trust_certs_file_path=certs_dir + "cacert.pem",
+            tls_trust_certs_file_path=CERTS_DIR + "cacert.pem",
             tls_allow_insecure_connection=False,
             authentication=Authentication(authPlugin, authParams),
         )
@@ -368,8 +367,8 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_encryption(self):
-        publicKeyPath = "test-conf/public-key.client-rsa.pem"
-        privateKeyPath = "test-conf/private-key.client-rsa.pem"
+        publicKeyPath = CERTS_DIR + "public-key.client-rsa.pem"
+        privateKeyPath = CERTS_DIR + "private-key.client-rsa.pem"
         crypto_key_reader = CryptoKeyReader(publicKeyPath, privateKeyPath)
         client = Client(self.serviceUrl)
         topic = "my-python-test-end-to-end-encryption"
@@ -400,13 +399,12 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_tls_auth3(self):
-        certs_dir = "test-conf/"
         authPlugin = "tls"
-        authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (certs_dir, certs_dir)
+        authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (CERTS_DIR, CERTS_DIR)
 
         client = Client(
             self.serviceUrlTls,
-            tls_trust_certs_file_path=certs_dir + "cacert.pem",
+            tls_trust_certs_file_path=CERTS_DIR + "cacert.pem",
             tls_allow_insecure_connection=False,
             authentication=Authentication(authPlugin, authParams),
         )
@@ -426,12 +424,11 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_auth_junk_params(self):
-        certs_dir = "test-conf/"
         authPlugin = "someoldjunk.so"
         authParams = "blah"
         client = Client(
             self.serviceUrlTls,
-            tls_trust_certs_file_path=certs_dir + "cacert.pem",
+            tls_trust_certs_file_path=CERTS_DIR + "cacert.pem",
             tls_allow_insecure_connection=False,
             authentication=Authentication(authPlugin, authParams),
         )
