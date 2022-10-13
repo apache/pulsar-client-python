@@ -91,9 +91,14 @@ struct AuthenticationOauth2Wrapper : public AuthenticationWrapper {
 };
 
 struct AuthenticationBasicWrapper : public AuthenticationWrapper {
-    AuthenticationBasicWrapper(const std::string& username, const std::string& password)
+    AuthenticationBasicWrapper(const std::string& username, const std::string& password,
+                               const std::string& authParamsString)
         : AuthenticationWrapper() {
-        this->auth = AuthBasic::create(username, password);
+        if (authParamsString.empty()) {
+            this->auth = AuthBasic::create(username, password);
+        } else {
+            this->auth = AuthBasic::create(authParamsString);
+        }
     }
 };
 
@@ -115,5 +120,5 @@ void export_authentication() {
                                                                        init<const std::string&>());
 
     class_<AuthenticationBasicWrapper, bases<AuthenticationWrapper> >(
-        "AuthenticationBasic", init<const std::string&, const std::string&>());
+        "AuthenticationBasic", init<const std::string&, const std::string&, const std::string&>());
 }

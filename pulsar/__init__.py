@@ -347,18 +347,32 @@ class AuthenticationBasic(Authentication):
     """
     Basic Authentication implementation
     """
-    def __init__(self, username, password):
+    def __init__(self, username=None, password=None, auth_params_string=None):
         """
         Create the Basic authentication provider instance.
 
-        **Args**
+        For example, if you want to create a basic authentication instance whose
+        username is "my-user" and password is "my-pass", there are two ways:
 
-        * `username`: Used to authentication as username
-        * `password`: Used to authentication as password
+        ```
+        auth = AuthenticationBasic('my-user', 'my-pass')
+        auth = AuthenticationBasic(auth_params_string='{"username": "my-user", "password": "my-pass"}')
+        ```
+
+        **Args**
+        * username : str, optional
+        * password : str, optional
+        * auth_params_string : str, optional
+            The JSON presentation of username and password (default is None)
+            If it's not None, the parameters will be ignored
         """
-        _check_type(str, username, 'username')
-        _check_type(str, password, 'password')
-        self.auth = _pulsar.AuthenticationBasic(username, password)
+        if auth_params_string is not None:
+            _check_type(str, auth_params_string, 'auth_params_string')
+            self.auth = _pulsar.AuthenticationBasic('', '', auth_params_string)
+        else:
+            _check_type(str, username, 'username')
+            _check_type(str, password, 'password')
+            self.auth = _pulsar.AuthenticationBasic(username, password, '')
 
 class Client:
     """
