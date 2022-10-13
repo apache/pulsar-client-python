@@ -162,6 +162,17 @@ static ClientConfiguration& ClientConfiguration_setLogger(ClientConfiguration& c
     return conf;
 }
 
+static ClientConfiguration& ClientConfiguration_setConsoleLogger(ClientConfiguration& conf, Logger::Level level) {
+    conf.setLogger(new ConsoleLoggerFactory(level));
+    return conf;
+}
+
+static ClientConfiguration& ClientConfiguration_setFileLogger(ClientConfiguration& conf, Logger::Level level,
+                                                              const std::string& logFile) {
+    conf.setLogger(new FileLoggerFactory(level, logFile));
+    return conf;
+}
+
 void export_config() {
     using namespace boost::python;
 
@@ -190,7 +201,10 @@ void export_config() {
              return_self<>())
         .def("tls_validate_hostname", &ClientConfiguration::setValidateHostName, return_self<>())
         .def("listener_name", &ClientConfiguration::setListenerName, return_self<>())
-        .def("set_logger", &ClientConfiguration_setLogger, return_self<>());
+        .def("set_logger", &ClientConfiguration_setLogger, return_self<>())
+        .def("set_console_logger", &ClientConfiguration_setConsoleLogger, return_self<>())
+        .def("set_file_logger", &ClientConfiguration_setFileLogger, return_self<>());
+
 
     class_<ProducerConfiguration>("ProducerConfiguration")
         .def("producer_name", &ProducerConfiguration::getProducerName,
