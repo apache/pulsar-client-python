@@ -378,6 +378,7 @@ class AuthenticationBasic(Authentication):
         else:
             _check_type(str, username, 'username')
             _check_type(str, password, 'password')
+            _check_type(str, method, 'method')
             self.auth = _pulsar.AuthenticationBasic(username, password, method, '')
 
 class Client:
