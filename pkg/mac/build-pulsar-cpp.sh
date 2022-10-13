@@ -38,7 +38,7 @@ DEPS_PREFIX=${CACHE_DIR_DEPS}/install
 ###############################################################################
 
 ## TODO: Fetch from official release
-curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp-${PULSAR_CPP_VERSION}-candidate-1/apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz
+curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp-${PULSAR_CPP_VERSION}-candidate-2/apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz
 tar xfz apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz
 
 if [ ! -f apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}/.done ]; then
