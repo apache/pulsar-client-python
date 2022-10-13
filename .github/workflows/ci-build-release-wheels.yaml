@@ -17,53 +17,17 @@
 # under the License.
 #
 
-name: PR validation
+name: Build release wheels
 on:
-  pull_request:
-    branches: ['main']
+  push:
+    tags:
+      - '*'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-
-  unit-tests:
-    name: Run unit tests
-    runs-on: ubuntu-22.04
-    timeout-minutes: 120
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v3
-
-      - name: Install deps
-        run: sudo apt-get install -y libboost-python-dev
-
-      - name: Install Pulsar C++ client
-        run: build-support/install-cpp-client.sh
-
-      - name: CMake
-        run: cmake .
-
-      - name: Build
-        run: make -j8
-
-      - name: Python install
-        run: |
-            ./setup.py bdist_wheel
-            WHEEL=$(find dist -name '*.whl')
-            pip3 install ${WHEEL}[avro]
-
-      - name: Start Pulsar service
-        run: ./build-support/pulsar-test-service-start.sh
-
-      - name: Run unit tests
-        run: ./tests/run-unit-tests.sh
-
-      - name: Stop Pulsar service
-        run: ./build-support/pulsar-test-service-stop.sh
-
 
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
@@ -77,9 +41,13 @@ jobs:
           - {name: 'manylinux2014', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
+          - {version: '3.7', spec: 'cp37-cp37m'}
+          - {version: '3.8', spec: 'cp38-cp38'}
+          - {version: '3.9', spec: 'cp39-cp39'}
           - {version: '3.10', spec: 'cp310-cp310'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
+          - {arch: 'aarch64', platform: 'arm64'}
 
     steps:
       - name: checkout
@@ -113,8 +81,16 @@ jobs:
 
       - name: Test wheel file
         run: |
-          docker run -i -v $PWD:/pulsar-client-python python:${{matrix.python.version}}${{matrix.image.py_suffix}} \
+          docker run -i -v $PWD:/pulsar-client-python \
+              --platform linux/${{matrix.cpu.arch}} \
+              python:${{matrix.python.version}}${{matrix.image.py_suffix}} \
               /pulsar-client-python/pkg/test-wheel.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-${{matrix.image.name}}-py${{matrix.python.version}}-${{matrix.cpu.platform}}
+          path: wheelhouse/*.whl
 
   mac-wheels:
     name: Wheel MacOS Universal2 - Py ${{matrix.py.version}}
@@ -122,8 +98,12 @@ jobs:
     timeout-minutes: 300
 
     strategy:
+      fail-fast: false
       matrix:
         py:
+          - {version: '3.7', version_long:  '3.7.14'}
+          - {version: '3.8', version_long:  '3.8.13'}
+          - {version: '3.9', version_long:  '3.9.14'}
           - {version: '3.10', version_long:  '3.10.7'}
 
     steps:
@@ -154,3 +134,10 @@ jobs:
 
       - name: Build and test Mac wheels
         run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-mac-py${{matrix.py.version}}
+          path: dist/*.whl
+
