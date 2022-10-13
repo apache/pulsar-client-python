@@ -1301,12 +1301,10 @@ class PulsarTest(TestCase):
         with self.assertRaises(TypeError):
             fun()
 
-    def test_basic_auth(self):
-        username = "admin"
-        password = "123456"
-        client = Client(self.adminUrl, authentication=AuthenticationBasic(username, password))
+    def _test_basic_auth(self, id, auth):
+        client = Client(self.adminUrl, authentication=auth)
 
-        topic = "persistent://private/auth/my-python-topic-basic-auth"
+        topic = "persistent://private/auth/my-python-topic-basic-auth-" + str(id)
         consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared)
         producer = client.create_producer(topic)
         producer.send(b"hello")
@@ -1316,6 +1314,28 @@ class PulsarTest(TestCase):
         self.assertEqual(msg.data(), b"hello")
         client.close()
 
+    def test_basic_auth(self):
+        username = "admin"
+        password = "123456"
+        self._test_basic_auth(0, AuthenticationBasic(username, password))
+        self._test_basic_auth(1, AuthenticationBasic(
+            auth_params_string='{{"username": "{}","password": "{}"}}'.format(username, password)
+        ))
+
+    def test_basic_auth_method(self):
+        username = "admin"
+        password = "123456"
+        self._test_basic_auth(2, AuthenticationBasic(username, password, 'basic'))
+        with self.assertRaises(pulsar.AuthorizationError):
+            self._test_basic_auth(3, AuthenticationBasic(username, password, 'unknown'))
+        self._test_basic_auth(4, AuthenticationBasic(
+            auth_params_string='{{"username": "{}","password": "{}", "method": "basic"}}'.format(username, password)
+        ))
+        with self.assertRaises(pulsar.AuthorizationError):
+            self._test_basic_auth(5, AuthenticationBasic(
+                auth_params_string='{{"username": "{}","password": "{}", "method": "unknown"}}'.format(username, password)
+            ))
+
     def test_invalid_basic_auth(self):
         username = "invalid"
         password = "123456"
@@ -1323,6 +1343,13 @@ class PulsarTest(TestCase):
         topic = "persistent://private/auth/my-python-topic-invalid-basic-auth"
         with self.assertRaises(pulsar.ConnectError):
             client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared)
+        client = Client(self.adminUrl, authentication=AuthenticationBasic(
+            auth_params_string='{{"username": "{}","password": "{}"}}'.format(username, password)
+        ))
+        with self.assertRaises(pulsar.ConnectError):
+            client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared)
+        with self.assertRaises(RuntimeError):
+            AuthenticationBasic(auth_params_string='invalid auth params')
 
 if __name__ == "__main__":
     main()
