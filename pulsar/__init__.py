@@ -117,7 +117,6 @@ _schema = schema
 import re
 _retype = type(re.compile('x'))
 
-import certifi
 from datetime import timedelta
 
 
@@ -349,18 +348,39 @@ class AuthenticationBasic(Authentication):
     """
     Basic Authentication implementation
     """
-    def __init__(self, username, password):
+    def __init__(self, username=None, password=None, method='basic', auth_params_string=None):
         """
         Create the Basic authentication provider instance.
 
-        **Args**
+        For example, if you want to create a basic authentication instance whose
+        username is "my-user" and password is "my-pass", there are two ways:
 
-        * `username`: Used to authentication as username
-        * `password`: Used to authentication as password
+        ```
+        auth = AuthenticationBasic('my-user', 'my-pass')
+        auth = AuthenticationBasic(auth_params_string='{"username": "my-user", "password": "my-pass"}')
+        ```
+
+        **Args**
+        * username : str, optional
+        * password : str, optional
+        * method : str, optional
+            The authentication method name (default is 'basic')
+        * auth_params_string : str, optional
+            The JSON presentation of all fields above (default is None)
+            If it's not None, the other parameters will be ignored.
+            Here is an example JSON presentation:
+              {"username": "my-user", "password": "my-pass", "method": "oms3.0"}
+            The `username` and `password` fields are required. If the "method" field is not set,
+            it will be "basic" by default.
         """
-        _check_type(str, username, 'username')
-        _check_type(str, password, 'password')
-        self.auth = _pulsar.AuthenticationBasic(username, password)
+        if auth_params_string is not None:
+            _check_type(str, auth_params_string, 'auth_params_string')
+            self.auth = _pulsar.AuthenticationBasic('', '', '', auth_params_string)
+        else:
+            _check_type(str, username, 'username')
+            _check_type(str, password, 'password')
+            _check_type(str, method, 'method')
+            self.auth = _pulsar.AuthenticationBasic(username, password, method, '')
 
 class Client:
     """
@@ -478,6 +498,7 @@ class Client:
         if tls_trust_certs_file_path:
             conf.tls_trust_certs_file_path(tls_trust_certs_file_path)
         else:
+            import certifi
             conf.tls_trust_certs_file_path(certifi.where())
         conf.tls_allow_insecure_connection(tls_allow_insecure_connection)
         conf.tls_validate_hostname(tls_validate_hostname)

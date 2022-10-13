@@ -43,13 +43,13 @@ github:
     rebase:  false
   protected_branches:
     main:
-      # required_status_checks:
+      required_status_checks:
       #   # strict means "Require branches to be up to date before merging".
-      #   strict: false
+        strict: false
       #   # Contexts are the names of checks that must pass.
       #   # See ./github/workflows/README.md for more documentation on this list.
-      #   contexts:
-      #      - Pulsar CI checks completed
+        contexts:
+           - Check Completion
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

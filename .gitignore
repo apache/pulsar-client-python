@@ -12,3 +12,5 @@ __pycache__
 .build
 .pulsar-mac-wheels-cache
 .DS_Store
+wheelhouse
+.pulsar-mac-build
