@@ -22,6 +22,9 @@ set -e -x
 
 export PULSAR_EXTRA_OPTS=-Dpulsar.auth.basic.conf=test-conf/.htpasswd
 
+# Show logs immediately for debugging
+sed -i.bak 's/immediateFlush: false/immediateFlush: true/' conf/log4j2.yaml
+
 # Generate secret key and token
 mkdir -p data/tokens
 bin/pulsar tokens create-secret-key --output data/tokens/secret.key
