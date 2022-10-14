@@ -49,10 +49,6 @@ PIP_EXE=$PREFIX/bin/pip3
 
 ARCHS='arm64;x86_64'
 PIP_TAG='universal2'
-if [ $PYTHON_VERSION = '3.7' ]; then
-    ARCHS='x86_64'
-    PIP_TAG=$ARCHS
-fi
 
 cmake . \
         -DCMAKE_OSX_ARCHITECTURES=${ARCHS} \
@@ -67,7 +63,7 @@ cmake . \
         -DBOOST_ROOT=${PREFIX}
 
 make clean
-make -j16 VERBOSE=1
+make -j16
 
 $PY_EXE setup.py bdist_wheel
 
