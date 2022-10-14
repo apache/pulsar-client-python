@@ -50,7 +50,7 @@ PREFIX=$CACHE_DIR/install
 ###############################################################################
 if [ ! -f zlib-${ZLIB_VERSION}/.done ]; then
     echo "Building ZLib"
-    curl -O -L https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+    curl -O -L https://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz
     tar xfz zlib-$ZLIB_VERSION.tar.gz
     pushd zlib-$ZLIB_VERSION
       CFLAGS="-fPIC -O3 -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" ./configure --prefix=$PREFIX
