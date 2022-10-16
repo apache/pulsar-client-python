@@ -70,15 +70,12 @@ if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
 
   pushd Python-${PYTHON_VERSION_LONG}
       if [ $PYTHON_VERSION = '3.7' ]; then
-          UNIVERSAL_ARCHS='intel-64'
-          PY_CFLAGS=" -arch x86_64"
-      else
-          UNIVERSAL_ARCHS='universal2'
+          patch -p1 < ${ROOT_DIR}/pkg/mac/python-3.7.patch
       fi
 
       CFLAGS="-fPIC -O3 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -I${PREFIX}/include ${PY_CFLAGS}" \
           LDFLAGS=" ${PY_CFLAGS} -L${PREFIX}/lib" \
-          ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=${UNIVERSAL_ARCHS}
+          ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2
       make -j16
       make install
 
