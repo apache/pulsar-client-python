@@ -697,7 +697,8 @@ class Client:
                   crypto_key_reader=None,
                   replicate_subscription_state_enabled=False,
                   max_pending_chunked_message=10,
-                  auto_ack_oldest_chunked_message_on_queue_full=False
+                  auto_ack_oldest_chunked_message_on_queue_full=False,
+                  start_message_id_inclusive=False
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -792,6 +793,10 @@ class Client:
           Once, consumer reaches this threshold, it drops the outstanding unchunked-messages by silently acking
           if autoAckOldestChunkedMessageOnQueueFull is true else it marks them for redelivery.
           Default: `False`.
+        * start_message_id_inclusive:
+          Set the consumer to include the given position of any reset operation like Consumer::seek.
+
+          Default: `False`.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -810,6 +815,7 @@ class Client:
         _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
         _check_type(int, max_pending_chunked_message, 'max_pending_chunked_message')
         _check_type(bool, auto_ack_oldest_chunked_message_on_queue_full, 'auto_ack_oldest_chunked_message_on_queue_full')
+        _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -838,6 +844,7 @@ class Client:
         conf.replicate_subscription_state_enabled(replicate_subscription_state_enabled)
         conf.max_pending_chunked_message(max_pending_chunked_message)
         conf.auto_ack_oldest_chunked_message_on_queue_full(auto_ack_oldest_chunked_message_on_queue_full)
+        conf.start_message_id_inclusive(start_message_id_inclusive)
 
         c = Consumer()
         if isinstance(topic, str):
