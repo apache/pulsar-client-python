@@ -294,7 +294,10 @@ void export_config() {
         .def("auto_ack_oldest_chunked_message_on_queue_full",
              &ConsumerConfiguration::isAutoAckOldestChunkedMessageOnQueueFull)
         .def("auto_ack_oldest_chunked_message_on_queue_full",
-             &ConsumerConfiguration::setAutoAckOldestChunkedMessageOnQueueFull, return_self<>());
+             &ConsumerConfiguration::setAutoAckOldestChunkedMessageOnQueueFull, return_self<>())
+        .def("start_message_id_inclusive", &ConsumerConfiguration::isStartMessageIdInclusive)
+        .def("start_message_id_inclusive",&ConsumerConfiguration::setStartMessageIdInclusive,
+             return_self<>());
 
     class_<ReaderConfiguration>("ReaderConfiguration")
         .def("reader_listener", &ReaderConfiguration_setReaderListener, return_self<>())

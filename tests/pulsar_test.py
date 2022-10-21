@@ -920,6 +920,37 @@ class PulsarTest(TestCase):
         reader.close()
         client.close()
 
+    def test_seek_inclusive(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-seek-inclusive-" + str(time.time())
+        consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared, start_message_id_inclusive=True)
+        producer = client.create_producer(topic)
+
+        for i in range(100):
+            if i > 0:
+                time.sleep(0.02)
+            producer.send(b"hello-%d" % i)
+
+        ids = []
+        for i in range(100):
+            msg = consumer.receive(TM)
+            self.assertEqual(msg.data(), b"hello-%d" % i)
+            ids.append(msg.message_id())
+            consumer.acknowledge(msg)
+
+        # seek, and after reconnect, expected receive first message.
+        consumer.seek(MessageId.earliest)
+        time.sleep(0.5)
+        msg = consumer.receive(TM)
+        self.assertEqual(msg.data(), b"hello-0")
+
+        # seek on messageId
+        consumer.seek(ids[50])
+        time.sleep(0.5)
+        msg = consumer.receive(TM)
+        self.assertEqual(msg.data(), b"hello-50")
+        client.close()
+
     def test_v2_topics(self):
         self._v2_topics(self.serviceUrl)
 
