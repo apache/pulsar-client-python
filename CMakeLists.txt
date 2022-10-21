@@ -18,7 +18,7 @@
 #
 
 project (pulsar-client-python)
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.12)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 option(LINK_STATIC "Link against static libraries" OFF)
@@ -41,12 +41,12 @@ message(STATUS "PULSAR_INCLUDE: ${PULSAR_INCLUDE}")
 
 SET(CMAKE_CXX_STANDARD 11)
 
-find_package (Python3 REQUIRED COMPONENTS Development.Module)
+find_package (Python3 REQUIRED COMPONENTS Development)
 MESSAGE(STATUS "PYTHON: " ${Python3_VERSION} " - " ${Python3_INCLUDE_DIRS})
 
 SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
-find_package(Boost REQUIRED COMPONENTS python3)
-MESSAGE(STATUS "Boost Python3: " ${Boost_PYTHON3_LIBRARY})
+find_package(Boost REQUIRED COMPONENTS python)
+MESSAGE(STATUS "Boost Python: " ${Boost_PYTHON_LIBRARY})
 MESSAGE(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
 
 ########################################################################################################################
@@ -81,7 +81,7 @@ endif()
 
 # Try all possible boost-python variable namings
 set(PYTHON_WRAPPER_LIBS ${PULSAR_LIBRARY}
-                        ${Boost_PYTHON3_LIBRARY})
+                        ${Boost_PYTHON_LIBRARY})
 
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
