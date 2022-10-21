@@ -41,8 +41,11 @@ message(STATUS "PULSAR_INCLUDE: ${PULSAR_INCLUDE}")
 
 SET(CMAKE_CXX_STANDARD 11)
 
-find_package (Python3 REQUIRED COMPONENTS Development)
+find_package (Python3 COMPONENTS Development)
 MESSAGE(STATUS "PYTHON: " ${Python3_VERSION} " - " ${Python3_INCLUDE_DIRS})
+if (NOT Python3_INCLUDE_DIRS)
+    message(FATAL_ERROR "Cannot find Python")
+endif ()
 
 SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
 find_package(Boost REQUIRED COMPONENTS python)
