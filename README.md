@@ -31,19 +31,47 @@
 
 ## Install the Python wheel
 
+### Windows (with Vcpkg)
+
+First, install the dependencies via [Vcpkg](https://github.com/microsoft/vcpkg).
+
+```PowerShell
+vcpkg install --feature-flags=manifests --triplet x64-windows
+```
+
+> NOTE: For Windows 32-bit library, change `x64-windows` to `x86-windows`, see [here](https://github.com/microsoft/vcpkg/tree/master/triplets) for all available triplets.
+
+Then, build and install the Python wheel.
+
+```PowerShell
+# Assuming the Pulsar C++ client has been installed under the `PULSAR_CPP` directory.
+cmake -B build -DUSE_VCPKG=ON -DCMAKE_PREFIX_PATH="$env:PULSAR_CPP" -DLINK_STATIC=ON
+cmake --build build --config Release
+cmake --install build
+py setup.py bdist_wheel
+py -m pip install ./dist/pulsar_client-*.whl
+```
+
+Since the Python client links to Boost.Python dynamically, you have to copy the dll (e.g. `boost_python310-vc142-mt-x64-1_80.dll`) into the system path (the `PATH` environment variable). If the `-DLINK_STATIC=ON` option is not specified, you have to copy the `pulsar.dll` into the system path as well.
+
+### Linux or macOS
+
+Assuming the Pulsar C++ client and Boost.Python have been installed under the system path.
+
 ```bash
 cmake -B build
 cmake --build build -j8
-cp build/_pulsar.so .
+cmake --install build
 ./setup.py bdist_wheel
 pip3 install dist/pulsar_client-*.whl --force-reinstall
-rm _pulsar.so
 ```
 
 > **NOTE**
 >
 > 1. Here a separate `build` directory is created to store all CMake temporary files. However, the `setup.py` requires the `_pulsar.so` is under the project directory.
 > 2. Add the `--force-reinstall` option to overwrite the existing Python wheel in case your system has already installed a wheel before.
+
+## Running examples
 
 You can run `python3 -c 'import pulsar'` to see whether the wheel has been installed successfully. If it failed, check whether dependencies (e.g. `libpulsar.so`) are in the system path. If not, make sure the dependencies are in `LD_LIBRARY_PATH` (on Linux) or `DYLD_LIBRARY_PATH` (on macOS).
 

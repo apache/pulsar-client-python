@@ -14,3 +14,6 @@ __pycache__
 .DS_Store
 wheelhouse
 .pulsar-mac-build
+vcpkg_installed/
+*.pyd
+*.lib

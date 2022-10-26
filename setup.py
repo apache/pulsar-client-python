@@ -21,6 +21,7 @@
 from setuptools import setup
 from distutils.core import Extension
 from os import environ, path
+import platform
 
 from distutils.command import build_ext
 
@@ -58,7 +59,13 @@ class my_build_ext(build_ext.build_ext):
         except OSError as e:
             if e.errno != 17:  # already exists
                 raise
-        shutil.copyfile('_pulsar.so', self.get_ext_fullpath(ext.name))
+        if 'Windows' in platform.platform():
+            shutil.copyfile('_pulsar.pyd', self.get_ext_fullpath(ext.name))
+        else:
+            try:
+                shutil.copyfile('_pulsar.so', self.get_ext_fullpath(ext.name))
+            except FileNotFoundError:
+                shutil.copyfile('lib_pulsar.so', self.get_ext_fullpath(ext.name))
 
 
 # Core Client dependencies
