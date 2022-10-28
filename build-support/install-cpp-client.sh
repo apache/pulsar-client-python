@@ -33,8 +33,7 @@ export $(cat /etc/*-release | grep "^ID=")
 cd /tmp
 
 # Fetch the client binaries
-## TODO: Fetch from official release once it's available
-BASE_URL=https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp-${CPP_CLIENT_VERSION}-candidate-2
+BASE_URL=https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-cpp-${CPP_CLIENT_VERSION}
 
 UNAME_ARCH=$(uname -m)
 if [ $UNAME_ARCH == 'aarch64' ]; then
