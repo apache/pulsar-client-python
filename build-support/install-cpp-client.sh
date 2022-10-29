@@ -48,8 +48,8 @@ if [ $ID == 'ubuntu' ]; then
   $SUDO apt install -y /tmp/*.deb
 
 elif [ $ID == 'alpine' ]; then
-  curl -L -O ${BASE_URL}/apk-${PLATFORM}/apache-pulsar-client-${CPP_CLIENT_VERSION}-r0.apk
-  curl -L -O ${BASE_URL}/apk-${PLATFORM}/apache-pulsar-client-dev-${CPP_CLIENT_VERSION}-r0.apk
+  curl -L -O ${BASE_URL}/apk-${PLATFORM}/${UNAME_ARCH}/apache-pulsar-client-${CPP_CLIENT_VERSION}-r0.apk
+  curl -L -O ${BASE_URL}/apk-${PLATFORM}/${UNAME_ARCH}/apache-pulsar-client-dev-${CPP_CLIENT_VERSION}-r0.apk
   $SUDO apk add --allow-untrusted /tmp/*.apk
 
 elif [ $ID == '"centos"' ]; then
