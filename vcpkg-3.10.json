@@ -1,0 +1,12 @@
+{
+  "name": "pulsar-python",
+  "version": "3.0.0",
+  "description": "Pulsar Python SDK (Python 3.10)",
+  "dependencies": [
+     {
+       "name": "boost-python",
+       "version>=": "1.79.0"
+     }
+  ],
+  "builtin-baseline": "c266859544a3cdcfd952d218039c55a268863740"
+}

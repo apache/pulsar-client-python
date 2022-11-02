@@ -17,10 +17,15 @@
 # under the License.
 #
 
-project (pulsar-client-python)
 cmake_minimum_required(VERSION 3.18)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
+option(USE_VCPKG "Use Vcpkg to install dependencies" OFF)
+if (USE_VCPKG)
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+endif ()
+project (pulsar-client-python)
 option(LINK_STATIC "Link against static libraries" OFF)
 MESSAGE(STATUS "LINK_STATIC:  " ${LINK_STATIC})
 
@@ -29,10 +34,19 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 MESSAGE(STATUS "Threads library: " ${CMAKE_THREAD_LIBS_INIT})
 
+if (MSVC)
+    add_compile_options(/wd4819)
+endif ()
+
 if (LINK_STATIC)
-    find_library(PULSAR_LIBRARY NAMES libpulsar.a)
+    if (MSVC)
+        find_library(PULSAR_LIBRARY NAMES pulsarWithDeps.lib)
+    else ()
+        find_library(PULSAR_LIBRARY NAMES libpulsar.a)
+    endif ()
+    add_definitions("-DPULSAR_STATIC")
 else()
-    find_library(PULSAR_LIBRARY NAMES libpulsar.so  libpulsar.dylib)
+    find_library(PULSAR_LIBRARY NAMES pulsar libpulsar)
 endif()
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
 
@@ -44,10 +58,23 @@ SET(CMAKE_CXX_STANDARD 11)
 find_package (Python3 REQUIRED COMPONENTS Development.Module)
 MESSAGE(STATUS "PYTHON: " ${Python3_VERSION} " - " ${Python3_INCLUDE_DIRS})
 
+find_package(Boost REQUIRED ${Boost_INCLUDE_DIRS})
+message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+
 SET(Boost_USE_STATIC_LIBS   ${LINK_STATIC})
-find_package(Boost REQUIRED COMPONENTS python3)
-MESSAGE(STATUS "Boost Python3: " ${Boost_PYTHON3_LIBRARY})
-MESSAGE(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+
+set(BOOST_PYTHON_NAME_LIST python3 python310 python39 python38 python37)
+foreach (BOOST_PYTHON_NAME IN LISTS BOOST_PYTHON_NAME_LIST)
+    find_package(Boost QUIET COMPONENTS ${BOOST_PYTHON_NAME})
+    if (${Boost_FOUND})
+        set(BOOST_PYTHON_COMPONENT_FOUND ${BOOST_PYTHON_NAME})
+        message(STATUS "Found Boost COMPONENTS " ${BOOST_PYTHON_COMPONENT_FOUND})
+        break ()
+    endif ()
+endforeach ()
+if (NOT BOOST_PYTHON_COMPONENT_FOUND)
+    message(FATAL_ERROR "Could not find Boost Python library")
+endif ()
 
 ########################################################################################################################
 
@@ -68,8 +95,11 @@ ADD_LIBRARY(_pulsar SHARED src/pulsar.cc
                            src/utils.cc
         )
 
-SET(CMAKE_SHARED_LIBRARY_PREFIX )
-SET(CMAKE_SHARED_LIBRARY_SUFFIX .so)
+if (MSVC)
+    set(CMAKE_SHARED_LIBRARY_SUFFIX .pyd)
+else ()
+    set(CMAKE_SHARED_LIBRARY_SUFFIX .so)
+endif ()
 
 if (NOT APPLE AND NOT MSVC)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_PYTHON}")
@@ -80,12 +110,17 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif()
 
 # Try all possible boost-python variable namings
-set(PYTHON_WRAPPER_LIBS ${PULSAR_LIBRARY}
-                        ${Boost_PYTHON3_LIBRARY})
+set(PYTHON_WRAPPER_LIBS
+    ${PULSAR_LIBRARY}
+    Boost::${BOOST_PYTHON_COMPONENT_FOUND}
+)
+if (MSVC)
+    set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} Python3::Module)
+endif ()
 
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
-if (LINK_STATIC)
+if (LINK_STATIC AND NOT MSVC)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 
     # We need to include all the static libs individually because we cannot easily create a universal2 libpulsar.a
@@ -125,9 +160,14 @@ if (LINK_STATIC)
         endif()
         target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
     endif ()
+elseif (LINK_STATIC) # MSVC
+    set_property(TARGET _pulsar PROPERTY
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
 else()
     target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
 endif ()
+install(TARGETS _pulsar DESTINATION ${CMAKE_SOURCE_DIR})
 
 find_package(ClangTools)
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
