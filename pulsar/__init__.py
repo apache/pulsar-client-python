@@ -23,81 +23,23 @@ All the same features are exposed through the Python interface.
 
 Currently, the supported Python versions are 3.7, 3.8, 3.9 and 3.10.
 
-## Install from PyPI
+=================
+Install from PyPI
+=================
 
-Download Python wheel binary files for MacOS and Linux
-directly from the PyPI archive.
+Download Python wheel binary files for macOS and Linux directly from
+the PyPI archive:
 
-    #!shell
-    $ sudo pip install pulsar-client
+.. code-block:: shell
 
-## Install from sources
+    sudo pip install pulsar-client
 
-Follow the instructions to compile the Pulsar C++ client library. This method
-will also build the Python binding for the library.
+========================
+Install from source code
+========================
 
-To install the Python bindings:
-
-    #!shell
-    $ cd pulsar-client-cpp/python
-    $ sudo python setup.py install
-
-## Examples
-
-### [Producer](#pulsar.Producer) example
-
-    #!python
-    import pulsar
-
-    client = pulsar.Client('pulsar://localhost:6650')
-
-    producer = client.create_producer('my-topic')
-
-    for i in range(10):
-        producer.send(('Hello-%d' % i).encode('utf-8'))
-
-    client.close()
-
-#### [Consumer](#pulsar.Consumer) Example
-
-    #!python
-    import pulsar
-
-    client = pulsar.Client('pulsar://localhost:6650')
-
-    consumer = client.subscribe('my-topic', 'my-subscription')
-
-    while True:
-        msg = consumer.receive()
-        try:
-            print("Received message '{}' id='{}'".format(msg.data(), msg.message_id()))
-            consumer.acknowledge(msg)
-        except Exception:
-            consumer.negative_acknowledge(msg)
-
-    client.close()
-
-### [Async producer](#pulsar.Producer.send_async) example
-
-    #!python
-    import pulsar
-
-    client = pulsar.Client('pulsar://localhost:6650')
-
-    producer = client.create_producer(
-                    'my-topic',
-                    block_if_queue_full=True,
-                    batching_enabled=True,
-                    batching_max_publish_delay_ms=10
-                )
-
-    def send_callback(res, msg_id):
-        print('Message published res=%s', res)
-
-    while True:
-        producer.send_async(('Hello-%d' % i).encode('utf-8'), send_callback)
-
-    client.close()
+Read the instructions on `source code repository
+<https://github.com/apache/pulsar-client-python#install-the-python-wheel>`_.
 """
 
 import logging
@@ -149,7 +91,7 @@ class MessageId:
     def serialize(self):
         """
         Returns a bytes representation of the message id.
-        This bytes sequence can be stored and later deserialized.
+        This byte sequence can be stored and later deserialized.
         """
         return self._msg_id.serialize()
 
@@ -208,7 +150,7 @@ class Message:
 
     def message_id(self):
         """
-        The message ID that can be used to refere to this particular message.
+        The message ID that can be used to refer to this particular message.
         """
         return self._message.message_id()
 
@@ -355,10 +297,10 @@ class AuthenticationBasic(Authentication):
         For example, if you want to create a basic authentication instance whose
         username is "my-user" and password is "my-pass", there are two ways:
 
-        ```
-        auth = AuthenticationBasic('my-user', 'my-pass')
-        auth = AuthenticationBasic(auth_params_string='{"username": "my-user", "password": "my-pass"}')
-        ```
+        .. code-block:: python
+
+            auth = AuthenticationBasic('my-user', 'my-pass')
+            auth = AuthenticationBasic(auth_params_string='{"username": "my-user", "password": "my-pass"}')
 
         **Args**
         * username : str, optional
@@ -455,7 +397,7 @@ class Client:
         * `listener_name`:
           Listener name for lookup. Clients can use listenerName to choose one of the listeners
           as the service URL to create a connection to the broker as long as the network is accessible.
-          advertisedListeners must enabled in broker side.
+          advertisedListeners must be enabled in broker side.
         """
         _check_type(str, service_url, 'service_url')
         _check_type_or_none(Authentication, authentication, 'authentication')
@@ -779,7 +721,7 @@ class Client:
           Default: `False`.
         * max_pending_chunked_message:
           Consumer buffers chunk messages into memory until it receives all the chunks of the original message.
-          While consuming chunk-messages, chunks from same message might not be contiguous in the stream and they
+          While consuming chunk-messages, chunks from same message might not be contiguous in the stream, and they
           might be mixed with other messages' chunks. so, consumer has to maintain multiple buffers to manage
           chunks coming from different messages. This mainly happens when multiple publishers are publishing
           messages on the topic concurrently or publisher failed to publish all chunks of the messages.
@@ -788,7 +730,7 @@ class Client:
 
           Default: `10`.
         * auto_ack_oldest_chunked_message_on_queue_full:
-          Buffering large number of outstanding uncompleted chunked messages can create memory pressure and it
+          Buffering large number of outstanding uncompleted chunked messages can create memory pressure, and it
           can be guarded by providing the maxPendingChunkedMessage threshold. See setMaxPendingChunkedMessage.
           Once, consumer reaches this threshold, it drops the outstanding unchunked-messages by silently acking
           if autoAckOldestChunkedMessageOnQueueFull is true else it marks them for redelivery.
@@ -988,6 +930,19 @@ class Client:
 class Producer:
     """
     The Pulsar message producer, used to publish messages on a topic.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        import pulsar
+
+        client = pulsar.Client('pulsar://localhost:6650')
+        producer = client.create_producer('my-topic')
+        for i in range(10):
+            producer.send(('Hello-%d' % i).encode('utf-8'))
+        client.close()
     """
 
     def topic(self):
@@ -1007,12 +962,12 @@ class Producer:
         """
         Get the last sequence id that was published by this producer.
 
-        This represent either the automatically assigned or custom sequence id
+        This represents either the automatically assigned or custom sequence id
         (set on the `MessageBuilder`) that was published and acknowledged by the broker.
 
         After recreating a producer with the same producer name, this will return the
         last message that was published in the previous producer session, or -1 if
-        there no message was ever published.
+        there was no message ever published.
         """
         return self._producer.last_sequence_id()
 
@@ -1055,7 +1010,7 @@ class Producer:
         * `event_timestamp`:
           Timestamp in millis of the timestamp of event creation
         * `deliver_at`:
-          Specify the this message should not be delivered earlier than the
+          Specify the message should not be delivered earlier than the
           specified timestamp.
           The timestamp is milliseconds and based on UTC
         * `deliver_after`:
@@ -1080,49 +1035,61 @@ class Producer:
         """
         Send a message asynchronously.
 
-        The `callback` will be invoked once the message has been acknowledged
-        by the broker.
+        Examples
+        --------
 
-        Example:
+        The `callback` will be invoked once the message has been acknowledged by the broker.
 
-            #!python
+        .. code-block:: python
+
+            import pulsar
+
+            client = pulsar.Client('pulsar://localhost:6650')
+            producer = client.create_producer(
+                            'my-topic',
+                            block_if_queue_full=True,
+                            batching_enabled=True,
+                            batching_max_publish_delay_ms=10)
+
             def callback(res, msg_id):
-                print('Message published: %s' % res)
+                print('Message published res=%s', res)
 
-            producer.send_async(msg, callback)
+            while True:
+                producer.send_async(('Hello-%d' % i).encode('utf-8'), callback)
+
+            client.close()
+
 
         When the producer queue is full, by default the message will be rejected
         and the callback invoked with an error code.
 
-        **Args**
 
-        * `content`:
-          A `bytes` object with the message payload.
+        Parameters
+        ----------
 
-        **Options**
-
-        * `properties`:
-          A dict of application0-defined string properties.
-        * `partition_key`:
-          Sets the partition key for the message routing. A hash of this key is
-          used to determine the message's topic partition.
-        * `sequence_id`:
-          Specify a custom sequence id for the message being published.
-        * `replication_clusters`: Override namespace replication clusters. Note
-          that it is the caller's responsibility to provide valid cluster names
-          and that all clusters have been previously configured as topics.
-          Given an empty list, the message will replicate per the namespace
-          configuration.
-        * `disable_replication`:
-          Do not replicate this message.
-        * `event_timestamp`:
-          Timestamp in millis of the timestamp of event creation
-        * `deliver_at`:
-          Specify the this message should not be delivered earlier than the
-          specified timestamp.
-          The timestamp is milliseconds and based on UTC
-        * `deliver_after`:
-          Specify a delay in timedelta for the delivery of the messages.
+        content
+            A `bytes` object with the message payload.
+        callback
+            A callback that is invoked once the message has been acknowledged by the broker.
+        properties: optional
+            A dict of application0-defined string properties.
+        partition_key: optional
+            Sets the partition key for the message routing. A hash of this key is
+            used to determine the message's topic partition.
+        sequence_id: optional
+            Specify a custom sequence id for the message being published.
+        replication_clusters: optional
+            Override namespace replication clusters. Note that it is the caller's responsibility
+            to provide valid cluster names and that all clusters have been previously configured
+            as topics. Given an empty list, the message will replicate per the namespace configuration.
+        disable_replication: optional
+            Do not replicate this message.
+        event_timestamp: optional
+            Timestamp in millis of the timestamp of event creation
+        deliver_at: optional
+            Specify the message should not be delivered earlier than the specified timestamp.
+        deliver_after: optional
+            Specify a delay in timedelta for the delivery of the messages.
         """
         msg = self._build_msg(content, properties, partition_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
@@ -1191,6 +1158,24 @@ class Producer:
 class Consumer:
     """
     Pulsar consumer.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        import pulsar
+
+        client = pulsar.Client('pulsar://localhost:6650')
+        consumer = client.subscribe('my-topic', 'my-subscription')
+        while True:
+            msg = consumer.receive()
+            try:
+                print("Received message '{}' id='{}'".format(msg.data(), msg.message_id()))
+                consumer.acknowledge(msg)
+            except Exception:
+                consumer.negative_acknowledge(msg)
+        client.close()
     """
 
     def topic(self):
@@ -1227,7 +1212,7 @@ class Consumer:
         **Options**
 
         * `timeout_millis`:
-          If specified, the receive will raise an exception if a message is not
+          If specified, the receiver will raise an exception if a message is not
           available within the timeout.
         """
         if timeout_millis is None:
@@ -1377,7 +1362,7 @@ class Reader:
         **Options**
 
         * `timeout_millis`:
-          If specified, the receive will raise an exception if a message is not
+          If specified, the receiver will raise an exception if a message is not
           available within the timeout.
         """
         if timeout_millis is None:
