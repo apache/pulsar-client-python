@@ -653,81 +653,70 @@ class Client:
         """
         Subscribe to the given topic and subscription combination.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `topic`: The name of the topic, list of topics or regex pattern.
-                  This method will accept these forms:
-                    - `topic='my-topic'`
-                    - `topic=['topic-1', 'topic-2', 'topic-3']`
-                    - `topic=re.compile('persistent://public/default/topic-*')`
-        * `subscription`: The name of the subscription.
+        topic:
+            The name of the topic, list of topics or regex pattern. This method will accept these forms:
+            * ``topic='my-topic'``
+            * ``topic=['topic-1', 'topic-2', 'topic-3']``
+            * ``topic=re.compile('persistent://public/default/topic-*')``
+        subscription_name: str
+            The name of the subscription.
+        consumer_type: ConsumerType, default=ConsumerType.Exclusive
+            Select the subscription type to be used when subscribing to the topic.
+        schema: pulsar.schema.Schema, default=pulsar.schema.BytesSchema
+            Define the schema of the data that will be received by this consumer.
+        message_listener: optional
+            Sets a message listener for the consumer. When the listener is set, the application will
+            receive messages through it. Calls to ``consumer.receive()`` will not be allowed.
+            The listener function needs to accept (consumer, message), for example:
 
-        **Options**
+            .. code-block:: python
 
-        * `consumer_type`:
-          Select the subscription type to be used when subscribing to the topic.
-        * `schema`:
-           Define the schema of the data that will be received by this consumer.
-        * `message_listener`:
-          Sets a message listener for the consumer. When the listener is set,
-          the application will receive messages through it. Calls to
-          `consumer.receive()` will not be allowed. The listener function needs
-          to accept (consumer, message), for example:
-
-                #!python
                 def my_listener(consumer, message):
                     # process message
                     consumer.acknowledge(message)
+        receiver_queue_size: int, default=1000
+            Sets the size of the consumer receive queue. The consumer receive queue controls how many messages can be
+            accumulated by the consumer before the application calls `receive()`. Using a higher value could potentially
+            increase the consumer throughput at the expense of higher memory utilization. Setting the consumer queue
+            size to zero decreases the throughput of the consumer by disabling pre-fetching of messages.
 
-        * `receiver_queue_size`:
-          Sets the size of the consumer receive queue. The consumer receive
-          queue controls how many messages can be accumulated by the consumer
-          before the application calls `receive()`. Using a higher value could
-          potentially increase the consumer throughput at the expense of higher
-          memory utilization. Setting the consumer queue size to zero decreases
-          the throughput of the consumer by disabling pre-fetching of messages.
-          This approach improves the message distribution on shared subscription
-          by pushing messages only to those consumers that are ready to process
-          them. Neither receive with timeout nor partitioned topics can be used
-          if the consumer queue size is zero. The `receive()` function call
-          should not be interrupted when the consumer queue size is zero. The
-          default value is 1000 messages and should work well for most use
-          cases.
-        * `max_total_receiver_queue_size_across_partitions`
-          Set the max total receiver queue size across partitions.
-          This setting will be used to reduce the receiver queue size for individual partitions
-        * `consumer_name`:
-          Sets the consumer name.
-        * `unacked_messages_timeout_ms`:
-          Sets the timeout in milliseconds for unacknowledged messages. The
-          timeout needs to be greater than 10 seconds. An exception is thrown if
-          the given value is less than 10 seconds. If a successful
-          acknowledgement is not sent within the timeout, all the unacknowledged
-          messages are redelivered.
-        * `negative_ack_redelivery_delay_ms`:
-           The delay after which to redeliver the messages that failed to be
-           processed (with the `consumer.negative_acknowledge()`)
-        * `broker_consumer_stats_cache_time_ms`:
-          Sets the time duration for which the broker-side consumer stats will
-          be cached in the client.
-        * `is_read_compacted`:
-          Selects whether to read the compacted version of the topic
-        * `properties`:
-          Sets the properties for the consumer. The properties associated with a consumer
-          can be used for identify a consumer at broker side.
-        * `pattern_auto_discovery_period`:
-          Periods of seconds for consumer to auto discover match topics.
-        * `initial_position`:
-          Set the initial position of a consumer  when subscribing to the topic.
+            This approach improves the message distribution on shared subscription by pushing messages only to those
+            consumers that are ready to process them. Neither receive with timeout nor partitioned topics can be used
+            if the consumer queue size is zero. The `receive()` function call should not be interrupted when the
+            consumer queue size is zero. The default value is 1000 messages and should work well for most use cases.
+        max_total_receiver_queue_size_across_partitions: int, default=50000
+            Set the max total receiver queue size across partitions. This setting will be used to reduce the
+            receiver queue size for individual partitions
+        consumer_name: str, optional
+            Sets the consumer name.
+        unacked_messages_timeout_ms: int, optional
+            Sets the timeout in milliseconds for unacknowledged messages. The timeout needs to be greater than
+            10 seconds. An exception is thrown if the given value is less than 10 seconds. If a successful
+            acknowledgement is not sent within the timeout, all the unacknowledged messages are redelivered.
+        negative_ack_redelivery_delay_ms: int, default=60000
+            The delay after which to redeliver the messages that failed to be processed
+            (with the ``consumer.negative_acknowledge()``)
+        broker_consumer_stats_cache_time_ms: int, default=30000
+            Sets the time duration for which the broker-side consumer stats will be cached in the client.
+        is_read_compacted: bool, default=False
+            Selects whether to read the compacted version of the topic
+        properties: dict, optional
+            Sets the properties for the consumer. The properties associated with a consumer can be used for
+            identify a consumer at broker side.
+        pattern_auto_discovery_period: int, default=60
+            Periods of seconds for consumer to auto discover match topics.
+        initial_position: InitialPosition, default=InitialPosition.Latest
+          Set the initial position of a consumer when subscribing to the topic.
           It could be either: `InitialPosition.Earliest` or `InitialPosition.Latest`.
-          Default: `Latest`.
-        * crypto_key_reader:
-           Symmetric encryption class implementation, configuring public key encryption messages for the producer
-           and private key decryption messages for the consumer
-        * replicate_subscription_state_enabled:
-          Set whether the subscription status should be replicated.
-          Default: `False`.
-        * max_pending_chunked_message:
+        crypto_key_reader: CryptoKeyReader, optional
+            Symmetric encryption class implementation, configuring public key encryption messages for the producer
+            and private key decryption messages for the consumer
+        replicate_subscription_state_enabled: bool, default=False
+            Set whether the subscription status should be replicated.
+        max_pending_chunked_message: int, default=10
           Consumer buffers chunk messages into memory until it receives all the chunks of the original message.
           While consuming chunk-messages, chunks from same message might not be contiguous in the stream, and they
           might be mixed with other messages' chunks. so, consumer has to maintain multiple buffers to manage
@@ -735,18 +724,13 @@ class Client:
           messages on the topic concurrently or publisher failed to publish all chunks of the messages.
 
           If it's zero, the pending chunked messages will not be limited.
-
-          Default: `10`.
-        * auto_ack_oldest_chunked_message_on_queue_full:
+        auto_ack_oldest_chunked_message_on_queue_full: bool, default=False
           Buffering large number of outstanding uncompleted chunked messages can create memory pressure, and it
           can be guarded by providing the maxPendingChunkedMessage threshold. See setMaxPendingChunkedMessage.
           Once, consumer reaches this threshold, it drops the outstanding unchunked-messages by silently acking
           if autoAckOldestChunkedMessageOnQueueFull is true else it marks them for redelivery.
-          Default: `False`.
-        * start_message_id_inclusive:
+        start_message_id_inclusive: bool, default=False
           Set the consumer to include the given position of any reset operation like Consumer::seek.
-
-          Default: `False`.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -826,54 +810,60 @@ class Client:
         """
         Create a reader on a particular topic
 
-        **Args**
+        Parameters
+        ----------
 
-        * `topic`: The name of the topic.
-        * `start_message_id`: The initial reader positioning is done by specifying a message id.
-           The options are:
-            * `MessageId.earliest`: Start reading from the earliest message available in the topic
-            * `MessageId.latest`: Start reading from the end topic, only getting messages published
-               after the reader was created
-            * `MessageId`: When passing a particular message id, the reader will position itself on
-               that specific position. The first message to be read will be the message next to the
-               specified messageId. Message id can be serialized into a string and deserialized
-               back into a `MessageId` object:
+        topic:
+            The name of the topic.
+        start_message_id:
+            The initial reader positioning is done by specifying a message id. The options are:
+
+            * ``MessageId.earliest``:
+
+            Start reading from the earliest message available in the topic
+
+            * ``MessageId.latest``:
+
+            Start reading from the end topic, only getting messages published after the reader was created
+
+            * ``MessageId``:
+
+            When passing a particular message id, the reader will position itself on that specific position.
+            The first message to be read will be the message next to the specified messageId.
+            Message id can be serialized into a string and deserialized back into a `MessageId` object:
+
+               .. code-block:: python
 
                    # Serialize to string
                    s = msg.message_id().serialize()
 
                    # Deserialize from string
                    msg_id = MessageId.deserialize(s)
+        schema: pulsar.schema.Schema, default=pulsar.schema.BytesSchema
+            Define the schema of the data that will be received by this reader.
+        reader_listener: optional
+            Sets a message listener for the reader. When the listener is set, the application will receive messages
+            through it. Calls to ``reader.read_next()`` will not be allowed. The listener function needs to accept
+            (reader, message), for example:
 
-        **Options**
-
-        * `schema`:
-           Define the schema of the data that will be received by this reader.
-        * `reader_listener`:
-          Sets a message listener for the reader. When the listener is set,
-          the application will receive messages through it. Calls to
-          `reader.read_next()` will not be allowed. The listener function needs
-          to accept (reader, message), for example:
+            .. code-block:: python
 
                 def my_listener(reader, message):
                     # process message
                     pass
-
-        * `receiver_queue_size`:
-          Sets the size of the reader receive queue. The reader receive
-          queue controls how many messages can be accumulated by the reader
-          before the application calls `read_next()`. Using a higher value could
-          potentially increase the reader throughput at the expense of higher
-          memory utilization.
-        * `reader_name`:
-          Sets the reader name.
-        * `subscription_role_prefix`:
-          Sets the subscription role prefix.
-        * `is_read_compacted`:
-          Selects whether to read the compacted version of the topic
-        * crypto_key_reader:
-           Symmetric encryption class implementation, configuring public key encryption messages for the producer
-           and private key decryption messages for the consumer
+        receiver_queue_size: int, default=1000
+            Sets the size of the reader receive queue. The reader receive queue controls how many messages can be
+            accumulated by the reader before the application calls `read_next()`. Using a higher value could
+            potentially increase the reader throughput at the expense of higher memory utilization.
+        reader_name: str, optional
+            Sets the reader name.
+        subscription_role_prefix: str, optional
+            Sets the subscription role prefix.
+        is_read_compacted: bool, default=False
+            Selects whether to read the compacted version of the topic
+        crypto_key_reader: CryptoKeyReader, optional
+            Symmetric encryption class implementation, configuring public key encryption messages for the producer
+            and private key decryption messages for the consumer
         """
         _check_type(str, topic, 'topic')
         _check_type(_pulsar.MessageId, start_message_id, 'start_message_id')
