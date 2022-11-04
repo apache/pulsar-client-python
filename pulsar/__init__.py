@@ -64,16 +64,21 @@ from datetime import timedelta
 
 class MessageId:
     """
-    Represents a message id
+    Represents a message id.
+
+    Attributes
+    ----------
+
+    earliest:
+        Represents the earliest message stored in a topic
+    latest:
+        Represents the latest message published on a topic
     """
 
     def __init__(self, partition=-1, ledger_id=-1, entry_id=-1, batch_index=-1):
         self._msg_id = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
 
-    'Represents the earliest message stored in a topic'
     earliest = _pulsar.MessageId.earliest
-
-    'Represents the latest message published on a topic'
     latest = _pulsar.MessageId.latest
 
     def ledger_id(self):
