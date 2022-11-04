@@ -212,7 +212,7 @@ class Authentication:
         ----------
 
         dynamicLibPath: str
-            Path to the authentication provider shared library (such as `tls.so`)
+            Path to the authentication provider shared library (such as ``tls.so``)
         authParamsString: str
             Comma-separated list of provider-specific configuration params
         """
@@ -311,18 +311,21 @@ class AuthenticationBasic(Authentication):
             auth = AuthenticationBasic('my-user', 'my-pass')
             auth = AuthenticationBasic(auth_params_string='{"username": "my-user", "password": "my-pass"}')
 
-        **Args**
-        * username : str, optional
-        * password : str, optional
-        * method : str, optional
-            The authentication method name (default is 'basic')
-        * auth_params_string : str, optional
-            The JSON presentation of all fields above (default is None)
-            If it's not None, the other parameters will be ignored.
+
+        Parameters
+        ----------
+        username : str, optional
+        password : str, optional
+        method : str, default='basic'
+            The authentication method name
+        auth_params_string : str, optional
+            The JSON presentation of all fields above. If it's not None, the other parameters will be ignored.
             Here is an example JSON presentation:
-              {"username": "my-user", "password": "my-pass", "method": "oms3.0"}
-            The `username` and `password` fields are required. If the "method" field is not set,
-            it will be "basic" by default.
+
+                {"username": "my-user", "password": "my-pass", "method": "oms3.0"}
+
+            The ``username`` and ``password`` fields are required. If the "method" field is not set, it will be
+            "basic" by default.
         """
         if auth_params_string is not None:
             _check_type(str, auth_params_string, 'auth_params_string')
@@ -384,7 +387,7 @@ class Client:
             Initialize log4cxx from a configuration file.
         use_tls: bool, default=False
             Configure whether to use TLS encryption on the connection. This setting is deprecated.
-            TLS will be automatically enabled if the `serviceUrl` is set to `pulsar+ssl://` or `https://`
+            TLS will be automatically enabled if the ``serviceUrl`` is set to ``pulsar+ssl://`` or ``https://``
         tls_trust_certs_file_path: str, optional
             Set the path to the trusted TLS certificate file. If empty defaults to certifi.
         tls_allow_insecure_connection: bool, default=False
@@ -494,22 +497,26 @@ class Client:
             to ensure that, for a given topic, the producer name is unique across all Pulsar's clusters.
         schema: pulsar.schema.Schema, default=pulsar.schema.BytesSchema
             Define the schema of the data that will be published by this producer, e.g,
-            `schema=JsonSchema(MyRecordClass)`.
+            ``schema=JsonSchema(MyRecordClass)``.
 
             The schema will be used for two purposes:
                 * Validate the data format against the topic defined schema
                 * Perform serialization/deserialization between data and objects
         initial_sequence_id: int, optional
             Set the baseline for the sequence ids for messages published by the producer. First message will be
-            using `(initialSequenceId + 1)` as its sequence id and subsequent messages will be assigned
+            using ``(initialSequenceId + 1)`` as its sequence id and subsequent messages will be assigned
             incremental sequence ids, if not otherwise specified.
         send_timeout_millis: int, default=30000
             If a message is not acknowledged by the server before the `send_timeout` expires, an error will be reported.
         compression_type: CompressionType, default=CompressionType.NONE
             Set the compression type for the producer. By default, message payloads are not compressed.
 
-            Supported compression types are `CompressionType.LZ4`, `CompressionType.ZLib`, `CompressionType.ZSTD`
-            and `CompressionType.SNAPPY`.
+            Supported compression types:
+
+            * CompressionType.LZ4
+            * CompressionType.ZLib
+            * CompressionType.ZSTD
+            * CompressionType.SNAPPY
 
             ZSTD is supported since Pulsar 2.3. Consumers will need to be at least at that release in order to
             be able to receive messages compressed with ZSTD.
@@ -547,16 +554,14 @@ class Client:
 
             There are two batching type: DefaultBatching and KeyBasedBatching.
 
-            * Default batching
-            incoming single messages:
+            DefaultBatching will batch single messages:
                 (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
-            batched into single batch message:
+            ... into single batch message:
                 [(k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)]
 
-            * KeyBasedBatching
-            incoming single messages:
+            KeyBasedBatching will batch incoming single messages:
                 (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
-            batched into single batch message:
+            ... into single batch message:
                 [(k1, v1), (k1, v2), (k1, v3)], [(k2, v1), (k2, v2), (k2, v3)], [(k3, v1), (k3, v2), (k3, v3)]
         chunking_enabled: bool, default=False
             If message size is higher than allowed max publish-payload size by broker then chunking_enabled helps
