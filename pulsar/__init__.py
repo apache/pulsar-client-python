@@ -208,12 +208,13 @@ class Authentication:
         """
         Create the authentication provider instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `dynamicLibPath`: Path to the authentication provider shared library
-          (such as `tls.so`)
-        * `authParamsString`: Comma-separated list of provider-specific
-          configuration params
+        dynamicLibPath: str
+            Path to the authentication provider shared library (such as `tls.so`)
+        authParamsString: str
+            Comma-separated list of provider-specific configuration params
         """
         _check_type(str, dynamicLibPath, 'dynamicLibPath')
         _check_type(str, authParamsString, 'authParamsString')
@@ -228,10 +229,13 @@ class AuthenticationTLS(Authentication):
         """
         Create the TLS authentication provider instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `certificatePath`: Path to the public certificate
-        * `privateKeyPath`: Path to private TLS key
+        certificate_path: str
+            Path to the public certificate
+        private_key_path: str
+            Path to private TLS key
         """
         _check_type(str, certificate_path, 'certificate_path')
         _check_type(str, private_key_path, 'private_key_path')
@@ -246,10 +250,11 @@ class AuthenticationToken(Authentication):
         """
         Create the token authentication provider instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `token`: A string containing the token or a functions that provides a
-                   string with the token
+        token
+            A string containing the token or a functions that provides a string with the token
         """
         if not (isinstance(token, str) or callable(token)):
             raise ValueError("Argument token is expected to be of type 'str' or a function returning 'str'")
@@ -264,9 +269,11 @@ class AuthenticationAthenz(Authentication):
         """
         Create the Athenz authentication provider instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `auth_params_string`: JSON encoded configuration for Athenz client
+        auth_params_string: str
+            JSON encoded configuration for Athenz client
         """
         _check_type(str, auth_params_string, 'auth_params_string')
         self.auth = _pulsar.AuthenticationAthenz(auth_params_string)
@@ -279,9 +286,11 @@ class AuthenticationOauth2(Authentication):
         """
         Create the Oauth2 authentication provider instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `auth_params_string`: JSON encoded configuration for Oauth2 client
+        auth_params_string: str
+            JSON encoded configuration for Oauth2 client
         """
         _check_type(str, auth_params_string, 'auth_params_string')
         self.auth = _pulsar.AuthenticationOauth2(auth_params_string)
@@ -351,53 +360,46 @@ class Client:
         """
         Create a new Pulsar client instance.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `service_url`: The Pulsar service url eg: pulsar://my-broker.com:6650/
-
-        **Options**
-
-        * `authentication`:
-          Set the authentication provider to be used with the broker. For example:
-          `AuthenticationTls`, `AuthenticationToken`, `AuthenticationAthenz` or `AuthenticationOauth2`
-        * `operation_timeout_seconds`:
-          Set timeout on client operations (subscribe, create producer, close,
-          unsubscribe).
-        * `io_threads`:
-          Set the number of IO threads to be used by the Pulsar client.
-        * `message_listener_threads`:
-          Set the number of threads to be used by the Pulsar client when
-          delivering messages through message listener. The default is 1 thread
-          per Pulsar client. If using more than 1 thread, messages for distinct
-          `message_listener`s will be delivered in different threads, however a
-          single `MessageListener` will always be assigned to the same thread.
-        * `concurrent_lookup_requests`:
-          Number of concurrent lookup-requests allowed on each broker connection
-          to prevent overload on the broker.
-        * `log_conf_file_path`:
-          Initialize log4cxx from a configuration file.
-        * `use_tls`:
-          Configure whether to use TLS encryption on the connection. This setting
-          is deprecated. TLS will be automatically enabled if the `serviceUrl` is
-          set to `pulsar+ssl://` or `https://`
-        * `tls_trust_certs_file_path`:
-          Set the path to the trusted TLS certificate file. If empty defaults to
-          certifi.
-        * `tls_allow_insecure_connection`:
-          Configure whether the Pulsar client accepts untrusted TLS certificates
-          from the broker.
-        * `tls_validate_hostname`:
-          Configure whether the Pulsar client validates that the hostname of the
-          endpoint, matches the common name on the TLS certificate presented by
-          the endpoint.
-        * `logger`:
-          Set a Python logger for this Pulsar client. Should be an instance of `logging.Logger`.
-        * `connection_timeout_ms`:
-          Set timeout in milliseconds on TCP connections.
-        * `listener_name`:
-          Listener name for lookup. Clients can use listenerName to choose one of the listeners
-          as the service URL to create a connection to the broker as long as the network is accessible.
-          advertisedListeners must be enabled in broker side.
+        service_url: str
+            The Pulsar service url eg: pulsar://my-broker.com:6650/
+        authentication: Authentication, optional
+            Set the authentication provider to be used with the broker. For example:
+            `AuthenticationTls`, `AuthenticationToken`, `AuthenticationAthenz` or `AuthenticationOauth2`
+        operation_timeout_seconds: int, default=30
+            Set timeout on client operations (subscribe, create producer, close, unsubscribe).
+        io_threads: int, default=1
+            Set the number of IO threads to be used by the Pulsar client.
+        message_listener_threads: int, default=1
+            Set the number of threads to be used by the Pulsar client when delivering messages through
+            message listener. The default is 1 thread per Pulsar client. If using more than 1 thread,
+            messages for distinct `message_listener`s will be delivered in different threads, however a
+            single `MessageListener` will always be assigned to the same thread.
+        concurrent_lookup_requests: int, default=50000
+            Number of concurrent lookup-requests allowed on each broker connection to prevent overload
+            on the broker.
+        log_conf_file_path: str, optional
+            Initialize log4cxx from a configuration file.
+        use_tls: bool, default=False
+            Configure whether to use TLS encryption on the connection. This setting is deprecated.
+            TLS will be automatically enabled if the `serviceUrl` is set to `pulsar+ssl://` or `https://`
+        tls_trust_certs_file_path: str, optional
+            Set the path to the trusted TLS certificate file. If empty defaults to certifi.
+        tls_allow_insecure_connection: bool, default=False
+            Configure whether the Pulsar client accepts untrusted TLS certificates from the broker.
+        tls_validate_hostname: bool, default=False
+            Configure whether the Pulsar client validates that the hostname of the endpoint,
+            matches the common name on the TLS certificate presented by the endpoint.
+        logger: optional
+            Set a Python logger for this Pulsar client. Should be an instance of `logging.Logger`.
+        connection_timeout_ms: int, default=10000
+            Set timeout in milliseconds on TCP connections.
+        listener_name: str, optional
+            Listener name for lookup. Clients can use listenerName to choose one of the listeners as
+            the service URL to create a connection to the broker as long as the network is accessible.
+            `advertisedListeners` must be enabled in broker side.
         """
         _check_type(str, service_url, 'service_url')
         _check_type_or_none(Authentication, authentication, 'authentication')
@@ -481,89 +483,90 @@ class Client:
         """
         Create a new producer on a given topic.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `topic`:
-          The topic name
+        topic: str
+            The topic name
+        producer_name: str, optional
+            Specify a name for the producer. If not assigned, the system will generate a globally unique name
+            which can be accessed with `Producer.producer_name()`. When specifying a name, it is app to the user
+            to ensure that, for a given topic, the producer name is unique across all Pulsar's clusters.
+        schema: pulsar.schema.Schema, default=pulsar.schema.BytesSchema
+            Define the schema of the data that will be published by this producer, e.g,
+            `schema=JsonSchema(MyRecordClass)`.
 
-        **Options**
+            The schema will be used for two purposes:
+                * Validate the data format against the topic defined schema
+                * Perform serialization/deserialization between data and objects
+        initial_sequence_id: int, optional
+            Set the baseline for the sequence ids for messages published by the producer. First message will be
+            using `(initialSequenceId + 1)` as its sequence id and subsequent messages will be assigned
+            incremental sequence ids, if not otherwise specified.
+        send_timeout_millis: int, default=30000
+            If a message is not acknowledged by the server before the `send_timeout` expires, an error will be reported.
+        compression_type: CompressionType, default=CompressionType.NONE
+            Set the compression type for the producer. By default, message payloads are not compressed.
 
-        * `producer_name`:
-           Specify a name for the producer. If not assigned,
-           the system will generate a globally unique name which can be accessed
-           with `Producer.producer_name()`. When specifying a name, it is app to
-           the user to ensure that, for a given topic, the producer name is unique
-           across all Pulsar's clusters.
-        * `schema`:
-           Define the schema of the data that will be published by this producer.
-           The schema will be used for two purposes:
-             - Validate the data format against the topic defined schema
-             - Perform serialization/deserialization between data and objects
-           An example for this parameter would be to pass `schema=JsonSchema(MyRecordClass)`.
-        * `initial_sequence_id`:
-           Set the baseline for the sequence ids for messages
-           published by the producer. First message will be using
-           `(initialSequenceId + 1)`` as its sequence id and subsequent messages will
-           be assigned incremental sequence ids, if not otherwise specified.
-        * `send_timeout_millis`:
-          If a message is not acknowledged by the server before the
-          `send_timeout` expires, an error will be reported.
-        * `compression_type`:
-          Set the compression type for the producer. By default, message
-          payloads are not compressed. Supported compression types are
-          `CompressionType.LZ4`, `CompressionType.ZLib`, `CompressionType.ZSTD` and `CompressionType.SNAPPY`.
-          ZSTD is supported since Pulsar 2.3. Consumers will need to be at least at that
-          release in order to be able to receive messages compressed with ZSTD.
-          SNAPPY is supported since Pulsar 2.4. Consumers will need to be at least at that
-          release in order to be able to receive messages compressed with SNAPPY.
-        * `max_pending_messages`:
-          Set the max size of the queue holding the messages pending to receive
-          an acknowledgment from the broker.
-        * `max_pending_messages_across_partitions`:
-          Set the max size of the queue holding the messages pending to receive
-          an acknowledgment across partitions from the broker.
-        * `block_if_queue_full`: Set whether `send_async` operations should
-          block when the outgoing message queue is full.
-        * `message_routing_mode`:
-          Set the message routing mode for the partitioned producer. Default is `PartitionsRoutingMode.RoundRobinDistribution`,
-          other option is `PartitionsRoutingMode.UseSinglePartition`
-        * `lazy_start_partitioned_producers`:
-          This config affects producers of partitioned topics only. It controls whether
-          producers register and connect immediately to the owner broker of each partition
-          or start lazily on demand. The internal producer of one partition is always
-          started eagerly, chosen by the routing policy, but the internal producers of
-          any additional partitions are started on demand, upon receiving their first
-          message.
-          Using this mode can reduce the strain on brokers for topics with large numbers of
-          partitions and when the SinglePartition routing policy is used without keyed messages.
-          Because producer connection can be on demand, this can produce extra send latency
-          for the first messages of a given partition.
-        * `properties`:
-          Sets the properties for the producer. The properties associated with a producer
-          can be used for identify a producer at broker side.
-        * `batching_type`:
-          Sets the batching type for the producer.
-          There are two batching type: DefaultBatching and KeyBasedBatching.
-            - Default batching
+            Supported compression types are `CompressionType.LZ4`, `CompressionType.ZLib`, `CompressionType.ZSTD`
+            and `CompressionType.SNAPPY`.
+
+            ZSTD is supported since Pulsar 2.3. Consumers will need to be at least at that release in order to
+            be able to receive messages compressed with ZSTD.
+
+            SNAPPY is supported since Pulsar 2.4. Consumers will need to be at least at that release in order to
+            be able to receive messages compressed with SNAPPY.
+        max_pending_messages: int, default=1000
+            Set the max size of the queue holding the messages pending to receive an acknowledgment from the broker.
+        max_pending_messages_across_partitions: int, default=50000
+            Set the max size of the queue holding the messages pending to receive an acknowledgment across partitions
+            from the broker.
+        block_if_queue_full: bool, default=False
+            Set whether `send_async` operations should block when the outgoing message queue is full.
+        message_routing_mode: PartitionsRoutingMode, default=PartitionsRoutingMode.RoundRobinDistribution
+            Set the message routing mode for the partitioned producer.
+
+            Supported modes:
+
+            * `PartitionsRoutingMode.RoundRobinDistribution`
+            * `PartitionsRoutingMode.UseSinglePartition`.
+        lazy_start_partitioned_producers: bool, default=False
+            This config affects producers of partitioned topics only. It controls whether producers register
+            and connect immediately to the owner broker of each partition or start lazily on demand. The internal
+            producer of one partition is always started eagerly, chosen by the routing policy, but the internal
+            producers of any additional partitions are started on demand, upon receiving their first message.
+
+            Using this mode can reduce the strain on brokers for topics with large numbers of partitions and when
+            the SinglePartition routing policy is used without keyed messages. Because producer connection can be
+            on demand, this can produce extra send latency for the first messages of a given partition.
+        properties: dict, optional
+            Sets the properties for the producer. The properties associated with a producer can be used for identify
+            a producer at broker side.
+        batching_type: BatchingType, default=BatchingType.Default
+            Sets the batching type for the producer.
+
+            There are two batching type: DefaultBatching and KeyBasedBatching.
+
+            * Default batching
             incoming single messages:
-            (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
+                (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
             batched into single batch message:
-            [(k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)]
+                [(k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)]
 
-            - KeyBasedBatching
+            * KeyBasedBatching
             incoming single messages:
-            (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
+                (k1, v1), (k2, v1), (k3, v1), (k1, v2), (k2, v2), (k3, v2), (k1, v3), (k2, v3), (k3, v3)
             batched into single batch message:
-            [(k1, v1), (k1, v2), (k1, v3)], [(k2, v1), (k2, v2), (k2, v3)], [(k3, v1), (k3, v2), (k3, v3)]
-        * `chunking_enabled`:
-          If message size is higher than allowed max publish-payload size by broker then chunking_enabled
-          helps producer to split message into multiple chunks and publish them to broker separately and in
-          order. So, it allows client to successfully publish large size of messages in pulsar.
-        * encryption_key:
-           The key used for symmetric encryption, configured on the producer side
-        * crypto_key_reader:
-           Symmetric encryption class implementation, configuring public key encryption messages for the producer
-           and private key decryption messages for the consumer
+                [(k1, v1), (k1, v2), (k1, v3)], [(k2, v1), (k2, v2), (k2, v3)], [(k3, v1), (k3, v2), (k3, v3)]
+        chunking_enabled: bool, default=False
+            If message size is higher than allowed max publish-payload size by broker then chunking_enabled helps
+            producer to split message into multiple chunks and publish them to broker separately and in order.
+            So, it allows client to successfully publish large size of messages in pulsar.
+        encryption_key: str, optional
+            The key used for symmetric encryption, configured on the producer side
+        crypto_key_reader: CryptoKeyReader, optional
+            Symmetric encryption class implementation, configuring public key encryption messages for the producer
+            and private key decryption messages for the consumer
         """
         _check_type(str, topic, 'topic')
         _check_type_or_none(str, producer_name, 'producer_name')
