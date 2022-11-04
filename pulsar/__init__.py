@@ -1322,7 +1322,7 @@ class Consumer:
         Parameters
         ----------
 
-        message:
+        messageid:
             The message id for seek, OR an integer event time to seek to
         """
         self._consumer.seek(messageid)
@@ -1398,7 +1398,7 @@ class Reader:
         Parameters
         ----------
 
-        message:
+        messageid:
             The message id for seek, OR an integer event time to seek to
         """
         self._reader.seek(messageid)
@@ -1442,11 +1442,11 @@ class ConsoleLogger:
     """
     Logger that writes on standard output
 
-        Attributes
-        ----------
+    Attributes
+    ----------
 
-        log_level:
-            The logging level, eg: ``pulsar.LoggerLevel.Info``
+    log_level:
+        The logging level, eg: ``pulsar.LoggerLevel.Info``
     """
     def __init__(self, log_level=_pulsar.LoggerLevel.Info):
         _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
@@ -1457,13 +1457,13 @@ class FileLogger:
     """
     Logger that writes into a file
 
-        Attributes
-        ----------
+    Attributes
+    ----------
 
-        log_level:
-            The logging level, eg: `pulsar.LoggerLevel.Info`
-        log_file:
-            The file where to write the logs
+    log_level:
+        The logging level, eg: `pulsar.LoggerLevel.Info`
+    log_file:
+        The file where to write the logs
     """
     def __init__(self, log_level, log_file):
         _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
