@@ -903,8 +903,17 @@ class Client:
 
         This can be used to discover the partitions and create Reader, Consumer or Producer
         instances directly on a particular partition.
-        :param topic: the topic name to lookup
-        :return: a list of partition name
+
+        Parameters
+        ----------
+
+        topic: str
+            the topic name to lookup
+
+        Returns
+        -------
+        list
+            a list of partition name
         """
         _check_type(str, topic, 'topic')
         return self._client.get_topic_partitions(topic)
@@ -984,36 +993,31 @@ class Producer:
 
         Returns a `MessageId` object that represents where the message is persisted.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `content`:
-          A `bytes` object with the message payload.
-
-        **Options**
-
-        * `properties`:
-          A dict of application-defined string properties.
-        * `partition_key`:
-          Sets the partition key for message routing. A hash of this key is used
-          to determine the message's topic partition.
-        * `sequence_id`:
-          Specify a custom sequence id for the message being published.
-        * `replication_clusters`:
-          Override namespace replication clusters. Note that it is the caller's
-          responsibility to provide valid cluster names and that all clusters
-          have been previously configured as topics. Given an empty list,
+        content:
+            A ``bytes`` object with the message payload.
+        properties: optional
+            A dict of application-defined string properties.
+        partition_key: optional
+            Sets the partition key for message routing. A hash of this key is used
+            to determine the message's topic partition.
+        sequence_id:  optional
+            Specify a custom sequence id for the message being published.
+        replication_clusters:  optional
+          Override namespace replication clusters. Note that it is the caller's responsibility to provide valid
+          cluster names and that all clusters have been previously configured as topics. Given an empty list,
           the message will replicate according to the namespace configuration.
-        * `disable_replication`:
-          Do not replicate this message.
-        * `event_timestamp`:
-          Timestamp in millis of the timestamp of event creation
-        * `deliver_at`:
-          Specify the message should not be delivered earlier than the
-          specified timestamp.
-          The timestamp is milliseconds and based on UTC
-        * `deliver_after`:
-          Specify a delay in timedelta for the delivery of the messages.
-
+        disable_replication: bool, default=False
+            Do not replicate this message.
+        event_timestamp: optional
+            Timestamp in millis of the timestamp of event creation
+        deliver_at: optional
+            Specify the message should not be delivered earlier than the specified timestamp.
+            The timestamp is milliseconds and based on UTC
+        deliver_after: optional
+            Specify a delay in timedelta for the delivery of the messages.
         """
         msg = self._build_msg(content, properties, partition_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
@@ -1231,10 +1235,11 @@ class Consumer:
         This method will block until an acknowledgement is sent to the broker.
         After that, the message will not be re-delivered to this consumer.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `message`:
-          The received message or message id.
+        message:
+            The received message or message id.
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
@@ -1249,10 +1254,11 @@ class Consumer:
         This method will block until an acknowledgement is sent to the broker.
         After that, the messages will not be re-delivered to this consumer.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `message`:
-          The received message or message id.
+        message:
+            The received message or message id.
         """
         if isinstance(message, Message):
             self._consumer.acknowledge_cumulative(message._message)
@@ -1269,10 +1275,11 @@ class Consumer:
 
         This call is not blocking.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `message`:
-          The received message or message id.
+        message:
+            The received message or message id.
         """
         if isinstance(message, Message):
             self._consumer.negative_acknowledge(message._message)
@@ -1312,10 +1319,11 @@ class Consumer:
         Note: this operation can only be done on non-partitioned topics. For these, one can rather perform the
         seek() on the individual partitions.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `message`:
-          The message id for seek, OR an integer event time to seek to
+        message:
+            The message id for seek, OR an integer event time to seek to
         """
         self._consumer.seek(messageid)
 
@@ -1387,10 +1395,11 @@ class Reader:
         Note: this operation can only be done on non-partitioned topics. For these, one can rather perform the
         seek() on the individual partitions.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `message`:
-          The message id for seek, OR an integer event time to seek to
+        message:
+            The message id for seek, OR an integer event time to seek to
         """
         self._reader.seek(messageid)
 
@@ -1416,10 +1425,13 @@ class CryptoKeyReader:
         """
         Create crypto key reader.
 
-        **Args**
+        Parameters
+        ----------
 
-        * `public_key_path`: Path to the public key
-        * `private_key_path`: Path to private key
+        public_key_path: str
+            Path to the public key
+        private_key_path: str
+            Path to private key
         """
         _check_type(str, public_key_path, 'public_key_path')
         _check_type(str, private_key_path, 'private_key_path')
@@ -1430,9 +1442,11 @@ class ConsoleLogger:
     """
     Logger that writes on standard output
 
-        **Args**
+        Attributes
+        ----------
 
-        * `log_level`: The logging level. eg: `pulsar.LoggerLevel.Info`
+        log_level:
+            The logging level, eg: ``pulsar.LoggerLevel.Info``
     """
     def __init__(self, log_level=_pulsar.LoggerLevel.Info):
         _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
@@ -1443,10 +1457,13 @@ class FileLogger:
     """
     Logger that writes into a file
 
-        **Args**
+        Attributes
+        ----------
 
-        * `log_level`: The logging level. eg: `pulsar.LoggerLevel.Info`
-        * `log_file`: The file where to write the logs
+        log_level:
+            The logging level, eg: `pulsar.LoggerLevel.Info`
+        log_file:
+            The file where to write the logs
     """
     def __init__(self, log_level, log_file):
         _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
