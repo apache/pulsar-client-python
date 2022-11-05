@@ -374,8 +374,12 @@ class Client:
         service_url: str
             The Pulsar service url eg: pulsar://my-broker.com:6650/
         authentication: Authentication, optional
-            Set the authentication provider to be used with the broker. For example:
-            `AuthenticationTls`, `AuthenticationToken`, `AuthenticationAthenz` or `AuthenticationOauth2`
+            Set the authentication provider to be used with the broker. Supported methods:
+
+            * `AuthenticationTLS`
+            * `AuthenticationToken`
+            * `AuthenticationAthenz`
+            * `AuthenticationOauth2`
         operation_timeout_seconds: int, default=30
             Set timeout on client operations (subscribe, create producer, close, unsubscribe).
         io_threads: int, default=1
@@ -383,8 +387,8 @@ class Client:
         message_listener_threads: int, default=1
             Set the number of threads to be used by the Pulsar client when delivering messages through
             message listener. The default is 1 thread per Pulsar client. If using more than 1 thread,
-            messages for distinct `message_listener`s will be delivered in different threads, however a
-            single `MessageListener` will always be assigned to the same thread.
+            messages for distinct ``message_listener``s will be delivered in different threads, however a
+            single ``MessageListener`` will always be assigned to the same thread.
         concurrent_lookup_requests: int, default=50000
             Number of concurrent lookup-requests allowed on each broker connection to prevent overload
             on the broker.
@@ -407,7 +411,7 @@ class Client:
         listener_name: str, optional
             Listener name for lookup. Clients can use listenerName to choose one of the listeners as
             the service URL to create a connection to the broker as long as the network is accessible.
-            `advertisedListeners` must be enabled in broker side.
+            ``advertisedListeners`` must be enabled in broker side.
         """
         _check_type(str, service_url, 'service_url')
         _check_type_or_none(Authentication, authentication, 'authentication')
@@ -975,7 +979,7 @@ class Producer:
         Get the last sequence id that was published by this producer.
 
         This represents either the automatically assigned or custom sequence id
-        (set on the `MessageBuilder`) that was published and acknowledged by the broker.
+        (set on the ``MessageBuilder``) that was published and acknowledged by the broker.
 
         After recreating a producer with the same producer name, this will return the
         last message that was published in the previous producer session, or -1 if
@@ -1045,7 +1049,7 @@ class Producer:
         Examples
         --------
 
-        The `callback` will be invoked once the message has been acknowledged by the broker.
+        The ``callback`` will be invoked once the message has been acknowledged by the broker.
 
         .. code-block:: python
 
@@ -1293,8 +1297,7 @@ class Consumer:
 
     def pause_message_listener(self):
         """
-        Pause receiving messages via the `message_listener` until
-        `resume_message_listener()` is called.
+        Pause receiving messages via the ``message_listener`` until `resume_message_listener()` is called.
         """
         self._consumer.pause_message_listener()
 
@@ -1466,7 +1469,7 @@ class FileLogger:
     ----------
 
     log_level:
-        The logging level, eg: `pulsar.LoggerLevel.Info`
+        The logging level, eg: ``pulsar.LoggerLevel.Info``
     log_file:
         The file where to write the logs
     """
