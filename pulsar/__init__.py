@@ -1216,11 +1216,11 @@ class Consumer:
         If a message is not immediately available, this method will block until
         a new message is available.
 
-        **Options**
+        Parameters
+        ----------
 
-        * `timeout_millis`:
-          If specified, the receiver will raise an exception if a message is not
-          available within the timeout.
+        timeout_millis: int, optional
+            If specified, the receiver will raise an exception if a message is not available within the timeout.
         """
         if timeout_millis is None:
             msg = self._consumer.receive()
@@ -1370,11 +1370,11 @@ class Reader:
         If a message is not immediately available, this method will block until
         a new message is available.
 
-        **Options**
+        Parameters
+        ----------
 
-        * `timeout_millis`:
-          If specified, the receiver will raise an exception if a message is not
-          available within the timeout.
+        timeout_millis: int, optional
+            If specified, the receiver will raise an exception if a message is not available within the timeout.
         """
         if timeout_millis is None:
             msg = self._reader.read_next()
