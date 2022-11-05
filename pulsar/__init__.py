@@ -512,7 +512,7 @@ class Client:
             using ``(initialSequenceId + 1)`` as its sequence id and subsequent messages will be assigned
             incremental sequence ids, if not otherwise specified.
         send_timeout_millis: int, default=30000
-            If a message is not acknowledged by the server before the `send_timeout` expires, an error will be reported.
+            If a message is not acknowledged by the server before the ``send_timeout`` expires, an error will be reported.
         compression_type: CompressionType, default=CompressionType.NONE
             Set the compression type for the producer. By default, message payloads are not compressed.
 
