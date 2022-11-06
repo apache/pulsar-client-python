@@ -36,16 +36,20 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-"""function.py: This is the core interface of the function api.
-# The process method is called for every message of the input topic of the
-# function. The incoming input bytes are deserialized using the serde.
-# The process function can optionally emit an output
+"""
+This is the core interface of the function api.
+
+The process method is called for every message of the input topic of the
+function. The incoming input bytes are deserialized using the serde.
+The process function can optionally emit an output
 """
 from abc import abstractmethod
 
+
 class Function(object):
-  """Interface for Pulsar Function"""
-  @abstractmethod
-  def process(self, input, context):
-    """Process input message"""
-    pass
+    """Interface for Pulsar Function"""
+
+    @abstractmethod
+    def process(self, input, context):
+        """Process input message"""
+        pass
