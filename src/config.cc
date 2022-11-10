@@ -253,6 +253,11 @@ void export_config() {
         .def("encryption_key", &ProducerConfiguration::addEncryptionKey, return_self<>())
         .def("crypto_key_reader", &ProducerConfiguration_setCryptoKeyReader, return_self<>());
 
+    class_<BatchReceivePolicy>("BatchReceivePolicy", init<int, int, long>())
+        .def("getTimeoutMs", &BatchReceivePolicy::getTimeoutMs)
+        .def("getMaxNumMessages", &BatchReceivePolicy::getMaxNumMessages)
+        .def("getMaxNumBytes", &BatchReceivePolicy::getMaxNumBytes);
+
     class_<ConsumerConfiguration>("ConsumerConfiguration")
         .def("consumer_type", &ConsumerConfiguration::getConsumerType)
         .def("consumer_type", &ConsumerConfiguration::setConsumerType, return_self<>())
@@ -267,6 +272,8 @@ void export_config() {
              &ConsumerConfiguration::setMaxTotalReceiverQueueSizeAcrossPartitions)
         .def("consumer_name", &ConsumerConfiguration::getConsumerName,
              return_value_policy<copy_const_reference>())
+        .def("batch_receive_policy", &ConsumerConfiguration::getBatchReceivePolicy, return_value_policy<copy_const_reference>())
+        .def("batch_receive_policy", &ConsumerConfiguration::setBatchReceivePolicy)
         .def("consumer_name", &ConsumerConfiguration::setConsumerName)
         .def("unacked_messages_timeout_ms", &ConsumerConfiguration::getUnAckedMessagesTimeoutMs)
         .def("unacked_messages_timeout_ms", &ConsumerConfiguration::setUnAckedMessagesTimeoutMs)

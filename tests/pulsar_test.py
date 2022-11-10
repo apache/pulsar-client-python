@@ -42,7 +42,7 @@ from pulsar import (
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
-from _pulsar import ProducerConfiguration, ConsumerConfiguration
+from _pulsar import ProducerConfiguration, ConsumerConfiguration, BatchReceivePolicy
 
 from schema_test import *
 
@@ -1062,6 +1062,27 @@ class PulsarTest(TestCase):
 
         with self.assertRaises(pulsar.Timeout):
             consumer.receive(100)
+        client.close()
+
+    def test_batch_receive(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-batch-receive-" + str(time.time())
+        consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared,
+                                    start_message_id_inclusive=True, batch_receive_policy=BatchReceivePolicy(10, -1, -1))
+        producer = client.create_producer(topic)
+
+
+        for i in range(10):
+            if i > 0:
+                time.sleep(0.02)
+            producer.send(b"hello-%d" % i)
+
+        msgs = consumer.batch_receive()
+        i = 0
+        for msg in msgs:
+            self.assertEqual(msg.data(), b"hello-%d" % i)
+            i += 1
+
         client.close()
 
     def test_message_id(self):
