@@ -741,16 +741,8 @@ class Client:
           if autoAckOldestChunkedMessageOnQueueFull is true else it marks them for redelivery.
         start_message_id_inclusive: bool, default=False
           Set the consumer to include the given position of any reset operation like Consumer::seek.
-        batch_receive_policy: class BatchReceivePolicy, Constructor parameters (in order):
-          : param maxNumMessage: Max num message, if less than 0, it means no limit. default: -1
-          : param maxNumBytes: Max num bytes, if less than 0, it means no limit. default: 10 * 1024 * 1024
-          : param timeoutMs: If less than 0, it means no limit. default: 100
-
-          Batch receive policy can limit the number and bytes of messages in a single batch,
-          and can specify a timeout for waiting for enough messages for this batch.
-
-          A batch receive action is completed as long as any one of the conditions (the batch has enough number
-          or size of messages, or the waiting timeout is passed) are met.
+        batch_receive_policy: class ConsumerBatchReceivePolicy
+          Set the batch collection policy for batch receiving.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -770,7 +762,7 @@ class Client:
         _check_type(int, max_pending_chunked_message, 'max_pending_chunked_message')
         _check_type(bool, auto_ack_oldest_chunked_message_on_queue_full, 'auto_ack_oldest_chunked_message_on_queue_full')
         _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
-        _check_type_or_none(BatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
+        _check_type_or_none(ConsumerBatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -801,7 +793,7 @@ class Client:
         conf.auto_ack_oldest_chunked_message_on_queue_full(auto_ack_oldest_chunked_message_on_queue_full)
         conf.start_message_id_inclusive(start_message_id_inclusive)
         if batch_receive_policy:
-            conf.batch_receive_policy(batch_receive_policy)
+            conf.batch_receive_policy(batch_receive_policy.policy())
 
         c = Consumer()
         if isinstance(topic, str):
@@ -1382,6 +1374,32 @@ class Consumer:
         """
         return self._consumer.get_last_message_id()
 
+class ConsumerBatchReceivePolicy:
+    """
+    Batch receive policy can limit the number and bytes of messages in a single batch,
+    and can specify a timeout for waiting for enough messages for this batch.
+
+    A batch receive action is completed as long as any one of the conditions (the batch has enough number
+    or size of messages, or the waiting timeout is passed) are met.
+    """
+    def __init__(self, max_num_message, max_num_bytes, timeout_ms):
+        """
+        Wrapper BatchReceivePolicy.
+
+        Parameters
+        ----------
+
+        max_num_message: Max num message, if less than 0, it means no limit. default: -1
+        max_num_bytes: Max num bytes, if less than 0, it means no limit. default: 10 * 1024 * 1024
+        timeout_ms: If less than 0, it means no limit. default: 100
+        """
+        self._policy = BatchReceivePolicy(max_num_message, max_num_bytes, timeout_ms)
+
+    def policy(self):
+        """
+        Returns the actual one BatchReceivePolicy.
+        """
+        return self._policy
 
 class Reader:
     """

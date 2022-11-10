@@ -39,10 +39,11 @@ from pulsar import (
     AuthenticationToken,
     InitialPosition,
     CryptoKeyReader,
+    ConsumerBatchReceivePolicy,
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
-from _pulsar import ProducerConfiguration, ConsumerConfiguration, BatchReceivePolicy
+from _pulsar import ProducerConfiguration, ConsumerConfiguration
 
 from schema_test import *
 
@@ -1068,7 +1069,7 @@ class PulsarTest(TestCase):
         client = Client(self.serviceUrl)
         topic = "my-python-topic-batch-receive-" + str(time.time())
         consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared,
-                                    start_message_id_inclusive=True, batch_receive_policy=BatchReceivePolicy(10, -1, -1))
+                                    start_message_id_inclusive=True, batch_receive_policy=ConsumerBatchReceivePolicy(10, -1, -1))
         producer = client.create_producer(topic)
 
 
