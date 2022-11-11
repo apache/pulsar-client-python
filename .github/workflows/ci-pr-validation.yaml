@@ -27,6 +27,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-and-lint:
+    name: Lint and check code
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - name: Install deps
+        run: pip install -U pydoctor
+      - name: Check docs syntax
+        run: |
+          pydoctor --make-html \
+            --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/main \
+            --docformat=numpy --theme=readthedocs \
+            --intersphinx=https://docs.python.org/3/objects.inv \
+            --html-output=apidocs \
+            pulsar
+
   unit-tests:
     name: Run unit tests
     runs-on: ubuntu-22.04
@@ -241,6 +260,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() }}
     needs: [
+      check-and-lint,
       unit-tests,
       linux-wheel,
       mac-wheels,
@@ -249,7 +269,8 @@ jobs:
     steps:
       - run: |
         if [[ ! ( \
-                   "${{ needs.unit-tests.result }}" == "success" \
+                   "${{ needs.check-and-lint.result }}" == "success" \
+                && "${{ needs.unit-tests.result }}" == "success" \
                 && "${{ needs.linux-wheel.result }}" == "success" \
                 && "${{ needs.mac-wheels.result }}" == "success" \
                 && "${{ needs.windows-wheels.result }}" == "success" \
