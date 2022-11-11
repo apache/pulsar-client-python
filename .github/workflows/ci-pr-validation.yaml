@@ -239,7 +239,21 @@ jobs:
   check-completion:
     name: Check Completion
     runs-on: ubuntu-latest
-    needs: [unit-tests, linux-wheel, mac-wheels, windows-wheels]
-
+    if: ${{ always() }}
+    needs: [
+      unit-tests,
+      linux-wheel,
+      mac-wheels,
+      windows-wheels
+    ]
     steps:
-      - run: true
+      - run: |
+        if [[ ! ( \
+                   "${{ needs.unit-tests.result }}" == "success" \
+                && "${{ needs.linux-wheel.result }}" == "success" \
+                && "${{ needs.mac-wheels.result }}" == "success" \
+                && "${{ needs.windows-wheels.result }}" == "success" \
+               ) ]]; then
+            echo "Required jobs haven't been completed successfully."
+            exit 1
+          fi
