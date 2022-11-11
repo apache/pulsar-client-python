@@ -268,13 +268,13 @@ jobs:
     ]
     steps:
       - run: |
-        if [[ ! ( \
-                   "${{ needs.check-and-lint.result }}" == "success" \
-                && "${{ needs.unit-tests.result }}" == "success" \
-                && "${{ needs.linux-wheel.result }}" == "success" \
-                && "${{ needs.mac-wheels.result }}" == "success" \
-                && "${{ needs.windows-wheels.result }}" == "success" \
-               ) ]]; then
-            echo "Required jobs haven't been completed successfully."
-            exit 1
-          fi
+          if [[ ! ( \
+                    "${{ needs.check-and-lint.result }}" == "success" \
+                  && "${{ needs.unit-tests.result }}" == "success" \
+                  && "${{ needs.linux-wheel.result }}" == "success" \
+                  && "${{ needs.mac-wheels.result }}" == "success" \
+                  && "${{ needs.windows-wheels.result }}" == "success" \
+                ) ]]; then
+              echo "Required jobs haven't been completed successfully."
+              exit 1
+            fi
