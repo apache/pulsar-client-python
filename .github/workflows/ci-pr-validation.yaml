@@ -27,7 +27,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   unit-tests:
     name: Run unit tests
     runs-on: ubuntu-22.04
@@ -237,8 +236,6 @@ jobs:
           ls -l *.dll
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
 
-
-  # Job that will be required to complete and depends on all the other jobs
   check-completion:
     name: Check Completion
     runs-on: ubuntu-latest

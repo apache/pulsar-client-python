@@ -28,42 +28,22 @@ github:
     - queuing
     - event-streaming
   features:
-    # Enable wiki for documentation
-    wiki: true
-    # Enable issues management
+    wiki: false
     issues: true
-    # Enable projects for project management boards
     projects: true
   enabled_merge_buttons:
-    # enable squash button:
     squash:  true
-    # disable merge button:
     merge:   false
-    # disable rebase button:
     rebase:  false
   protected_branches:
     main:
       required_status_checks:
-      #   # strict means "Require branches to be up to date before merging".
-        strict: false
-      #   # Contexts are the names of checks that must pass.
-      #   # See ./github/workflows/README.md for more documentation on this list.
+        # Contexts are the names of checks that must pass.
+        # See ./github/workflows/README.md for more documentation on this list.
         contexts:
            - Check Completion
-
       required_pull_request_reviews:
-        dismiss_stale_reviews: false
-        require_code_owner_reviews: true
         required_approving_review_count: 1
-
-      # squash or rebase must be allowed in the repo for this setting to be set to true.
-      required_linear_history: true
-
-      required_signatures: false
-
-    # The following branch protections only ensure that force pushes are not allowed
-    # branch-3.xxx: {}
-
 
 notifications:
   commits:      commits@pulsar.apache.org
