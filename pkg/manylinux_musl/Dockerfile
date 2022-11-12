@@ -38,6 +38,7 @@ RUN pip install pyyaml
 RUN apk add cmake
 
 ADD .build/dependencies.yaml /
+ADD .build/pulsar-client-cpp-version.txt /
 ADD .build/dep-version.py /usr/local/bin
 
 # Download and compile boost
@@ -57,7 +58,7 @@ RUN PROTOBUF_VERSION=$(dep-version.py protobuf) && \
     tar xfz protobuf-cpp-${PROTOBUF_VERSION}.tar.gz && \
     cd protobuf-${PROTOBUF_VERSION}/ && \
     CXXFLAGS=-fPIC ./configure && \
-    make -j8 && make install && ldconfig && \
+    make -j8 && make install && \
     rm -rf /protobuf-cpp-${PROTOBUF_VERSION}.tar.gz /protobuf-${PROTOBUF_VERSION}
 
 # ZLib
