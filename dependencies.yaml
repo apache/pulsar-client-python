@@ -18,8 +18,6 @@
 #
 
 boost: 1.80.0
-
-# Only used for MacOS builds
 cmake: 3.24.2
 protobuf: 3.20.0
 zlib: 1.2.13
