@@ -22,8 +22,6 @@ set -e -x
 
 cd /pulsar-client-python
 
-build-support/install-cpp-client.sh
-
 rm -f CMakeCache.txt CMakeFiles
 
 cmake . \
