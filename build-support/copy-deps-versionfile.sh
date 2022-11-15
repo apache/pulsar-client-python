@@ -25,6 +25,5 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 for dir in manylinux2014 manylinux_musl; do
   mkdir -p pkg/$dir/.build
   cp $ROOT_DIR/dependencies.yaml pkg/$dir/.build
-  cp $ROOT_DIR/pulsar-client-cpp-version.txt pkg/$dir/.build
   cp $ROOT_DIR/build-support/dep-version.py pkg/$dir/.build
 done

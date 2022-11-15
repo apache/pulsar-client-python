@@ -19,24 +19,18 @@
 
 #pragma once
 
-#include <boost/python.hpp>
-
 #include <pulsar/Client.h>
 #include <pulsar/MessageBatch.h>
+#include <exception>
+#include <Python.h>
+#include "exceptions.h"
 #include "future.h"
 
 using namespace pulsar;
 
-namespace py = boost::python;
-
-struct PulsarException {
-    Result _result;
-    PulsarException(Result res) : _result(res) {}
-};
-
 inline void CHECK_RESULT(Result res) {
     if (res != ResultOk) {
-        throw PulsarException(res);
+        raiseException(res);
     }
 }
 
@@ -91,13 +85,6 @@ inline void waitForAsyncValue(std::function<void(Callback)> func, T& value) {
         }
     }
 }
-
-struct AuthenticationWrapper {
-    AuthenticationPtr auth;
-
-    AuthenticationWrapper();
-    AuthenticationWrapper(const std::string& dynamicLibPath, const std::string& authParamsString);
-};
 
 struct CryptoKeyReaderWrapper {
     CryptoKeyReaderPtr cryptoKeyReader;

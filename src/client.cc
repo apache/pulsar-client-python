@@ -18,6 +18,11 @@
  */
 #include "utils.h"
 
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
+
 Producer Client_createProducer(Client& client, const std::string& topic, const ProducerConfiguration& conf) {
     Producer producer;
 
@@ -41,18 +46,12 @@ Consumer Client_subscribe(Client& client, const std::string& topic, const std::s
     return consumer;
 }
 
-Consumer Client_subscribe_topics(Client& client, boost::python::list& topics,
+Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>& topics,
                                  const std::string& subscriptionName, const ConsumerConfiguration& conf) {
-    std::vector<std::string> topics_vector;
-    for (int i = 0; i < len(topics); i++) {
-        std::string content = boost::python::extract<std::string>(topics[i]);
-        topics_vector.push_back(content);
-    }
-
     Consumer consumer;
 
     waitForAsyncValue(std::function<void(SubscribeCallback)>([&](SubscribeCallback callback) {
-                          client.subscribeAsync(topics_vector, subscriptionName, conf, callback);
+                          client.subscribeAsync(topics, subscriptionName, conf, callback);
                       }),
                       consumer);
 
@@ -83,7 +82,7 @@ Reader Client_createReader(Client& client, const std::string& topic, const Messa
     return reader;
 }
 
-boost::python::list Client_getTopicPartitions(Client& client, const std::string& topic) {
+std::vector<std::string> Client_getTopicPartitions(Client& client, const std::string& topic) {
     std::vector<std::string> partitions;
 
     waitForAsyncValue(std::function<void(GetPartitionsCallback)>([&](GetPartitionsCallback callback) {
@@ -91,22 +90,16 @@ boost::python::list Client_getTopicPartitions(Client& client, const std::string&
                       }),
                       partitions);
 
-    boost::python::list pyList;
-    for (int i = 0; i < partitions.size(); i++) {
-        pyList.append(boost::python::object(partitions[i]));
-    }
-
-    return pyList;
+    return partitions;
 }
 
 void Client_close(Client& client) {
     waitForAsyncResult([&](ResultCallback callback) { client.closeAsync(callback); });
 }
 
-void export_client() {
-    using namespace boost::python;
-
-    class_<Client>("Client", init<const std::string&, const ClientConfiguration&>())
+void export_client(py::module_& m) {
+    py::class_<Client, std::shared_ptr<Client>>(m, "Client")
+        .def(py::init<const std::string&, const ClientConfiguration&>())
         .def("create_producer", &Client_createProducer)
         .def("subscribe", &Client_subscribe)
         .def("subscribe_topics", &Client_subscribe_topics)

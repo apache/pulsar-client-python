@@ -17,12 +17,16 @@
  * under the License.
  */
 #include "utils.h"
+#include <pybind11/pybind11.h>
 
-void export_schema() {
-    using namespace boost::python;
+namespace py = pybind11;
 
-    class_<SchemaInfo>("SchemaInfo", init<SchemaType, const std::string&, const std::string&>())
+void export_schema(py::module_& m) {
+    using namespace py;
+
+    class_<SchemaInfo>(m, "SchemaInfo")
+        .def(init<SchemaType, const std::string&, const std::string&>())
         .def("schema_type", &SchemaInfo::getSchemaType)
-        .def("name", &SchemaInfo::getName, return_value_policy<copy_const_reference>())
-        .def("schema", &SchemaInfo::getSchema, return_value_policy<copy_const_reference>());
+        .def("name", &SchemaInfo::getName, return_value_policy::copy)
+        .def("schema", &SchemaInfo::getSchema, return_value_policy::copy);
 }

@@ -17,29 +17,36 @@
  * under the License.
  */
 #include "utils.h"
+#include <pulsar/CompressionType.h>
+#include <pulsar/ConsumerConfiguration.h>
+#include <pulsar/ProducerConfiguration.h>
+#include <pybind11/pybind11.h>
 
-void export_enums() {
-    using namespace boost::python;
+using namespace pulsar;
+namespace py = pybind11;
 
-    enum_<ProducerConfiguration::PartitionsRoutingMode>("PartitionsRoutingMode")
+void export_enums(py::module_& m) {
+    using namespace py;
+
+    enum_<ProducerConfiguration::PartitionsRoutingMode>(m, "PartitionsRoutingMode")
         .value("UseSinglePartition", ProducerConfiguration::UseSinglePartition)
         .value("RoundRobinDistribution", ProducerConfiguration::RoundRobinDistribution)
         .value("CustomPartition", ProducerConfiguration::CustomPartition);
 
-    enum_<CompressionType>("CompressionType")
+    enum_<CompressionType>(m, "CompressionType")
         .value("NONE", CompressionNone)  // Don't use 'None' since it's a keyword in py3
         .value("LZ4", CompressionLZ4)
         .value("ZLib", CompressionZLib)
         .value("ZSTD", CompressionZSTD)
         .value("SNAPPY", CompressionSNAPPY);
 
-    enum_<ConsumerType>("ConsumerType")
+    enum_<ConsumerType>(m, "ConsumerType")
         .value("Exclusive", ConsumerExclusive)
         .value("Shared", ConsumerShared)
         .value("Failover", ConsumerFailover)
         .value("KeyShared", ConsumerKeyShared);
 
-    enum_<Result>("Result", "Collection of return codes")
+    enum_<Result>(m, "Result", "Collection of return codes")
         .value("Ok", ResultOk)
         .value("UnknownError", ResultUnknownError)
         .value("InvalidConfiguration", ResultInvalidConfiguration)
@@ -87,7 +94,7 @@ void export_enums() {
         .value("MemoryBufferIsFull", ResultMemoryBufferIsFull)
         .value("Interrupted", pulsar::ResultInterrupted);
 
-    enum_<SchemaType>("SchemaType", "Supported schema types")
+    enum_<SchemaType>(m, "SchemaType", "Supported schema types")
         .value("NONE", pulsar::NONE)
         .value("STRING", pulsar::STRING)
         .value("INT8", pulsar::INT8)
@@ -104,15 +111,15 @@ void export_enums() {
         .value("AUTO_PUBLISH", pulsar::AUTO_PUBLISH)
         .value("KEY_VALUE", pulsar::KEY_VALUE);
 
-    enum_<InitialPosition>("InitialPosition", "Supported initial position")
+    enum_<InitialPosition>(m, "InitialPosition", "Supported initial position")
         .value("Latest", InitialPositionLatest)
         .value("Earliest", InitialPositionEarliest);
 
-    enum_<ProducerConfiguration::BatchingType>("BatchingType", "Supported batching types")
+    enum_<ProducerConfiguration::BatchingType>(m, "BatchingType", "Supported batching types")
         .value("Default", ProducerConfiguration::DefaultBatching)
         .value("KeyBased", ProducerConfiguration::KeyBasedBatching);
 
-    enum_<Logger::Level>("LoggerLevel")
+    enum_<Logger::Level>(m, "LoggerLevel")
         .value("Debug", Logger::LEVEL_DEBUG)
         .value("Info", Logger::LEVEL_INFO)
         .value("Warn", Logger::LEVEL_WARN)

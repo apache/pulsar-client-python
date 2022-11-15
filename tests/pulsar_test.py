@@ -50,8 +50,7 @@ from schema_test import *
 from urllib.request import urlopen, Request
 
 TM = 10000  # Do not wait forever in tests
-CERTS_DIR = os.path.dirname(__file__) + "/test-conf/"
-
+CERTS_DIR = os.path.dirname(os.path.abspath(__file__)) + "/test-conf/"
 
 def doHttpPost(url, data):
     req = Request(url, data.encode())

@@ -22,6 +22,12 @@ set -e -x
 
 cd /pulsar-client-python
 
+PYBIND11_VERSION=$(./build-support/dep-version.py pybind11)
+curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
+tar zxf v${PYBIND11_VERSION}.tar.gz
+rm -rf pybind11
+mv pybind11-${PYBIND11_VERSION} pybind11
+
 rm -f CMakeCache.txt CMakeFiles
 
 cmake . \

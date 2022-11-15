@@ -17,8 +17,10 @@
 # under the License.
 #
 
-boost: 1.80.0
 cmake: 3.24.2
+pulsar-cpp: 3.0.0
+pybind11: 2.10.1
+boost: 1.80.0
 protobuf: 3.20.0
 zlib: 1.2.13
 zstd: 1.5.2

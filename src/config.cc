@@ -17,87 +17,29 @@
  * under the License.
  */
 #include "utils.h"
+#include <pulsar/ClientConfiguration.h>
 #include <pulsar/ConsoleLoggerFactory.h>
+#include <pulsar/ConsumerConfiguration.h>
+#include <pulsar/ProducerConfiguration.h>
+#include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
-template <typename T>
-struct ListenerWrapper {
-    PyObject* _pyListener;
+namespace py = pybind11;
 
-    ListenerWrapper(py::object pyListener) : _pyListener(pyListener.ptr()) { Py_XINCREF(_pyListener); }
+#ifdef __GNUC__
+#define HIDDEN __attribute__((visibility("hidden")))
+#else
+#define HIDDEN
+#endif
 
-    ListenerWrapper(const ListenerWrapper& other) {
-        _pyListener = other._pyListener;
-        Py_XINCREF(_pyListener);
-    }
-
-    ListenerWrapper& operator=(const ListenerWrapper& other) {
-        _pyListener = other._pyListener;
-        Py_XINCREF(_pyListener);
-        return *this;
-    }
-
-    virtual ~ListenerWrapper() { Py_XDECREF(_pyListener); }
-
-    void operator()(T consumer, const Message& msg) {
-        PyGILState_STATE state = PyGILState_Ensure();
-
-        try {
-            py::call<void>(_pyListener, py::object(&consumer), py::object(&msg));
-        } catch (const py::error_already_set& e) {
-            PyErr_Print();
-        }
-
-        PyGILState_Release(state);
-    }
-};
-
-static ConsumerConfiguration& ConsumerConfiguration_setMessageListener(ConsumerConfiguration& conf,
-                                                                       py::object pyListener) {
-    conf.setMessageListener(ListenerWrapper<Consumer>(pyListener));
-    return conf;
-}
-
-static ReaderConfiguration& ReaderConfiguration_setReaderListener(ReaderConfiguration& conf,
-                                                                  py::object pyListener) {
-    conf.setReaderListener(ListenerWrapper<Reader>(pyListener));
-    return conf;
-}
-
-static ClientConfiguration& ClientConfiguration_setAuthentication(ClientConfiguration& conf,
-                                                                  py::object authentication) {
-    AuthenticationWrapper wrapper = py::extract<AuthenticationWrapper>(authentication);
-    conf.setAuth(wrapper.auth);
-    return conf;
-}
-
-static ConsumerConfiguration& ConsumerConfiguration_setCryptoKeyReader(ConsumerConfiguration& conf,
-                                                                       py::object cryptoKeyReader) {
-    CryptoKeyReaderWrapper cryptoKeyReaderWrapper = py::extract<CryptoKeyReaderWrapper>(cryptoKeyReader);
-    conf.setCryptoKeyReader(cryptoKeyReaderWrapper.cryptoKeyReader);
-    return conf;
-}
-
-static ProducerConfiguration& ProducerConfiguration_setCryptoKeyReader(ProducerConfiguration& conf,
-                                                                       py::object cryptoKeyReader) {
-    CryptoKeyReaderWrapper cryptoKeyReaderWrapper = py::extract<CryptoKeyReaderWrapper>(cryptoKeyReader);
-    conf.setCryptoKeyReader(cryptoKeyReaderWrapper.cryptoKeyReader);
-    return conf;
-}
-
-static ReaderConfiguration& ReaderConfiguration_setCryptoKeyReader(ReaderConfiguration& conf,
-                                                                   py::object cryptoKeyReader) {
-    CryptoKeyReaderWrapper cryptoKeyReaderWrapper = py::extract<CryptoKeyReaderWrapper>(cryptoKeyReader);
-    conf.setCryptoKeyReader(cryptoKeyReaderWrapper.cryptoKeyReader);
-    return conf;
-}
-
-class LoggerWrapper : public Logger, public CaptivePythonObjectMixin {
+class HIDDEN LoggerWrapper : public Logger, public CaptivePythonObjectMixin {
     const std::unique_ptr<Logger> _fallbackLogger;
+    py::object _pyLogger;
 
    public:
-    LoggerWrapper(PyObject* pyLogger, Logger* fallbackLogger)
-        : CaptivePythonObjectMixin(pyLogger), _fallbackLogger(fallbackLogger) {}
+    LoggerWrapper(PyObject* pyLoggerPtr, Logger* fallbackLogger, py::object pyLogger)
+        : CaptivePythonObjectMixin(pyLoggerPtr), _fallbackLogger(fallbackLogger), _pyLogger(pyLogger) {}
 
     LoggerWrapper(const LoggerWrapper&) = delete;
     LoggerWrapper(LoggerWrapper&&) noexcept = delete;
@@ -119,16 +61,16 @@ class LoggerWrapper : public Logger, public CaptivePythonObjectMixin {
             try {
                 switch (level) {
                     case Logger::LEVEL_DEBUG:
-                        py::call<void>(_captive, "DEBUG", message.c_str());
+                        _pyLogger(py::str("DEBUG"), message);
                         break;
                     case Logger::LEVEL_INFO:
-                        py::call<void>(_captive, "INFO", message.c_str());
+                        _pyLogger(py::str("INFO"), message);
                         break;
                     case Logger::LEVEL_WARN:
-                        py::call<void>(_captive, "WARNING", message.c_str());
+                        _pyLogger(py::str("WARNING"), message);
                         break;
                     case Logger::LEVEL_ERROR:
-                        py::call<void>(_captive, "ERROR", message.c_str());
+                        _pyLogger(py::str("ERROR"), message);
                         break;
                 }
             } catch (const py::error_already_set& e) {
@@ -141,18 +83,20 @@ class LoggerWrapper : public Logger, public CaptivePythonObjectMixin {
     }
 };
 
-class LoggerWrapperFactory : public LoggerFactory, public CaptivePythonObjectMixin {
+class HIDDEN LoggerWrapperFactory : public LoggerFactory, public CaptivePythonObjectMixin {
+    py::object _pyLogger;
     std::unique_ptr<LoggerFactory> _fallbackLoggerFactory{new ConsoleLoggerFactory};
 
    public:
-    LoggerWrapperFactory(py::object pyLogger) : CaptivePythonObjectMixin(pyLogger.ptr()) {}
+    LoggerWrapperFactory(py::object pyLogger)
+        : CaptivePythonObjectMixin(pyLogger.ptr()), _pyLogger(pyLogger) {}
 
     Logger* getLogger(const std::string& fileName) {
         const auto fallbackLogger = _fallbackLoggerFactory->getLogger(fileName);
         if (_captive == py::object().ptr()) {
             return fallbackLogger;
         } else {
-            return new LoggerWrapper(_captive, fallbackLogger);
+            return new LoggerWrapper(_captive, fallbackLogger, _pyLogger);
         }
     }
 };
@@ -162,7 +106,8 @@ static ClientConfiguration& ClientConfiguration_setLogger(ClientConfiguration& c
     return conf;
 }
 
-static ClientConfiguration& ClientConfiguration_setConsoleLogger(ClientConfiguration& conf, Logger::Level level) {
+static ClientConfiguration& ClientConfiguration_setConsoleLogger(ClientConfiguration& conf,
+                                                                 Logger::Level level) {
     conf.setLogger(new ConsoleLoggerFactory(level));
     return conf;
 }
@@ -173,107 +118,124 @@ static ClientConfiguration& ClientConfiguration_setFileLogger(ClientConfiguratio
     return conf;
 }
 
-void export_config() {
-    using namespace boost::python;
+void export_config(py::module_& m) {
+    using namespace py;
 
-    class_<ClientConfiguration>("ClientConfiguration")
-        .def("authentication", &ClientConfiguration_setAuthentication, return_self<>())
+    class_<CryptoKeyReader, std::shared_ptr<CryptoKeyReader>>(m, "AbstractCryptoKeyReader")
+        .def("getPublicKey", &CryptoKeyReader::getPublicKey)
+        .def("getPrivateKey", &CryptoKeyReader::getPrivateKey);
+
+    class_<DefaultCryptoKeyReader, CryptoKeyReader, std::shared_ptr<DefaultCryptoKeyReader>>(
+        m, "CryptoKeyReader")
+        .def(init<const std::string&, const std::string&>());
+
+    class_<ClientConfiguration, std::shared_ptr<ClientConfiguration>>(m, "ClientConfiguration")
+        .def(init<>())
+        .def("authentication", &ClientConfiguration::setAuth, return_value_policy::reference)
         .def("operation_timeout_seconds", &ClientConfiguration::getOperationTimeoutSeconds)
-        .def("operation_timeout_seconds", &ClientConfiguration::setOperationTimeoutSeconds, return_self<>())
+        .def("operation_timeout_seconds", &ClientConfiguration::setOperationTimeoutSeconds,
+             return_value_policy::reference)
         .def("connection_timeout", &ClientConfiguration::getConnectionTimeout)
-        .def("connection_timeout", &ClientConfiguration::setConnectionTimeout, return_self<>())
+        .def("connection_timeout", &ClientConfiguration::setConnectionTimeout, return_value_policy::reference)
         .def("io_threads", &ClientConfiguration::getIOThreads)
-        .def("io_threads", &ClientConfiguration::setIOThreads, return_self<>())
+        .def("io_threads", &ClientConfiguration::setIOThreads, return_value_policy::reference)
         .def("message_listener_threads", &ClientConfiguration::getMessageListenerThreads)
-        .def("message_listener_threads", &ClientConfiguration::setMessageListenerThreads, return_self<>())
+        .def("message_listener_threads", &ClientConfiguration::setMessageListenerThreads,
+             return_value_policy::reference)
         .def("concurrent_lookup_requests", &ClientConfiguration::getConcurrentLookupRequest)
-        .def("concurrent_lookup_requests", &ClientConfiguration::setConcurrentLookupRequest, return_self<>())
-        .def("log_conf_file_path", &ClientConfiguration::getLogConfFilePath,
-             return_value_policy<copy_const_reference>())
-        .def("log_conf_file_path", &ClientConfiguration::setLogConfFilePath, return_self<>())
+        .def("concurrent_lookup_requests", &ClientConfiguration::setConcurrentLookupRequest,
+             return_value_policy::reference)
+        .def("log_conf_file_path", &ClientConfiguration::getLogConfFilePath, return_value_policy::copy)
+        .def("log_conf_file_path", &ClientConfiguration::setLogConfFilePath, return_value_policy::reference)
         .def("use_tls", &ClientConfiguration::isUseTls)
-        .def("use_tls", &ClientConfiguration::setUseTls, return_self<>())
+        .def("use_tls", &ClientConfiguration::setUseTls, return_value_policy::reference)
         .def("tls_trust_certs_file_path", &ClientConfiguration::getTlsTrustCertsFilePath,
-             return_value_policy<copy_const_reference>())
-        .def("tls_trust_certs_file_path", &ClientConfiguration::setTlsTrustCertsFilePath, return_self<>())
+             return_value_policy::copy)
+        .def("tls_trust_certs_file_path", &ClientConfiguration::setTlsTrustCertsFilePath,
+             return_value_policy::reference)
         .def("tls_allow_insecure_connection", &ClientConfiguration::isTlsAllowInsecureConnection)
         .def("tls_allow_insecure_connection", &ClientConfiguration::setTlsAllowInsecureConnection,
-             return_self<>())
-        .def("tls_validate_hostname", &ClientConfiguration::setValidateHostName, return_self<>())
-        .def("listener_name", &ClientConfiguration::setListenerName, return_self<>())
-        .def("set_logger", &ClientConfiguration_setLogger, return_self<>())
-        .def("set_console_logger", &ClientConfiguration_setConsoleLogger, return_self<>())
-        .def("set_file_logger", &ClientConfiguration_setFileLogger, return_self<>());
+             return_value_policy::reference)
+        .def("tls_validate_hostname", &ClientConfiguration::setValidateHostName,
+             return_value_policy::reference)
+        .def("listener_name", &ClientConfiguration::setListenerName, return_value_policy::reference)
+        .def("set_logger", &ClientConfiguration_setLogger, return_value_policy::reference)
+        .def("set_console_logger", &ClientConfiguration_setConsoleLogger, return_value_policy::reference)
+        .def("set_file_logger", &ClientConfiguration_setFileLogger, return_value_policy::reference);
 
-
-    class_<ProducerConfiguration>("ProducerConfiguration")
-        .def("producer_name", &ProducerConfiguration::getProducerName,
-             return_value_policy<copy_const_reference>())
-        .def("producer_name", &ProducerConfiguration::setProducerName, return_self<>())
-        .def("schema", &ProducerConfiguration::getSchema, return_value_policy<copy_const_reference>())
-        .def("schema", &ProducerConfiguration::setSchema, return_self<>())
+    class_<ProducerConfiguration, std::shared_ptr<ProducerConfiguration>>(m, "ProducerConfiguration")
+        .def(init<>())
+        .def("producer_name", &ProducerConfiguration::getProducerName, return_value_policy::copy)
+        .def("producer_name", &ProducerConfiguration::setProducerName, return_value_policy::reference)
+        .def("schema", &ProducerConfiguration::getSchema, return_value_policy::copy)
+        .def("schema", &ProducerConfiguration::setSchema, return_value_policy::reference)
         .def("send_timeout_millis", &ProducerConfiguration::getSendTimeout)
-        .def("send_timeout_millis", &ProducerConfiguration::setSendTimeout, return_self<>())
+        .def("send_timeout_millis", &ProducerConfiguration::setSendTimeout, return_value_policy::reference)
         .def("initial_sequence_id", &ProducerConfiguration::getInitialSequenceId)
-        .def("initial_sequence_id", &ProducerConfiguration::setInitialSequenceId, return_self<>())
+        .def("initial_sequence_id", &ProducerConfiguration::setInitialSequenceId,
+             return_value_policy::reference)
         .def("compression_type", &ProducerConfiguration::getCompressionType)
-        .def("compression_type", &ProducerConfiguration::setCompressionType, return_self<>())
+        .def("compression_type", &ProducerConfiguration::setCompressionType, return_value_policy::reference)
         .def("max_pending_messages", &ProducerConfiguration::getMaxPendingMessages)
-        .def("max_pending_messages", &ProducerConfiguration::setMaxPendingMessages, return_self<>())
+        .def("max_pending_messages", &ProducerConfiguration::setMaxPendingMessages,
+             return_value_policy::reference)
         .def("max_pending_messages_across_partitions",
              &ProducerConfiguration::getMaxPendingMessagesAcrossPartitions)
         .def("max_pending_messages_across_partitions",
-             &ProducerConfiguration::setMaxPendingMessagesAcrossPartitions, return_self<>())
+             &ProducerConfiguration::setMaxPendingMessagesAcrossPartitions, return_value_policy::reference)
         .def("block_if_queue_full", &ProducerConfiguration::getBlockIfQueueFull)
-        .def("block_if_queue_full", &ProducerConfiguration::setBlockIfQueueFull, return_self<>())
+        .def("block_if_queue_full", &ProducerConfiguration::setBlockIfQueueFull,
+             return_value_policy::reference)
         .def("partitions_routing_mode", &ProducerConfiguration::getPartitionsRoutingMode)
-        .def("partitions_routing_mode", &ProducerConfiguration::setPartitionsRoutingMode, return_self<>())
+        .def("partitions_routing_mode", &ProducerConfiguration::setPartitionsRoutingMode,
+             return_value_policy::reference)
         .def("lazy_start_partitioned_producers", &ProducerConfiguration::getLazyStartPartitionedProducers)
         .def("lazy_start_partitioned_producers", &ProducerConfiguration::setLazyStartPartitionedProducers,
-             return_self<>())
-        .def("batching_enabled", &ProducerConfiguration::getBatchingEnabled,
-             return_value_policy<copy_const_reference>())
-        .def("batching_enabled", &ProducerConfiguration::setBatchingEnabled, return_self<>())
+             return_value_policy::reference)
+        .def("batching_enabled", &ProducerConfiguration::getBatchingEnabled, return_value_policy::copy)
+        .def("batching_enabled", &ProducerConfiguration::setBatchingEnabled, return_value_policy::reference)
         .def("batching_max_messages", &ProducerConfiguration::getBatchingMaxMessages,
-             return_value_policy<copy_const_reference>())
-        .def("batching_max_messages", &ProducerConfiguration::setBatchingMaxMessages, return_self<>())
+             return_value_policy::copy)
+        .def("batching_max_messages", &ProducerConfiguration::setBatchingMaxMessages,
+             return_value_policy::reference)
         .def("batching_max_allowed_size_in_bytes", &ProducerConfiguration::getBatchingMaxAllowedSizeInBytes,
-             return_value_policy<copy_const_reference>())
+             return_value_policy::copy)
         .def("batching_max_allowed_size_in_bytes", &ProducerConfiguration::setBatchingMaxAllowedSizeInBytes,
-             return_self<>())
+             return_value_policy::reference)
         .def("batching_max_publish_delay_ms", &ProducerConfiguration::getBatchingMaxPublishDelayMs,
-             return_value_policy<copy_const_reference>())
+             return_value_policy::copy)
         .def("batching_max_publish_delay_ms", &ProducerConfiguration::setBatchingMaxPublishDelayMs,
-             return_self<>())
+             return_value_policy::reference)
         .def("chunking_enabled", &ProducerConfiguration::isChunkingEnabled)
-        .def("chunking_enabled", &ProducerConfiguration::setChunkingEnabled, return_self<>())
-        .def("property", &ProducerConfiguration::setProperty, return_self<>())
-        .def("batching_type", &ProducerConfiguration::setBatchingType, return_self<>())
+        .def("chunking_enabled", &ProducerConfiguration::setChunkingEnabled, return_value_policy::reference)
+        .def("property", &ProducerConfiguration::setProperty, return_value_policy::reference)
+        .def("batching_type", &ProducerConfiguration::setBatchingType, return_value_policy::reference)
         .def("batching_type", &ProducerConfiguration::getBatchingType)
-        .def("encryption_key", &ProducerConfiguration::addEncryptionKey, return_self<>())
-        .def("crypto_key_reader", &ProducerConfiguration_setCryptoKeyReader, return_self<>());
+        .def("encryption_key", &ProducerConfiguration::addEncryptionKey, return_value_policy::reference)
+        .def("crypto_key_reader", &ProducerConfiguration::setCryptoKeyReader, return_value_policy::reference);
 
-    class_<BatchReceivePolicy>("BatchReceivePolicy", init<int, int, long>())
+    class_<BatchReceivePolicy>(m, "BatchReceivePolicy")
+        .def(init<int, int, long>())
         .def("getTimeoutMs", &BatchReceivePolicy::getTimeoutMs)
         .def("getMaxNumMessages", &BatchReceivePolicy::getMaxNumMessages)
         .def("getMaxNumBytes", &BatchReceivePolicy::getMaxNumBytes);
 
-    class_<ConsumerConfiguration>("ConsumerConfiguration")
+    class_<ConsumerConfiguration, std::shared_ptr<ConsumerConfiguration>>(m, "ConsumerConfiguration")
+        .def(init<>())
         .def("consumer_type", &ConsumerConfiguration::getConsumerType)
-        .def("consumer_type", &ConsumerConfiguration::setConsumerType, return_self<>())
-        .def("schema", &ConsumerConfiguration::getSchema, return_value_policy<copy_const_reference>())
-        .def("schema", &ConsumerConfiguration::setSchema, return_self<>())
-        .def("message_listener", &ConsumerConfiguration_setMessageListener, return_self<>())
+        .def("consumer_type", &ConsumerConfiguration::setConsumerType, return_value_policy::reference)
+        .def("schema", &ConsumerConfiguration::getSchema, return_value_policy::copy)
+        .def("schema", &ConsumerConfiguration::setSchema, return_value_policy::reference)
+        .def("message_listener", &ConsumerConfiguration::setMessageListener, return_value_policy::reference)
         .def("receiver_queue_size", &ConsumerConfiguration::getReceiverQueueSize)
         .def("receiver_queue_size", &ConsumerConfiguration::setReceiverQueueSize)
         .def("max_total_receiver_queue_size_across_partitions",
              &ConsumerConfiguration::getMaxTotalReceiverQueueSizeAcrossPartitions)
         .def("max_total_receiver_queue_size_across_partitions",
              &ConsumerConfiguration::setMaxTotalReceiverQueueSizeAcrossPartitions)
-        .def("consumer_name", &ConsumerConfiguration::getConsumerName,
-             return_value_policy<copy_const_reference>())
-        .def("batch_receive_policy", &ConsumerConfiguration::getBatchReceivePolicy, return_value_policy<copy_const_reference>())
+        .def("batch_receive_policy", &ConsumerConfiguration::getBatchReceivePolicy, return_value_policy::copy)
         .def("batch_receive_policy", &ConsumerConfiguration::setBatchReceivePolicy)
+        .def("consumer_name", &ConsumerConfiguration::getConsumerName, return_value_policy::copy)
         .def("consumer_name", &ConsumerConfiguration::setConsumerName)
         .def("unacked_messages_timeout_ms", &ConsumerConfiguration::getUnAckedMessagesTimeoutMs)
         .def("unacked_messages_timeout_ms", &ConsumerConfiguration::setUnAckedMessagesTimeoutMs)
@@ -287,37 +249,39 @@ void export_config() {
         .def("pattern_auto_discovery_period", &ConsumerConfiguration::setPatternAutoDiscoveryPeriod)
         .def("read_compacted", &ConsumerConfiguration::isReadCompacted)
         .def("read_compacted", &ConsumerConfiguration::setReadCompacted)
-        .def("property", &ConsumerConfiguration::setProperty, return_self<>())
+        .def("property", &ConsumerConfiguration::setProperty, return_value_policy::reference)
         .def("subscription_initial_position", &ConsumerConfiguration::getSubscriptionInitialPosition)
         .def("subscription_initial_position", &ConsumerConfiguration::setSubscriptionInitialPosition)
-        .def("crypto_key_reader", &ConsumerConfiguration_setCryptoKeyReader, return_self<>())
+        .def("crypto_key_reader", &ConsumerConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("replicate_subscription_state_enabled",
              &ConsumerConfiguration::setReplicateSubscriptionStateEnabled)
         .def("replicate_subscription_state_enabled",
              &ConsumerConfiguration::isReplicateSubscriptionStateEnabled)
         .def("max_pending_chunked_message", &ConsumerConfiguration::getMaxPendingChunkedMessage)
         .def("max_pending_chunked_message", &ConsumerConfiguration::setMaxPendingChunkedMessage,
-             return_self<>())
+             return_value_policy::reference)
         .def("auto_ack_oldest_chunked_message_on_queue_full",
              &ConsumerConfiguration::isAutoAckOldestChunkedMessageOnQueueFull)
         .def("auto_ack_oldest_chunked_message_on_queue_full",
-             &ConsumerConfiguration::setAutoAckOldestChunkedMessageOnQueueFull, return_self<>())
+             &ConsumerConfiguration::setAutoAckOldestChunkedMessageOnQueueFull,
+             return_value_policy::reference)
         .def("start_message_id_inclusive", &ConsumerConfiguration::isStartMessageIdInclusive)
-        .def("start_message_id_inclusive",&ConsumerConfiguration::setStartMessageIdInclusive,
-             return_self<>());
+        .def("start_message_id_inclusive", &ConsumerConfiguration::setStartMessageIdInclusive,
+             return_value_policy::reference);
 
-    class_<ReaderConfiguration>("ReaderConfiguration")
-        .def("reader_listener", &ReaderConfiguration_setReaderListener, return_self<>())
-        .def("schema", &ReaderConfiguration::getSchema, return_value_policy<copy_const_reference>())
-        .def("schema", &ReaderConfiguration::setSchema, return_self<>())
+    class_<ReaderConfiguration, std::shared_ptr<ReaderConfiguration>>(m, "ReaderConfiguration")
+        .def(init<>())
+        .def("reader_listener", &ReaderConfiguration::setReaderListener, return_value_policy::reference)
+        .def("schema", &ReaderConfiguration::getSchema, return_value_policy::copy)
+        .def("schema", &ReaderConfiguration::setSchema, return_value_policy::reference)
         .def("receiver_queue_size", &ReaderConfiguration::getReceiverQueueSize)
         .def("receiver_queue_size", &ReaderConfiguration::setReceiverQueueSize)
-        .def("reader_name", &ReaderConfiguration::getReaderName, return_value_policy<copy_const_reference>())
+        .def("reader_name", &ReaderConfiguration::getReaderName, return_value_policy::copy)
         .def("reader_name", &ReaderConfiguration::setReaderName)
         .def("subscription_role_prefix", &ReaderConfiguration::getSubscriptionRolePrefix,
-             return_value_policy<copy_const_reference>())
+             return_value_policy::copy)
         .def("subscription_role_prefix", &ReaderConfiguration::setSubscriptionRolePrefix)
         .def("read_compacted", &ReaderConfiguration::isReadCompacted)
         .def("read_compacted", &ReaderConfiguration::setReadCompacted)
-        .def("crypto_key_reader", &ReaderConfiguration_setCryptoKeyReader, return_self<>());
+        .def("crypto_key_reader", &ReaderConfiguration::setCryptoKeyReader, return_value_policy::reference);
 }
