@@ -42,6 +42,15 @@ Message Consumer_receive_timeout(Consumer& consumer, int timeoutMs) {
     return msg;
 }
 
+Messages Consumer_batch_receive(Consumer& consumer) {
+    Messages msgs;
+    Result res;
+    Py_BEGIN_ALLOW_THREADS res = consumer.batchReceive(msgs);
+    Py_END_ALLOW_THREADS
+        CHECK_RESULT(res);
+    return msgs;
+}
+
 void Consumer_acknowledge(Consumer& consumer, const Message& msg) { consumer.acknowledgeAsync(msg, nullptr); }
 
 void Consumer_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
@@ -103,6 +112,7 @@ void export_consumer() {
         .def("unsubscribe", &Consumer_unsubscribe)
         .def("receive", &Consumer_receive)
         .def("receive", &Consumer_receive_timeout)
+        .def("batch_receive", &Consumer_batch_receive)
         .def("acknowledge", &Consumer_acknowledge)
         .def("acknowledge", &Consumer_acknowledge_message_id)
         .def("acknowledge_cumulative", &Consumer_acknowledge_cumulative)
