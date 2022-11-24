@@ -204,6 +204,7 @@ jobs:
           # TODO: switch to official releases
           curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
           tar zxf x64-windows-static.tar.gz
+          mv x64-windows-static/* .
           ls -l ${{ env.PULSAR_CPP_DIR }}
 
       - name: Configure CMake
