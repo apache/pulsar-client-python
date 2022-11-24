@@ -151,11 +151,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        windows:
-          - name: 'Windows x64'
-            os: windows-2019
-            arch: '-A x64'
-            triplet: 'x64-windows'
         python:
           - {version: '3.7'}
           - {version: '3.8'}
@@ -175,8 +170,8 @@ jobs:
           mkdir -p ${{ env.PULSAR_CPP_DIR }}
           cd ${{ env.PULSAR_CPP_DIR }}
           # TODO: switch to official releases
-          curl -O -L https://github.com/BewareMyPower/pulsar-client-cpp/releases/download/v3.1.0-rc-20221028/x64-windows-static.zip
-          unzip -q x64-windows-static.zip
+          curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
+          tar zxf x64-windows-static.tar.gz
           ls -l ${{ env.PULSAR_CPP_DIR }}
 
       - name: Configure CMake
@@ -188,7 +183,7 @@ jobs:
           tar zxf v${PYBIND11_VERSION}.tar.gz
           rm -rf pybind11
           mv pybind11-${PYBIND11_VERSION} pybind11
-          cmake -B build ${{ matrix.windows.arch }} \
+          cmake -B build -A x64 \
             -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
             -DLINK_STATIC=ON
 
@@ -200,3 +195,9 @@ jobs:
           python setup.py bdist_wheel
           python -m pip install ./dist/*.whl
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-windows-py${{matrix.python.version}}
+          path: dist/*.whl

@@ -173,9 +173,9 @@ jobs:
         run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
 
   windows-wheels:
-    name: "Python ${{ matrix.python.version }} Wheel on ${{ matrix.windows.name }}"
+    name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
     needs: unit-tests
-    runs-on: ${{ matrix.windows.os }}
+    runs-on: windows-2019
     timeout-minutes: 120
 
     env:
@@ -183,11 +183,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        windows:
-          - name: 'Windows x64'
-            os: windows-2022
-            arch: '-A x64'
-            triplet: 'x64-windows'
         python:
           - version: '3.7'
           - version: '3.8'
@@ -207,8 +202,8 @@ jobs:
           mkdir -p ${{ env.PULSAR_CPP_DIR }}
           cd ${{ env.PULSAR_CPP_DIR }}
           # TODO: switch to official releases
-          curl -O -L https://github.com/BewareMyPower/pulsar-client-cpp/releases/download/v3.1.0-rc-20221028/${{ matrix.windows.triplet }}-static.zip
-          unzip -q ${{ matrix.windows.triplet }}-static.zip
+          curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
+          tar zxf x64-windows-static.tar.gz
           ls -l ${{ env.PULSAR_CPP_DIR }}
 
       - name: Configure CMake
@@ -220,7 +215,7 @@ jobs:
           tar zxf v${PYBIND11_VERSION}.tar.gz
           rm -rf pybind11
           mv pybind11-${PYBIND11_VERSION} pybind11
-          cmake -B build ${{ matrix.windows.arch }} \
+          cmake -B build -A x64 \
             -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
             -DLINK_STATIC=ON
 
