@@ -223,7 +223,7 @@ class Authentication:
         """
         _check_type(str, dynamicLibPath, 'dynamicLibPath')
         _check_type(str, authParamsString, 'authParamsString')
-        self.auth = _pulsar.Authentication(dynamicLibPath, authParamsString)
+        self.auth = _pulsar.Authentication.create(dynamicLibPath, authParamsString)
 
 
 class AuthenticationTLS(Authentication):
@@ -244,7 +244,7 @@ class AuthenticationTLS(Authentication):
         """
         _check_type(str, certificate_path, 'certificate_path')
         _check_type(str, private_key_path, 'private_key_path')
-        self.auth = _pulsar.AuthenticationTLS(certificate_path, private_key_path)
+        self.auth = _pulsar.AuthenticationTLS.create(certificate_path, private_key_path)
 
 
 class AuthenticationToken(Authentication):
@@ -263,7 +263,7 @@ class AuthenticationToken(Authentication):
         """
         if not (isinstance(token, str) or callable(token)):
             raise ValueError("Argument token is expected to be of type 'str' or a function returning 'str'")
-        self.auth = _pulsar.AuthenticationToken(token)
+        self.auth = _pulsar.AuthenticationToken.create(token)
 
 
 class AuthenticationAthenz(Authentication):
@@ -281,7 +281,7 @@ class AuthenticationAthenz(Authentication):
             JSON encoded configuration for Athenz client
         """
         _check_type(str, auth_params_string, 'auth_params_string')
-        self.auth = _pulsar.AuthenticationAthenz(auth_params_string)
+        self.auth = _pulsar.AuthenticationAthenz.create(auth_params_string)
 
 class AuthenticationOauth2(Authentication):
     """
@@ -298,7 +298,7 @@ class AuthenticationOauth2(Authentication):
             JSON encoded configuration for Oauth2 client
         """
         _check_type(str, auth_params_string, 'auth_params_string')
-        self.auth = _pulsar.AuthenticationOauth2(auth_params_string)
+        self.auth = _pulsar.AuthenticationOauth2.create(auth_params_string)
 
 class AuthenticationBasic(Authentication):
     """
@@ -334,12 +334,12 @@ class AuthenticationBasic(Authentication):
         """
         if auth_params_string is not None:
             _check_type(str, auth_params_string, 'auth_params_string')
-            self.auth = _pulsar.AuthenticationBasic('', '', '', auth_params_string)
+            self.auth = _pulsar.AuthenticationBasic.create(auth_params_string)
         else:
             _check_type(str, username, 'username')
             _check_type(str, password, 'password')
             _check_type(str, method, 'method')
-            self.auth = _pulsar.AuthenticationBasic(username, password, method, '')
+            self.auth = _pulsar.AuthenticationBasic.create(username, password, method)
 
 class Client:
     """
@@ -1037,7 +1037,7 @@ class Producer:
         msg = self._build_msg(content, properties, partition_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
                               deliver_at, deliver_after)
-        return MessageId.deserialize(self._producer.send(msg))
+        return self._producer.send(msg)
 
     def send_async(self, content, callback,
                    properties=None,

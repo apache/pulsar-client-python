@@ -55,11 +55,8 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
 
-      - name: Install deps
-        run: sudo apt-get install -y libboost-python-dev
-
       - name: Install Pulsar C++ client
-        run: build-support/install-cpp-client.sh
+        run: build-support/install-dependencies.sh
 
       - name: CMake
         run: cmake .
@@ -176,9 +173,9 @@ jobs:
         run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
 
   windows-wheels:
-    name: "Python ${{ matrix.python.version }} Wheel on ${{ matrix.windows.name }}"
+    name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
     needs: unit-tests
-    runs-on: ${{ matrix.windows.os }}
+    runs-on: windows-2019
     timeout-minutes: 120
 
     env:
@@ -186,11 +183,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        windows:
-          - name: 'Windows x64'
-            os: windows-2022
-            arch: '-A x64'
-            triplet: 'x64-windows'
         python:
           - version: '3.7'
           - version: '3.8'
@@ -199,19 +191,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: true
 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python.version }}
-
-      - name: Prepare vcpkg.json
-        shell: bash
-        run: |
-          python --version
-          cp -f vcpkg-${{ matrix.python.version }}.json vcpkg.json
-          cat vcpkg.json
 
       - name: Download Pulsar C++ client on Windows
         shell: bash
@@ -219,28 +202,22 @@ jobs:
           mkdir -p ${{ env.PULSAR_CPP_DIR }}
           cd ${{ env.PULSAR_CPP_DIR }}
           # TODO: switch to official releases
-          curl -O -L https://github.com/BewareMyPower/pulsar-client-cpp/releases/download/v3.1.0-rc-20221028/${{ matrix.windows.triplet }}-static.zip
-          unzip -q ${{ matrix.windows.triplet }}-static.zip
+          curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
+          tar zxf x64-windows-static.tar.gz
+          mv x64-windows-static/* .
           ls -l ${{ env.PULSAR_CPP_DIR }}
 
-      - name: Cache Vcpkg
-        uses: actions/cache@v3
-        id: cache-vcpkg
-        with:
-          path: build/vcpkg_installed
-          key: ${{ matrix.python.version }}-${{ hashFiles(format('vcpkg-{0}.json', matrix.python.version)) }}
-
-      - name: Install dependencies and configure CMake
+      - name: Configure CMake
         shell: bash
         run: |
-          COMMIT_ID=$(grep baseline vcpkg.json | sed 's/[",]//g' | awk '{print $2}')
-          cd vcpkg
-          echo "git fetch origin $COMMIT_ID"
-          git fetch origin $COMMIT_ID
-          cd -
-          cmake -B build ${{ matrix.windows.arch }} \
+          pip3 install pyyaml
+          export PYBIND11_VERSION=$(./build-support/dep-version.py pybind11)
+          curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
+          tar zxf v${PYBIND11_VERSION}.tar.gz
+          rm -rf pybind11
+          mv pybind11-${PYBIND11_VERSION} pybind11
+          cmake -B build -A x64 \
             -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
-            -DUSE_VCPKG=ON \
             -DLINK_STATIC=ON
 
       - name: Build Python wheel
@@ -250,9 +227,6 @@ jobs:
           python -m pip install wheel
           python setup.py bdist_wheel
           python -m pip install ./dist/*.whl
-          cp ./build/Release/boost_python*.dll .
-          echo "The extra DLLs:"
-          ls -l *.dll
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
 
   check-completion:

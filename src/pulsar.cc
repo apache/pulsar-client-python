@@ -17,43 +17,31 @@
  * under the License.
  */
 #include "utils.h"
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
-void export_client();
-void export_message();
-void export_producer();
-void export_consumer();
-void export_reader();
-void export_config();
-void export_enums();
-void export_authentication();
-void export_schema();
-void export_cryptoKeyReader();
-void export_exceptions();
+using Module = py::module_;
 
-PyObject* get_exception_class(Result result);
+void export_client(Module& m);
+void export_message(Module& m);
+void export_producer(Module& m);
+void export_consumer(Module& m);
+void export_reader(Module& m);
+void export_config(Module& m);
+void export_enums(Module& m);
+void export_authentication(Module& m);
+void export_schema(Module& m);
+void export_exceptions(Module& m);
 
-static void translateException(const PulsarException& ex) {
-    std::string err = "Pulsar error: ";
-    err += strResult(ex._result);
-    PyErr_SetString(get_exception_class(ex._result), err.c_str());
-}
-
-BOOST_PYTHON_MODULE(_pulsar) {
-    py::register_exception_translator<PulsarException>(translateException);
-
-    // Initialize thread support so that we can grab the GIL mutex
-    // from pulsar library threads
-    PyEval_InitThreads();
-
-    export_client();
-    export_message();
-    export_producer();
-    export_consumer();
-    export_reader();
-    export_config();
-    export_enums();
-    export_authentication();
-    export_schema();
-    export_cryptoKeyReader();
-    export_exceptions();
+PYBIND11_MODULE(_pulsar, m) {
+    export_exceptions(m);
+    export_client(m);
+    export_message(m);
+    export_producer(m);
+    export_consumer(m);
+    export_reader(m);
+    export_config(m);
+    export_enums(m);
+    export_authentication(m);
+    export_schema(m);
 }

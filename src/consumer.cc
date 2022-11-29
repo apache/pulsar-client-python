@@ -18,6 +18,12 @@
  */
 #include "utils.h"
 
+#include <pulsar/Consumer.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
+
 void Consumer_unsubscribe(Consumer& consumer) {
     waitForAsyncResult([&consumer](ResultCallback callback) { consumer.unsubscribeAsync(callback); });
 }
@@ -46,8 +52,7 @@ Messages Consumer_batch_receive(Consumer& consumer) {
     Messages msgs;
     Result res;
     Py_BEGIN_ALLOW_THREADS res = consumer.batchReceive(msgs);
-    Py_END_ALLOW_THREADS
-        CHECK_RESULT(res);
+    Py_END_ALLOW_THREADS CHECK_RESULT(res);
     return msgs;
 }
 
@@ -102,13 +107,12 @@ MessageId Consumer_get_last_message_id(Consumer& consumer) {
     return msgId;
 }
 
-void export_consumer() {
-    using namespace boost::python;
-
-    class_<Consumer>("Consumer", no_init)
+void export_consumer(py::module_& m) {
+    py::class_<Consumer>(m, "Consumer")
+        .def(py::init<>())
         .def("topic", &Consumer::getTopic, "return the topic this consumer is subscribed to",
-             return_value_policy<copy_const_reference>())
-        .def("subscription_name", &Consumer::getSubscriptionName, return_value_policy<copy_const_reference>())
+             py::return_value_policy::copy)
+        .def("subscription_name", &Consumer::getSubscriptionName, py::return_value_policy::copy)
         .def("unsubscribe", &Consumer_unsubscribe)
         .def("receive", &Consumer_receive)
         .def("receive", &Consumer_receive_timeout)

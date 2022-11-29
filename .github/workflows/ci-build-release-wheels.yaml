@@ -141,3 +141,64 @@ jobs:
           name: wheel-mac-py${{matrix.py.version}}
           path: dist/*.whl
 
+  windows-wheels:
+    name: Wheel Windows - Py ${{matrix.py.version}}
+    runs-on: windows-2019
+    env:
+      PULSAR_CPP_DIR: 'C:\\pulsar-cpp'
+    timeout-minutes: 300
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - {version: '3.7'}
+          - {version: '3.8'}
+          - {version: '3.9'}
+          - {version: '3.10'}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python.version }}
+
+      - name: Download Pulsar C++ client on Windows
+        shell: bash
+        run: |
+          mkdir -p ${{ env.PULSAR_CPP_DIR }}
+          cd ${{ env.PULSAR_CPP_DIR }}
+          # TODO: switch to official releases
+          curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
+          tar zxf x64-windows-static.tar.gz
+          mv x64-windows-static/* .
+          ls -l ${{ env.PULSAR_CPP_DIR }}
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          pip3 install pyyaml
+          export PYBIND11_VERSION=$(./build-support/dep-version.py pybind11)
+          curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
+          tar zxf v${PYBIND11_VERSION}.tar.gz
+          rm -rf pybind11
+          mv pybind11-${PYBIND11_VERSION} pybind11
+          cmake -B build -A x64 \
+            -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
+            -DLINK_STATIC=ON
+
+      - name: Build Python wheel
+        shell: bash
+        run: |
+          cmake --build build --config Release --target install
+          python -m pip install wheel
+          python setup.py bdist_wheel
+          python -m pip install ./dist/*.whl
+          python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-windows-py${{matrix.python.version}}
+          path: dist/*.whl

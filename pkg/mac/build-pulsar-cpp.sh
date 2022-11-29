@@ -25,7 +25,7 @@ cd "${ROOT_DIR}"
 
 source pkg/mac/common.sh
 
-PULSAR_CPP_VERSION=$(cat pulsar-client-cpp-version.txt | xargs)
+PULSAR_CPP_VERSION=$(./build-support/dep-version.py pulsar-cpp)
 
 # Compile and cache dependencies
 mkdir -p $CACHE_DIR_CPP_CLIENT

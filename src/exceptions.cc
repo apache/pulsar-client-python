@@ -16,97 +16,149 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include <map>
+#include "exceptions.h"
+#include <pybind11/pybind11.h>
+#include <unordered_map>
 
-#include "utils.h"
+using namespace pulsar;
+namespace py = pybind11;
 
-static PyObject* basePulsarException = nullptr;
-std::map<Result, PyObject*> exceptions;
+#define CASE_RESULT(className)      \
+    case pulsar::Result##className: \
+        throw className{pulsar::Result##className};
 
-PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception) {
-    using namespace boost::python;
-
-    std::string fullName = "_pulsar.";
-    fullName += name;
-
-    PyObject* typeObj = PyErr_NewException(const_cast<char*>(fullName.c_str()), baseTypeObj, nullptr);
-    if (!typeObj) throw_error_already_set();
-    scope().attr(name) = handle<>(borrowed(typeObj));
-    return typeObj;
-}
-
-PyObject* get_exception_class(Result result) {
-    auto it = exceptions.find(result);
-    if (it != exceptions.end()) {
-        return it->second;
-    } else {
-        std::cerr << "Error result exception not found: " << result << std::endl;
-        abort();
+void raiseException(pulsar::Result result) {
+    switch (result) {
+        CASE_RESULT(UnknownError)
+        CASE_RESULT(InvalidConfiguration)
+        CASE_RESULT(Timeout)
+        CASE_RESULT(LookupError)
+        CASE_RESULT(ConnectError)
+        CASE_RESULT(ReadError)
+        CASE_RESULT(AuthenticationError)
+        CASE_RESULT(AuthorizationError)
+        CASE_RESULT(ErrorGettingAuthenticationData)
+        CASE_RESULT(BrokerMetadataError)
+        CASE_RESULT(BrokerPersistenceError)
+        CASE_RESULT(ChecksumError)
+        CASE_RESULT(ConsumerBusy)
+        CASE_RESULT(NotConnected)
+        CASE_RESULT(AlreadyClosed)
+        CASE_RESULT(InvalidMessage)
+        CASE_RESULT(ConsumerNotInitialized)
+        CASE_RESULT(ProducerNotInitialized)
+        CASE_RESULT(ProducerBusy)
+        CASE_RESULT(TooManyLookupRequestException)
+        CASE_RESULT(InvalidTopicName)
+        CASE_RESULT(InvalidUrl)
+        CASE_RESULT(ServiceUnitNotReady)
+        CASE_RESULT(OperationNotSupported)
+        CASE_RESULT(ProducerBlockedQuotaExceededError)
+        CASE_RESULT(ProducerBlockedQuotaExceededException)
+        CASE_RESULT(ProducerQueueIsFull)
+        CASE_RESULT(MessageTooBig)
+        CASE_RESULT(TopicNotFound)
+        CASE_RESULT(SubscriptionNotFound)
+        CASE_RESULT(ConsumerNotFound)
+        CASE_RESULT(UnsupportedVersionError)
+        CASE_RESULT(TopicTerminated)
+        CASE_RESULT(CryptoError)
+        CASE_RESULT(IncompatibleSchema)
+        CASE_RESULT(ConsumerAssignError)
+        CASE_RESULT(CumulativeAcknowledgementNotAllowedError)
+        CASE_RESULT(TransactionCoordinatorNotFoundError)
+        CASE_RESULT(InvalidTxnStatusError)
+        CASE_RESULT(NotAllowedError)
+        CASE_RESULT(TransactionConflict)
+        CASE_RESULT(TransactionNotFound)
+        CASE_RESULT(ProducerFenced)
+        CASE_RESULT(MemoryBufferIsFull)
+        CASE_RESULT(Interrupted)
+        default:
+            return;
     }
 }
 
-void export_exceptions() {
-    using namespace boost::python;
+// There is no std::hash specification for an enum in Clang compiler of macOS for C++11
+template <>
+struct std::hash<Result> {
+    std::size_t operator()(const Result& result) const noexcept {
+        return std::hash<int>()(static_cast<int>(result));
+    }
+};
 
-    basePulsarException = createExceptionClass("PulsarException");
+using PythonExceptionMap = std::unordered_map<Result, py::exception<PulsarException>>;
+static PythonExceptionMap createPythonExceptionMap(py::module_& m, py::exception<PulsarException>& base) {
+    PythonExceptionMap exceptions;
+    exceptions[ResultUnknownError] = {m, "UnknownError", base};
+    exceptions[ResultInvalidConfiguration] = {m, "InvalidConfiguration", base};
+    exceptions[ResultTimeout] = {m, "Timeout", base};
+    exceptions[ResultLookupError] = {m, "LookupError", base};
+    exceptions[ResultConnectError] = {m, "ConnectError", base};
+    exceptions[ResultReadError] = {m, "ReadError", base};
+    exceptions[ResultAuthenticationError] = {m, "AuthenticationError", base};
+    exceptions[ResultAuthorizationError] = {m, "AuthorizationError", base};
+    exceptions[ResultErrorGettingAuthenticationData] = {m, "ErrorGettingAuthenticationData", base};
+    exceptions[ResultBrokerMetadataError] = {m, "BrokerMetadataError", base};
+    exceptions[ResultBrokerPersistenceError] = {m, "BrokerPersistenceError", base};
+    exceptions[ResultChecksumError] = {m, "ChecksumError", base};
+    exceptions[ResultConsumerBusy] = {m, "ConsumerBusy", base};
+    exceptions[ResultNotConnected] = {m, "NotConnected", base};
+    exceptions[ResultAlreadyClosed] = {m, "AlreadyClosed", base};
+    exceptions[ResultInvalidMessage] = {m, "InvalidMessage", base};
+    exceptions[ResultConsumerNotInitialized] = {m, "ConsumerNotInitialized", base};
+    exceptions[ResultProducerNotInitialized] = {m, "ProducerNotInitialized", base};
+    exceptions[ResultProducerBusy] = {m, "ProducerBusy", base};
+    exceptions[ResultTooManyLookupRequestException] = {m, "TooManyLookupRequestException", base};
+    exceptions[ResultInvalidTopicName] = {m, "InvalidTopicName", base};
+    exceptions[ResultInvalidUrl] = {m, "InvalidUrl", base};
+    exceptions[ResultServiceUnitNotReady] = {m, "ServiceUnitNotReady", base};
+    exceptions[ResultOperationNotSupported] = {m, "OperationNotSupported", base};
+    exceptions[ResultProducerBlockedQuotaExceededError] = {m, "ProducerBlockedQuotaExceededError", base};
+    exceptions[ResultProducerBlockedQuotaExceededException] = {m, "ProducerBlockedQuotaExceededException",
+                                                               base};
+    exceptions[ResultProducerQueueIsFull] = {m, "ProducerQueueIsFull", base};
+    exceptions[ResultMessageTooBig] = {m, "MessageTooBig", base};
+    exceptions[ResultTopicNotFound] = {m, "TopicNotFound", base};
+    exceptions[ResultSubscriptionNotFound] = {m, "SubscriptionNotFound", base};
+    exceptions[ResultConsumerNotFound] = {m, "ConsumerNotFound", base};
+    exceptions[ResultUnsupportedVersionError] = {m, "UnsupportedVersionError", base};
+    exceptions[ResultTopicTerminated] = {m, "TopicTerminated", base};
+    exceptions[ResultCryptoError] = {m, "CryptoError", base};
+    exceptions[ResultIncompatibleSchema] = {m, "IncompatibleSchema", base};
+    exceptions[ResultConsumerAssignError] = {m, "ConsumerAssignError", base};
+    exceptions[ResultCumulativeAcknowledgementNotAllowedError] = {
+        m, "CumulativeAcknowledgementNotAllowedError", base};
+    exceptions[ResultTransactionCoordinatorNotFoundError] = {m, "TransactionCoordinatorNotFoundError", base};
+    exceptions[ResultInvalidTxnStatusError] = {m, "InvalidTxnStatusError", base};
+    exceptions[ResultNotAllowedError] = {m, "NotAllowedError", base};
+    exceptions[ResultTransactionConflict] = {m, "TransactionConflict", base};
+    exceptions[ResultTransactionNotFound] = {m, "TransactionNotFound", base};
+    exceptions[ResultProducerFenced] = {m, "ProducerFenced", base};
+    exceptions[ResultMemoryBufferIsFull] = {m, "MemoryBufferIsFull", base};
+    exceptions[ResultInterrupted] = {m, "Interrupted", base};
+    return exceptions;
+}
 
-    exceptions[ResultUnknownError] = createExceptionClass("UnknownError", basePulsarException);
-    exceptions[ResultInvalidConfiguration] =
-        createExceptionClass("InvalidConfiguration", basePulsarException);
-    exceptions[ResultTimeout] = createExceptionClass("Timeout", basePulsarException);
-    exceptions[ResultLookupError] = createExceptionClass("LookupError", basePulsarException);
-    exceptions[ResultConnectError] = createExceptionClass("ConnectError", basePulsarException);
-    exceptions[ResultReadError] = createExceptionClass("ReadError", basePulsarException);
-    exceptions[ResultAuthenticationError] = createExceptionClass("AuthenticationError", basePulsarException);
-    exceptions[ResultAuthorizationError] = createExceptionClass("AuthorizationError", basePulsarException);
-    exceptions[ResultErrorGettingAuthenticationData] =
-        createExceptionClass("ErrorGettingAuthenticationData", basePulsarException);
-    exceptions[ResultBrokerMetadataError] = createExceptionClass("BrokerMetadataError", basePulsarException);
-    exceptions[ResultBrokerPersistenceError] =
-        createExceptionClass("BrokerPersistenceError", basePulsarException);
-    exceptions[ResultChecksumError] = createExceptionClass("ChecksumError", basePulsarException);
-    exceptions[ResultConsumerBusy] = createExceptionClass("ConsumerBusy", basePulsarException);
-    exceptions[ResultNotConnected] = createExceptionClass("NotConnected", basePulsarException);
-    exceptions[ResultAlreadyClosed] = createExceptionClass("AlreadyClosed", basePulsarException);
-    exceptions[ResultInvalidMessage] = createExceptionClass("InvalidMessage", basePulsarException);
-    exceptions[ResultConsumerNotInitialized] =
-        createExceptionClass("ConsumerNotInitialized", basePulsarException);
-    exceptions[ResultProducerNotInitialized] =
-        createExceptionClass("ProducerNotInitialized", basePulsarException);
-    exceptions[ResultProducerBusy] = createExceptionClass("ProducerBusy", basePulsarException);
-    exceptions[ResultTooManyLookupRequestException] =
-        createExceptionClass("TooManyLookupRequestException", basePulsarException);
-    exceptions[ResultInvalidTopicName] = createExceptionClass("InvalidTopicName", basePulsarException);
-    exceptions[ResultInvalidUrl] = createExceptionClass("InvalidUrl", basePulsarException);
-    exceptions[ResultServiceUnitNotReady] = createExceptionClass("ServiceUnitNotReady", basePulsarException);
-    exceptions[ResultOperationNotSupported] =
-        createExceptionClass("OperationNotSupported", basePulsarException);
-    exceptions[ResultProducerBlockedQuotaExceededError] =
-        createExceptionClass("ProducerBlockedQuotaExceededError", basePulsarException);
-    exceptions[ResultProducerBlockedQuotaExceededException] =
-        createExceptionClass("ProducerBlockedQuotaExceededException", basePulsarException);
-    exceptions[ResultProducerQueueIsFull] = createExceptionClass("ProducerQueueIsFull", basePulsarException);
-    exceptions[ResultMessageTooBig] = createExceptionClass("MessageTooBig", basePulsarException);
-    exceptions[ResultTopicNotFound] = createExceptionClass("TopicNotFound", basePulsarException);
-    exceptions[ResultSubscriptionNotFound] =
-        createExceptionClass("SubscriptionNotFound", basePulsarException);
-    exceptions[ResultConsumerNotFound] = createExceptionClass("ConsumerNotFound", basePulsarException);
-    exceptions[ResultUnsupportedVersionError] =
-        createExceptionClass("UnsupportedVersionError", basePulsarException);
-    exceptions[ResultTopicTerminated] = createExceptionClass("TopicTerminated", basePulsarException);
-    exceptions[ResultCryptoError] = createExceptionClass("CryptoError", basePulsarException);
-    exceptions[ResultIncompatibleSchema] = createExceptionClass("IncompatibleSchema", basePulsarException);
-    exceptions[ResultConsumerAssignError] = createExceptionClass("ConsumerAssignError", basePulsarException);
-    exceptions[ResultCumulativeAcknowledgementNotAllowedError] =
-        createExceptionClass("CumulativeAcknowledgementNotAllowedError", basePulsarException);
-    exceptions[ResultTransactionCoordinatorNotFoundError] =
-        createExceptionClass("TransactionCoordinatorNotFoundError", basePulsarException);
-    exceptions[ResultInvalidTxnStatusError] =
-        createExceptionClass("InvalidTxnStatusError", basePulsarException);
-    exceptions[ResultNotAllowedError] = createExceptionClass("NotAllowedError", basePulsarException);
-    exceptions[ResultTransactionConflict] = createExceptionClass("TransactionConflict", basePulsarException);
-    exceptions[ResultTransactionNotFound] = createExceptionClass("TransactionNotFound", basePulsarException);
-    exceptions[ResultProducerFenced] = createExceptionClass("ProducerFenced", basePulsarException);
-    exceptions[ResultMemoryBufferIsFull] = createExceptionClass("MemoryBufferIsFull", basePulsarException);
-    exceptions[ResultInterrupted] = createExceptionClass("Interrupted", basePulsarException);
+void export_exceptions(py::module_& m) {
+    static py::exception<PulsarException> base{m, "PulsarException"};
+    static auto exceptions = createPythonExceptionMap(m, base);
+    py::register_exception_translator([](std::exception_ptr e) {
+        try {
+            if (e) {
+                std::rethrow_exception(e);
+            }
+        } catch (const PulsarException& e) {
+            auto it = exceptions.find(e._result);
+            if (it != exceptions.end()) {
+                PyErr_SetString(it->second.ptr(), e.what());
+            } else {
+                base(e.what());
+            }
+        } catch (const std::invalid_argument& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+        } catch (const std::exception& e) {
+            PyErr_SetString(PyExc_RuntimeError, e.what());
+        }
+    });
 }

@@ -1,6 +1,0 @@
-{
-  "name": "pulsar-python",
-  "version": "3.0.0",
-  "description": "Pulsar Python SDK",
-  "dependencies": ["boost-python"]
-}

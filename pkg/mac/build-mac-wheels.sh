@@ -59,8 +59,7 @@ cmake . \
         -DLINK_STATIC=ON \
         -DPULSAR_LIBRARY=${CACHE_DIR_CPP_CLIENT}/install/lib/libpulsar.a \
         -DPULSAR_INCLUDE=${CACHE_DIR_CPP_CLIENT}/install/include \
-        -DPython3_ROOT_DIR=$PREFIX \
-        -DBOOST_ROOT=${PREFIX}
+        -DPython3_ROOT_DIR=$PREFIX
 
 make clean
 make -j16

@@ -38,19 +38,15 @@ RUN pip install pyyaml
 RUN apk add cmake
 
 ADD .build/dependencies.yaml /
-ADD .build/pulsar-client-cpp-version.txt /
 ADD .build/dep-version.py /usr/local/bin
 
-# Download and compile boost
+# Download and install boost
 RUN BOOST_VERSION=$(dep-version.py boost) && \
     BOOST_VERSION_UNDESRSCORE=$(echo $BOOST_VERSION | sed 's/\./_/g') && \
     curl -O -L https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDESRSCORE}.tar.gz && \
     tar xfz boost_${BOOST_VERSION_UNDESRSCORE}.tar.gz && \
-    cd boost_${BOOST_VERSION_UNDESRSCORE} && \
-    ./bootstrap.sh --with-libraries=python && \
-    ./b2 -d0  address-model=64 cxxflags=-fPIC link=shared threading=multi variant=release install && \
+    cp -r boost_${BOOST_VERSION_UNDESRSCORE}/boost /usr/include/ && \
     rm -rf /boost_${BOOST_VERSION_UNDESRSCORE}.tar.gz /boost_${BOOST_VERSION_UNDESRSCORE}
-
 
 # Download and compile protobuf
 RUN PROTOBUF_VERSION=$(dep-version.py protobuf) && \
@@ -111,7 +107,7 @@ RUN CURL_VERSION=$(dep-version.py curl) && \
     rm -rf /curl-${CURL_VERSION}.tar.gz /curl-${CURL_VERSION}
 
 # Pulsar client C++
-RUN PULSAR_CPP_VERSION=$(cat pulsar-client-cpp-version.txt | xargs) && \
+RUN PULSAR_CPP_VERSION=$(dep-version.py pulsar-cpp) && \
     curl -O -L https://archive.apache.org/dist/pulsar/pulsar-client-cpp-${PULSAR_CPP_VERSION}/apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz && \
     tar xfz apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz && \
     cd apache-pulsar-client-cpp-${PULSAR_CPP_VERSION} && \

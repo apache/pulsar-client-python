@@ -27,49 +27,43 @@
 - A C++ compiler that supports C++11
 - CMake >= 3.18
 - [Pulsar C++ client library](https://github.com/apache/pulsar-client-cpp)
-- [Boost.Python](https://github.com/boostorg/python)
+- [PyBind11](https://github.com/pybind/pybind11)
+
+PyBind11 is a header-only library and a submodule, so you can simply download the submodule so that CMake can find this dependency.
+
+```bash
+git submodule update --init
+```
+
+You can also download the pybind11 directly like:
+
+```bash
+pip3 install pyyaml
+export PYBIND11_VERSION=$(./build-support/dep-version.py pybind11)
+curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
+tar zxf v${PYBIND11_VERSION}.tar.gz
+mv pybind11-${PYBIND11_VERSION} pybind11
+```
+
+After that, you only need to install the Pulsar C++ client dependency into the system path. You can [install the pre-built binaries](https://pulsar.apache.org/docs/next/client-libraries-cpp/#installation) or [build from source](https://github.com/apache/pulsar-client-cpp#compilation).
 
 ## Install the Python wheel
 
-### Windows (with Vcpkg)
-
-First, install the dependencies via [Vcpkg](https://github.com/microsoft/vcpkg).
-
-```PowerShell
-vcpkg install --feature-flags=manifests --triplet x64-windows
-```
-
-> NOTE: For Windows 32-bit library, change `x64-windows` to `x86-windows`, see [here](https://github.com/microsoft/vcpkg/tree/master/triplets) for all available triplets.
-
-Then, build and install the Python wheel.
-
-```PowerShell
-# Assuming the Pulsar C++ client has been installed under the `PULSAR_CPP` directory.
-cmake -B build -DUSE_VCPKG=ON -DCMAKE_PREFIX_PATH="$env:PULSAR_CPP" -DLINK_STATIC=ON
-cmake --build build --config Release
-cmake --install build
-py setup.py bdist_wheel
-py -m pip install ./dist/pulsar_client-*.whl
-```
-
-Since the Python client links to Boost.Python dynamically, you have to copy the dll (e.g. `boost_python310-vc142-mt-x64-1_80.dll`) into the system path (the `PATH` environment variable). If the `-DLINK_STATIC=ON` option is not specified, you have to copy the `pulsar.dll` into the system path as well.
-
-### Linux or macOS
-
-Assuming the Pulsar C++ client and Boost.Python have been installed under the system path.
+Make sure the PyBind11 submodule has been downloaded and the Pulsar C++ client has been installed. Then run the following commands:
 
 ```bash
 cmake -B build
-cmake --build build -j8
+cmake --build build 
 cmake --install build
-./setup.py bdist_wheel
-pip3 install dist/pulsar_client-*.whl --force-reinstall
+python3 ./setup.py bdist_wheel
+python3 -m pip install dist/pulsar_client-*.whl --force-reinstall
 ```
 
 > **NOTE**
 >
 > 1. Here a separate `build` directory is created to store all CMake temporary files. However, the `setup.py` requires the `_pulsar.so` is under the project directory.
 > 2. Add the `--force-reinstall` option to overwrite the existing Python wheel in case your system has already installed a wheel before.
+> 3. On Windows, the Python command is `py` instead of `python3`.
 
 ## Running examples
 

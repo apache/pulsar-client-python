@@ -17,6 +17,9 @@
  * under the License.
  */
 #include "utils.h"
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
 
 Message Reader_readNext(Reader& reader) {
     Message msg;
@@ -83,11 +86,11 @@ void Reader_seek_timestamp(Reader& reader, uint64_t timestamp) {
 
 bool Reader_is_connected(Reader& reader) { return reader.isConnected(); }
 
-void export_reader() {
-    using namespace boost::python;
+void export_reader(py::module_& m) {
+    using namespace py;
 
-    class_<Reader>("Reader", no_init)
-        .def("topic", &Reader::getTopic, return_value_policy<copy_const_reference>())
+    class_<Reader>(m, "Reader")
+        .def("topic", &Reader::getTopic, return_value_policy::copy)
         .def("read_next", &Reader_readNext)
         .def("read_next", &Reader_readNextTimeout)
         .def("has_message_available", &Reader_hasMessageAvailable)

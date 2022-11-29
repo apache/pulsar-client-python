@@ -20,5 +20,15 @@
 
 import yaml, sys
 
-deps = yaml.safe_load(open("dependencies.yaml"))
+if len(sys.argv) < 2:
+    print(f'''Usage: {sys.argv[0]} dependency-name [dependency-file]
+
+  The dependency file is "dependencies.yaml" by default.''')
+    sys.exit(1)
+
+if len(sys.argv) > 2:
+    dependency_file = sys.argv[2]
+else:
+    dependency_file = 'dependencies.yaml'
+deps = yaml.safe_load(open(dependency_file))
 print(deps[sys.argv[1]])

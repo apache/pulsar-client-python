@@ -19,44 +19,19 @@
 #include "utils.h"
 
 #include <functional>
+#include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 
-extern boost::python::object MessageId_serialize(const MessageId& msgId);
+namespace py = pybind11;
 
-boost::python::object Producer_send(Producer& producer, const Message& message) {
+MessageId Producer_send(Producer& producer, const Message& message) {
     MessageId messageId;
 
     waitForAsyncValue(std::function<void(SendCallback)>(
                           [&](SendCallback callback) { producer.sendAsync(message, callback); }),
                       messageId);
 
-    return MessageId_serialize(messageId);
-}
-
-void Producer_sendAsyncCallback(PyObject* callback, Result res, const MessageId& msgId) {
-    if (callback == Py_None) {
-        return;
-    }
-
-    PyGILState_STATE state = PyGILState_Ensure();
-
-    try {
-        py::call<void>(callback, res, py::object(&msgId));
-    } catch (const py::error_already_set& e) {
-        PyErr_Print();
-    }
-
-    Py_XDECREF(callback);
-    PyGILState_Release(state);
-}
-
-void Producer_sendAsync(Producer& producer, const Message& message, py::object callback) {
-    PyObject* pyCallback = callback.ptr();
-    Py_XINCREF(pyCallback);
-
-    Py_BEGIN_ALLOW_THREADS producer.sendAsync(
-        message,
-        std::bind(Producer_sendAsyncCallback, pyCallback, std::placeholders::_1, std::placeholders::_2));
-    Py_END_ALLOW_THREADS
+    return messageId;
 }
 
 void Producer_flush(Producer& producer) {
@@ -67,18 +42,17 @@ void Producer_close(Producer& producer) {
     waitForAsyncResult([&](ResultCallback callback) { producer.closeAsync(callback); });
 }
 
-bool Producer_is_connected(Producer& producer) { return producer.isConnected(); }
+void export_producer(py::module_& m) {
+    using namespace py;
 
-void export_producer() {
-    using namespace boost::python;
-
-    class_<Producer>("Producer", no_init)
+    class_<Producer>(m, "Producer")
+        .def(init<>())
         .def("topic", &Producer::getTopic, "return the topic to which producer is publishing to",
-             return_value_policy<copy_const_reference>())
+             return_value_policy::copy)
         .def("producer_name", &Producer::getProducerName,
              "return the producer name which could have been assigned by the system or specified by the "
              "client",
-             return_value_policy<copy_const_reference>())
+             return_value_policy::copy)
         .def("last_sequence_id", &Producer::getLastSequenceId)
         .def("send", &Producer_send,
              "Publish a message on the topic associated with this Producer.\n"
@@ -93,10 +67,10 @@ void export_producer() {
              "This method is equivalent to asyncSend() and wait until the callback is triggered.\n"
              "\n"
              "@param msg message to publish\n")
-        .def("send_async", &Producer_sendAsync)
+        .def("send_async", &Producer::sendAsync)
         .def("flush", &Producer_flush,
              "Flush all the messages buffered in the client and wait until all messages have been\n"
              "successfully persisted\n")
         .def("close", &Producer_close)
-        .def("is_connected", &Producer_is_connected);
+        .def("is_connected", &Producer::isConnected);
 }

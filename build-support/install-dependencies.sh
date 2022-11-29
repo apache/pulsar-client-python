@@ -20,8 +20,10 @@
 
 set -e -x
 
-ROOT_DIR=$(dirname $(dirname $0))
-CPP_CLIENT_VERSION=$(cat $ROOT_DIR/pulsar-client-cpp-version.txt | xargs)
+cd `dirname $0`
+
+CPP_CLIENT_VERSION=$(./dep-version.py pulsar-cpp ../dependencies.yaml)
+PYBIND11_VERSION=$(./dep-version.py pybind11 ../dependencies.yaml)
 
 if [ $USER != "root" ]; then
   SUDO="sudo"
@@ -62,5 +64,7 @@ else
   exit 1
 fi
 
-
-
+curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
+tar zxf v${PYBIND11_VERSION}.tar.gz
+$SUDO cp -rf pybind11-${PYBIND11_VERSION}/include/pybind11 /usr/include/
+rm -rf pybind11-${PYBIND11_VERSION} v${PYBIND11_VERSION}.tar.gz
