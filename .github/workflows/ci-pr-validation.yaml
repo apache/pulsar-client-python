@@ -199,10 +199,11 @@ jobs:
       - name: Download Pulsar C++ client on Windows
         shell: bash
         run: |
+          source ./build-support/dep-url.sh
+          BASE_URL=$(pulsar_cpp_base_url $(grep pulsar-cpp dependencies.yaml | awk '{print $2}'))
           mkdir -p ${{ env.PULSAR_CPP_DIR }}
           cd ${{ env.PULSAR_CPP_DIR }}
-          # TODO: switch to official releases
-          curl -O -L https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-3.1.0-candidate-1/x64-windows-static.tar.gz
+          curl -O -L ${BASE_URL}/x64-windows-static.tar.gz
           tar zxf x64-windows-static.tar.gz
           mv x64-windows-static/* .
           ls -l ${{ env.PULSAR_CPP_DIR }}
