@@ -24,6 +24,7 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "${ROOT_DIR}"
 
 source pkg/mac/common.sh
+source build-support/dep-url.sh
 
 PULSAR_CPP_VERSION=$(./build-support/dep-version.py pulsar-cpp)
 
@@ -36,8 +37,7 @@ PREFIX=$CACHE_DIR_CPP_CLIENT/install
 DEPS_PREFIX=${CACHE_DIR_DEPS}/install
 
 ###############################################################################
-
-curl -O -L https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-cpp-${PULSAR_CPP_VERSION}/apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz
+download_dependency $ROOT_DIR/dependencies.yaml pulsar-cpp
 tar xfz apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}.tar.gz
 
 if [ ! -f apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}/.done ]; then

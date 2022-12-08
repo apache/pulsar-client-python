@@ -24,6 +24,7 @@ cd `dirname $0`
 
 CPP_CLIENT_VERSION=$(./dep-version.py pulsar-cpp ../dependencies.yaml)
 PYBIND11_VERSION=$(./dep-version.py pybind11 ../dependencies.yaml)
+source ./dep-url.sh
 
 if [ $USER != "root" ]; then
   SUDO="sudo"
@@ -35,7 +36,7 @@ export $(cat /etc/*-release | grep "^ID=")
 cd /tmp
 
 # Fetch the client binaries
-BASE_URL=https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-cpp-${CPP_CLIENT_VERSION}
+BASE_URL=$(pulsar_cpp_base_url ${CPP_CLIENT_VERSION})
 
 UNAME_ARCH=$(uname -m)
 if [ $UNAME_ARCH == 'aarch64' ]; then

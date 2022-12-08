@@ -27,6 +27,7 @@ PYTHON_VERSION=$1
 PYTHON_VERSION_LONG=$2
 
 source pkg/mac/common.sh
+source build-support/dep-url.sh
 
 pip3 install pyyaml
 
@@ -49,8 +50,7 @@ PREFIX=$CACHE_DIR/install
 
 ###############################################################################
 if [ ! -f pybind11/.done ]; then
-    curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
-    tar zxf v${PYBIND11_VERSION}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml pybind11
     mkdir -p $PREFIX/include/
     cp -rf pybind11-${PYBIND11_VERSION}/include/pybind11 $PREFIX/include/
     mkdir -p pybind11
@@ -60,8 +60,7 @@ fi
 ###############################################################################
 if [ ! -f zlib-${ZLIB_VERSION}/.done ]; then
     echo "Building ZLib"
-    curl -O -L https://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz
-    tar xfz zlib-$ZLIB_VERSION.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml zlib
     pushd zlib-$ZLIB_VERSION
       CFLAGS="-fPIC -O3 -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" ./configure --prefix=$PREFIX
       make -j16
@@ -102,7 +101,7 @@ fi
 OPENSSL_VERSION_UNDERSCORE=$(echo $OPENSSL_VERSION | sed 's/\./_/g')
 if [ ! -f openssl-OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.done ]; then
     echo "Building OpenSSL"
-    curl -O -L https://github.com/openssl/openssl/archive/OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml openssl
     # -arch arm64 -arch x86_64
     tar xfz OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.tar.gz
 
@@ -140,8 +139,7 @@ fi
 BOOST_VERSION_=${BOOST_VERSION//./_}
 if [ ! -f boost/.done ]; then
     echo "Building Boost for Py $PYTHON_VERSION"
-    curl -O -L https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_}.tar.gz
-    tar xfz boost_${BOOST_VERSION_}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml boost
     cp -rf boost_${BOOST_VERSION_}/boost $PREFIX/include/
     mkdir -p boost
     touch .done
@@ -150,8 +148,7 @@ fi
 ###############################################################################
 if [ ! -f protobuf-${PROTOBUF_VERSION}/.done ]; then
     echo "Building Protobuf"
-    curl -O -L  https://github.com/google/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-cpp-${PROTOBUF_VERSION}.tar.gz
-    tar xfz protobuf-cpp-${PROTOBUF_VERSION}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml protobuf
     pushd protobuf-${PROTOBUF_VERSION}
       CXXFLAGS="-fPIC -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
             ./configure --prefix=$PREFIX
@@ -166,8 +163,7 @@ fi
 ###############################################################################
 if [ ! -f zstd-${ZSTD_VERSION}/.done ]; then
     echo "Building ZStd"
-    curl -O -L https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
-    tar xfz zstd-${ZSTD_VERSION}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml zstd
     pushd zstd-${ZSTD_VERSION}
       CFLAGS="-fPIC -O3 -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" PREFIX=$PREFIX \
             make -j16 -C lib install-static install-includes
@@ -180,8 +176,7 @@ fi
 ###############################################################################
 if [ ! -f snappy-${SNAPPY_VERSION}/.done ]; then
     echo "Building Snappy"
-    curl -O -L https://github.com/google/snappy/archive/refs/tags/${SNAPPY_VERSION}.tar.gz
-    tar xfz ${SNAPPY_VERSION}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml snappy
     pushd snappy-${SNAPPY_VERSION}
       CXXFLAGS="-fPIC -O3 -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
           cmake . -DCMAKE_INSTALL_PREFIX=$PREFIX -DSNAPPY_BUILD_TESTS=OFF -DSNAPPY_BUILD_BENCHMARKS=OFF
@@ -197,8 +192,7 @@ fi
 if [ ! -f curl-${CURL_VERSION}/.done ]; then
     echo "Building LibCurl"
     CURL_VERSION_=${CURL_VERSION//./_}
-    curl -O -L  https://github.com/curl/curl/releases/download/curl-${CURL_VERSION_}/curl-${CURL_VERSION}.tar.gz
-    tar xfz curl-${CURL_VERSION}.tar.gz
+    download_dependency $ROOT_DIR/dependencies.yaml curl
     pushd curl-${CURL_VERSION}
       CFLAGS="-fPIC -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
             ./configure --with-ssl=$PREFIX \
