@@ -200,6 +200,7 @@ cd pulsar-client-python
 git checkout vX.Y.0
 # It's better to replace this URL with the URL of your own fork
 git clone git@github.com:apache/pulsar-site.git
+sudo python3 -m pip install pydoctor
 pydoctor --make-html \
   --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/vX.Y.0 \
   --docformat=numpy --theme=readthedocs \
