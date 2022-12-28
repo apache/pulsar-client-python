@@ -25,11 +25,13 @@ This page contains instructions for Pulsar committers on how to perform a releas
 
 ## Preparation
 
-> **NOTE**
+> **Note**
 >
 > The term `major/minor releases` used throughout this document is defined as follows:
 > - Major releases refer to feature releases, such as 3.0.0, 3.1.0, and so on.
 > - Minor releases refer to bug-fix releases, such as 3.0.1, 3.0.2, and so on.
+>
+> This guide use `X.Y.Z` or `X.Y` to represent the actual versions like `3.0.0` or `3.0`.
 
 For major releases, you should create a new branch named `branch-X.Y` once all PRs with the X.Y.0 milestone are merged. If some PRs with the X.Y.0 milestone are still working in progress and might take much time to complete, you can move them to the next milestone if they are not important. In this case, you'd better notify the author in the PR.
 
@@ -37,7 +39,7 @@ For minor releases, if there are no disagreements, you should cherry-pick all me
 
 Sometimes some PRs cannot be cherry-picked cleanly, you might need to create a separate PR and move the `release/X.Y.Z` label from the original PR to it. In this case, you can ask the author to help create the new PR.
 
-For PRs that are still open, you can choose to delay them to the next release or ping others to review so that they can be merged.
+For PRs that are still open, you can choose to delay them to the next release or ping other committers to review so that they can be merged.
 
 ## Requirements
 
@@ -67,7 +69,7 @@ Then, [create a new milestone](https://github.com/apache/pulsar-client-python/mi
 
 After a tag is pushed, a workflow will be triggered to build the Python wheels in GitHub Actions. You can find it in https://github.com/apache/pulsar-client-python/actions/workflows/ci-build-release-wheels.yaml
 
-For example, https://github.com/apache/pulsar-client-python/actions/runs/3709463737 is the workflow of `v3.0.0-candidate-3`, the workflow id is 3709463737. Remember the workflow id for the following steps. Once the workflow is completed, the wheels will be available for downloading.
+For example, https://github.com/apache/pulsar-client-python/actions/runs/3709463737 is the workflow of `v3.0.0-candidate-3`, the workflow id is 3709463737. Remember the workflow id, which will be passed as an argument of `stage-release.sh` in the following step. Once the workflow is completed, the wheels will be available for downloading.
 
 Generate a GitHub token by following the guide [here](https://github.com/settings/tokens). The `repo` and `workflow` checkboxes must be selected. Then export the token as the environment variable:
 
@@ -75,7 +77,7 @@ Generate a GitHub token by following the guide [here](https://github.com/setting
 export GITHUB_TOKEN=<your-token>
 ```
 
-Edit `~/.gnupg/gpg.conf` to ensure the default GPG key is from your Apache mail (`user@apache.org`):
+Edit `~/.gnupg/gpg.conf` to ensure the default GPG key is from your Apache mail (`<your-name>@apache.org`):
 
 ```
 default-key <key fingerprint>
@@ -158,7 +160,7 @@ svn move -m "Release Apache Pulsar Client Python X.Y.Z" \
 ## Upload the wheels to PyPI
 
 1. You need to create an account on PyPI: https://pypi.org/account/register/
-2. Ask anyone that has been a release manager before to add you as a maintainer for pulsar-docker on PyPI
+2. Ask anyone that has been a release manager before to add you as a maintainer for [pulsar-client](https://pypi.org/manage/project/pulsar-client/releases/) on PyPI
 3. Once you have completed the following steps in this section, you can check if the wheels are uploaded successfully in Download files. Remember to switch to the correct version in Release history).
 
 Then, upload the wheels to PyPI:
@@ -184,15 +186,7 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Then, [create a release](https://github.com/apache/pulsar-client-python/releases/new) and choose the `vX.Y.Z` tag. Here is an example release note: https://github.com/apache/pulsar-client-python/releases/tag/v3.0.0
-
-You can run the following command to generate the **What's Changed** section:
-
-```bash
-gh pr list -L 200 --search "is:pr milestone:3.0.0 is:merged" --json title,url,author \
- | jq '.[] | "* \(.title) by @\(.author.login) in \(.url)"' \
- | sed 's/^"\(.*\)"$/\1/'
-```
+Then, [create a release](https://github.com/apache/pulsar-client-python/releases/new). Choose the `vX.Y.Z` tag and click the `Generate release notes` button to generate the release note automatically. Here is an example release note: https://github.com/apache/pulsar-client-python/releases/tag/v3.0.0
 
 Then, create a PR in [`pulsar-site`](https://github.com/apache/pulsar-site) repo to update the website. Here is an example: https://github.com/apache/pulsar-site/pull/343
 
@@ -201,13 +195,22 @@ Then, create a PR in [`pulsar-site`](https://github.com/apache/pulsar-site) repo
 For minor releases, skip this section. For major releases, you should generate the HTML files into the [`pulsar-site`](https://github.com/apache/pulsar-site) repo:
 
 ```bash
+git clone git@github.com:apache/pulsar-client-python.git
+cd pulsar-client-python
 git checkout vX.Y.0
+# It's better to replace this URL with the URL of your own fork
+git clone git@github.com:apache/pulsar-site.git
 pydoctor --make-html \
   --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/vX.Y.0 \
   --docformat=numpy --theme=readthedocs \
   --intersphinx=https://docs.python.org/3/objects.inv \
-  --html-output=/path/to/pulsar-site/site2/website-next/static/api/python/X.Y.x \
-  pulsar
+  --html-output=./pulsar-site/site2/website-next/static/api/python/X.Y.x \
+  pulsar-client-python/pulsar
+cd pulsar-site
+git checkout -b py-docs-X.Y
+git add .
+git commit -m "Generate Python client X.Y.0 doc"
+git push origin py-docs-X.Y
 ```
 
 Then open a PR like: https://github.com/apache/pulsar-site/pull/342
