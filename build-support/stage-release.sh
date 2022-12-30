@@ -35,6 +35,9 @@ WORKFLOW_ID=$2
 
 # Download the source tar
 curl -O -L https://github.com/apache/pulsar-client-python/archive/refs/tags/$TAG.tar.gz
+
+# Remove the "-candidate-N" suffix
+VERSION=$(echo $VERSION | sed 's/-candidate-.*//')
 mv $TAG.tar.gz pulsar-client-python-$VERSION.tar.gz
 
 # Download the Python wheels

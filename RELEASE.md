@@ -138,18 +138,7 @@ Once there are at least 3 binding +1s, the vote will be ready to close and you c
 
 ## Promote the release
 
-Go to the candidate directory (`pulsar-client-python-X.Y.Z-candidate-N`) in the SVN project, rename the source code and its signatures: 
-
-```bash
-svn mv pulsar-client-python-X.Y.Z-candidate-N.tar.gz pulsar-client-python-X.Y.Z.tar.gz
-svn mv pulsar-client-python-X.Y.Z-candidate-N.tar.gz.asc pulsar-client-python-X.Y.Z.tar.gz.asc
-svn mv pulsar-client-python-X.Y.Z-candidate-N.tar.gz.sha512 pulsar-client-python-X.Y.Z.tar.gz.sha512
-sha512sum pulsar-client-python-X.Y.Z.tar.gz > pulsar-client-python-X.Y.Z.tar.gz.sha512
-svn add pulsar-client-python-X.Y.Z.tar.gz.sha512 --force
-svn ci -m "Remove the candidate-N suffix in Python client X.Y.Z"
-```
-
-Then ask a PMC member to promote the release:
+Ask a PMC member to promote the release:
 
 ```bash
 svn move -m "Release Apache Pulsar Client Python X.Y.Z" \
