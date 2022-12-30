@@ -110,7 +110,7 @@ python3 ./tests/pulsar_test.py 'PulsarTest.test_tls_auth'
 Pulsar Python Client uses [pydoctor](https://github.com/twisted/pydoctor) to generate API docs. To generate by yourself, run the following command in the root path of this repository:
 
 ```bash
-pip3 install pydoctor
+sudo python3 -m pip install pydoctor
 pydoctor --make-html \
   --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/<release-version-tag> \
   --docformat=numpy --theme=readthedocs \
