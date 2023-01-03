@@ -62,6 +62,11 @@ _retype = type(re.compile('x'))
 from datetime import timedelta
 
 
+# Get the pulsar version from version.txt
+with open("version.txt") as f:
+    __version__ = f.read().strip()
+
+
 class MessageId:
     """
     Represents a message id.

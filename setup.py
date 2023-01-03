@@ -29,7 +29,7 @@ from distutils.command import build_ext
 def get_version():
     # Get the pulsar version from version.txt
     root = path.dirname(path.realpath(__file__))
-    version_file = path.join(root, 'version.txt')
+    version_file = path.join(root, 'pulsar', 'version.txt')
     with open(version_file) as f:
         return f.read().strip()
 
