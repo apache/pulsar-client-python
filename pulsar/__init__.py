@@ -60,10 +60,13 @@ import re
 _retype = type(re.compile('x'))
 
 from datetime import timedelta
+from os import path
 
 
 # Get the pulsar version from version.txt
-with open("version.txt") as f:
+root = path.dirname(path.realpath(__file__))
+version_file = path.join(root, 'version.txt')
+with open(version_file) as f:
     __version__ = f.read().strip()
 
 
