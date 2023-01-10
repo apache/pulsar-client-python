@@ -48,6 +48,8 @@ import _pulsar
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
     LoggerLevel, BatchReceivePolicy  # noqa: F401
 
+from pulsar.__about__ import __version__
+
 from pulsar.exceptions import *
 
 from pulsar.functions.function import Function
@@ -60,14 +62,6 @@ import re
 _retype = type(re.compile('x'))
 
 from datetime import timedelta
-from os import path
-
-
-# Get the pulsar version from version.txt
-root = path.dirname(path.realpath(__file__))
-version_file = path.join(root, 'version.txt')
-with open(version_file) as f:
-    __version__ = f.read().strip()
 
 
 class MessageId:
