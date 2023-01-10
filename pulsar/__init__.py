@@ -48,6 +48,8 @@ import _pulsar
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
     LoggerLevel, BatchReceivePolicy  # noqa: F401
 
+from pulsar.__about__ import __version__
+
 from pulsar.exceptions import *
 
 from pulsar.functions.function import Function
