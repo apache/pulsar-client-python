@@ -25,7 +25,7 @@ cd "${ROOT_DIR}"
 
 source pkg/mac/common.sh
 
-PYTHON_CLIENT_VERSION=$(cat version.txt | xargs)
+PYTHON_CLIENT_VERSION=$(grep -v '^#' pulsar/__about__.py | cut -d "=" -f2 | sed "s/'//g")
 
 PYTHON_VERSION=$1
 
