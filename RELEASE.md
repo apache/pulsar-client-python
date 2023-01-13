@@ -136,6 +136,19 @@ Please download the Python wheels and follow the README to test.
 
 Once there are at least 3 binding +1s, the vote will be ready to close and you can continue the following steps. If there is something wrong with the candidate, you need to fix it and repeat the steps from the **Cut the next candidate** section again.
 
+## Move main branch to next version
+
+You need to move the main version to the next iteration.
+
+```bash
+git checkout main
+sed -i.bak 's/X.Y.0a1/X.Y+1.0a1/' pulsar/__about__.py
+git add pulsar/__about__.py
+git commit -m "Bumped version to X.Y.0a1"
+```
+
+Since this needs to be merged into main, you need to follow the regular process and create a Pull Request on GitHub.
+
 ## Promote the release
 
 Ask a PMC member to promote the release:
