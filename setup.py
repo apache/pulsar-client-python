@@ -97,6 +97,8 @@ extras_require["avro"] = sorted(
 # all dependencies
 extras_require["all"] = sorted(set(sum(extras_require.values(), [])))
 
+print("Extras require: ", extras_require)
+
 setup(
     name=NAME,
     version=VERSION,
