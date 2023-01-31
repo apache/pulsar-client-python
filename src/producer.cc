@@ -34,6 +34,16 @@ MessageId Producer_send(Producer& producer, const Message& message) {
     return messageId;
 }
 
+void Producer_sendAsync(Producer& producer, const Message& msg, SendCallback callback) {
+    Py_BEGIN_ALLOW_THREADS
+    producer.sendAsync(msg, callback);
+    Py_END_ALLOW_THREADS
+
+    if (PyErr_CheckSignals() == -1) {
+        PyErr_SetInterrupt();
+    }
+}
+
 void Producer_flush(Producer& producer) {
     waitForAsyncResult([&](ResultCallback callback) { producer.flushAsync(callback); });
 }
@@ -67,7 +77,7 @@ void export_producer(py::module_& m) {
              "This method is equivalent to asyncSend() and wait until the callback is triggered.\n"
              "\n"
              "@param msg message to publish\n")
-        .def("send_async", &Producer::sendAsync)
+        .def("send_async", &Producer_sendAsync)
         .def("flush", &Producer_flush,
              "Flush all the messages buffered in the client and wait until all messages have been\n"
              "successfully persisted\n")
