@@ -1424,5 +1424,19 @@ class PulsarTest(TestCase):
         with self.assertRaises(RuntimeError):
             AuthenticationBasic(auth_params_string='invalid auth params')
 
+    def test_send_async_no_deadlock(self):
+        client = Client(self.serviceUrl)
+        producer = client.create_producer('test_send_async_no_deadlock')
+
+        def send_callback(res, msg):
+            print(f"Message '{msg}' published res={res}")
+
+        for i in range(30):
+            producer.send_async(f"Hello-{i}".encode('utf-8'), callback=send_callback)
+
+        producer.flush()
+        client.close()
+
+
 if __name__ == "__main__":
     main()
