@@ -26,11 +26,6 @@ from .schema import Schema
 
 try:
     import fastavro
-    HAS_AVRO = True
-except ImportError:
-    HAS_AVRO = False
-
-if HAS_AVRO:
     class AvroSchema(Schema):
         def __init__(self, record_cls, schema_definition=None):
             if record_cls is None and schema_definition is None:
@@ -82,6 +77,14 @@ if HAS_AVRO:
                 return self._record_cls(**d)
             else:
                 return d
-else:
-    raise Exception("Avro library support was not found. Make sure to install Pulsar client " +
+except ImportError:
+    class AvroSchema(Schema):
+        def __init__(self, _record_cls, _schema_definition=None):
+            raise Exception("Avro library support was not found. Make sure to install Pulsar client " +
                             "with Avro support: pip3 install 'pulsar-client[avro]'")
+                            
+        def encode(self, obj):
+            pass
+
+        def decode(self, data):
+            pass
