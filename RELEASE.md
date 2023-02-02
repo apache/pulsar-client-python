@@ -23,23 +23,16 @@
 
 This page contains instructions for Pulsar committers on how to perform a release for the Pulsar Python client.
 
-## Preparation
+## Versioning
+Bump up the version number as follows.
 
-> **Note**
->
-> The term `major/minor releases` used throughout this document is defined as follows:
-> - Major releases refer to feature releases, such as 3.0.0, 3.1.0, and so on.
-> - Minor releases refer to bug-fix releases, such as 3.0.1, 3.0.2, and so on.
->
-> This guide use `X.Y.Z` or `X.Y` to represent the actual versions like `3.0.0` or `3.0`.
-
-For major releases, you should create a new branch named `branch-X.Y` once all PRs with the X.Y.0 milestone are merged. If some PRs with the X.Y.0 milestone are still working in progress and might take much time to complete, you can move them to the next milestone if they are not important. In this case, you'd better notify the author in the PR.
-
-For minor releases, if there are no disagreements, you should cherry-pick all merged PRs with the `release/X.Y.Z` labels into `branch-X.Y`. After these PRs are cherry-picked, you should add the `cherry-picked/branch-X.Y` labels.
-
-Sometimes some PRs cannot be cherry-picked cleanly, you might need to create a separate PR and move the `release/X.Y.Z` label from the original PR to it. In this case, you can ask the author to help create the new PR.
-
-For PRs that are still open, you can choose to delay them to the next release or ping other committers to review so that they can be merged.
+* Major version (e.g. 3.0.0 => 4.0.0)
+  * Changes that break backward compatibility
+* Minor version (e.g. 3.0.0 => 3.1.0)
+  * Backward compatible new features
+* Patch version (e.g. 3.0.0 => 3.0.1)
+  * Backward compatible bug fixes
+  * C++ Client upgrade (even though there are no new commits in the Python client)
 
 ## Requirements
 
@@ -55,12 +48,30 @@ Example: https://github.com/apache/pulsar-client-python/pull/62
 
 After all necessary PRs are cherry-picked to `branch-X.Y`, you should cut the release by pushing a tag.
 
+For major and minor releases (`X.Y.0`), you need to create a new branch:
+
 ```bash
-git checkout branch-X.Y
+git checkout -b branch-X.Y
+sed -i 's/__version__.*/__version__=X.Y.0/' pulsar/__about__.py
+git add pulsar/__about__.py
+git commit -m "Bump version to X.Y.0"
 git push origin branch-X.Y
 # N starts with 1
-git tag vX.Y.Y-candidate-N
-git push origin vX.Y.Y-candidate-N
+git tag vX.Y.0-candidate-N
+git push origin vX.Y.0-candidate-N
+```
+
+For patch releases (`X.Y.Z`), you need to reuse the existing branch:
+
+```bash
+git checkout branch-X.Y
+sed -i 's/__version__.*/__version__=X.Y.Z/' pulsar/__about__.py
+git add pulsar/__about__.py
+git commit -m "Bump version to X.Y.Z"
+git push origin branch-X.Y
+# N starts with 1
+git tag vX.Y.Z-candidate-N
+git push origin vX.Y.Z-candidate-N
 ```
 
 Then, [create a new milestone](https://github.com/apache/pulsar-client-python/milestones/new) for the next major release.
@@ -103,7 +114,7 @@ Send an email to dev@pulsar.apache.org to start the vote for the candidate:
 To: dev@pulsar.apache.org
 Subject: [VOTE] Pulsar Client Python Release X.Y.Z Candidate N
 
-This is the third release candidate for Apache Pulsar Client Python,
+This is the Nth release candidate for Apache Pulsar Client Python,
 version X.Y.Z.
 
 It fixes the following issues:
@@ -115,7 +126,7 @@ stay open for at least 72 hours ***
 Python wheels:
 https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-python-X.Y.Z-candidate-N/
 
-The supported python versions are 3.7, 3.8, 3.9 and 3.10. The
+The supported python versions are 3.7, 3.8, 3.9, 3.10 and 3.11. The
 supported platforms and architectures are:
 - Windows x86_64 (windows/)
 - glibc-based Linux x86_64 (linux-glibc-x86_64/)
