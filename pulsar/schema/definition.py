@@ -26,7 +26,7 @@ from enum import Enum, EnumMeta
 def _check_record_or_field(x):
     if (type(x) is type and not issubclass(x, Record)) \
             and not isinstance(x, Field):
-        raise Exception('Argument ' + x + ' is not a Record or a Field')
+        raise Exception('Argument ' + x.__name__ + ' is not a Record or a Field')
 
 
 class RecordMeta(type):
