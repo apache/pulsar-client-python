@@ -23,10 +23,17 @@ from collections import OrderedDict
 from enum import Enum, EnumMeta
 
 
+def _string_representation(x):
+    if hasattr(x, "__name__"):
+        return x.__name__
+    else:
+        return str(x)
+
+
 def _check_record_or_field(x):
     if (type(x) is type and not issubclass(x, Record)) \
             and not isinstance(x, Field):
-        raise Exception('Argument ' + x + ' is not a Record or a Field')
+        raise Exception('Argument ' + _string_representation(x) + ' is not a Record or a Field')
 
 
 class RecordMeta(type):
@@ -188,7 +195,7 @@ class Record(metaclass=RecordMeta):
 
         if not isinstance(val, self.__class__):
             raise TypeError("Invalid type '%s' for sub-record field '%s'. Expected: %s" % (
-                type(val), name, self.__class__))
+                type(val), name, _string_representation(self.__class__)))
         return val
 
     def default(self):
@@ -222,7 +229,7 @@ class Field(object):
             return self.default()
 
         if type(val) != self.python_type():
-            raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, self.python_type()))
+            raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, _string_representation(self.python_type())))
         return val
 
     def schema(self):
@@ -368,7 +375,7 @@ class String(Field):
 class CustomEnum(Field):
     def __init__(self, enum_type, default=None, required=False, required_default=False):
         if not issubclass(enum_type, Enum):
-            raise Exception(enum_type + " is not a valid Enum type")
+            raise Exception(_string_representation(enum_type) + " is not a valid Enum type")
         self.enum_type = enum_type
         self.values = {}
         for x in enum_type.__members__.values():
@@ -400,7 +407,7 @@ class CustomEnum(Field):
                 raise TypeError(
                     "Invalid enum value '%s' for field '%s'. Expected: %s" % (val, name, self.values.keys()))
         elif type(val) != self.python_type():
-            raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, self.python_type()))
+            raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, _string_representation(self.python_type())))
         else:
             return val
 
@@ -445,7 +452,7 @@ class Array(Field):
         for x in val:
             if type(x) != self.array_type.python_type():
                 raise TypeError('Array field ' + name + ' items should all be of type ' +
-                                self.array_type.type())
+                                _string_representation(self.array_type.type()))
         return val
 
     def schema(self):
@@ -488,7 +495,7 @@ class Map(Field):
                 raise TypeError('Map keys for field ' + name + '  should all be strings')
             if type(v) != self.value_type.python_type():
                 raise TypeError('Map values for field ' + name + ' should all be of type '
-                                + self.value_type.python_type())
+                                + _string_representation(self.value_type.python_type()))
 
         return val
 
