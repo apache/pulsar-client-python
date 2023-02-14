@@ -102,12 +102,6 @@ class MessageId:
         """
         return self._msg_id.serialize()
 
-    def __str__(self):
-        return "MessageId instance with entry_id %s and ledger_id %s" % (str(self.entry_id), str(self.ledger_id))
-
-    def __repr__(self):
-        return "MessageId instance with entry_id %s and ledger_id %s" % (str(self.entry_id), str(self.ledger_id))
-
     @staticmethod
     def deserialize(message_id_bytes):
         """
