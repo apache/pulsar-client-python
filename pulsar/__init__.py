@@ -55,7 +55,7 @@ from pulsar.exceptions import *
 from pulsar.functions.function import Function
 from pulsar.functions.context import Context
 from pulsar.functions.serde import SerDe, IdentitySerDe, PickleSerDe
-from pulsar import schema
+from pulsar import schema, MessageId
 _schema = schema
 
 import re
@@ -882,6 +882,11 @@ class Client:
             Symmetric encryption class implementation, configuring public key encryption messages for the producer
             and private key decryption messages for the consumer
         """
+        
+        # If a pulsar.MessageId object is passed, access the _pulsar.MessageId object
+        if isinstance(message_id, MessageId):
+            message_id = message_id._msg_id
+
         _check_type(str, topic, 'topic')
         _check_type(_pulsar.MessageId, start_message_id, 'start_message_id')
         _check_type(_schema.Schema, schema, 'schema')
