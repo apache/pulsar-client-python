@@ -55,7 +55,7 @@ from pulsar.exceptions import *
 from pulsar.functions.function import Function
 from pulsar.functions.context import Context
 from pulsar.functions.serde import SerDe, IdentitySerDe, PickleSerDe
-from pulsar import schema, MessageId
+from pulsar import schema
 _schema = schema
 
 import re
