@@ -55,6 +55,12 @@ void export_message(py::module_& m) {
                  oss << msgId;
                  return oss.str();
              })
+        .def("__repr__",
+             [](const MessageId& msgId) {
+                 std::ostringstream oss;
+                 oss << msgId;
+                 return oss.str();
+             })
         .def("__eq__", &MessageId::operator==)
         .def("__ne__", &MessageId::operator!=)
         .def("__le__", &MessageId::operator<=)
