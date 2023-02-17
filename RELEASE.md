@@ -151,7 +151,7 @@ The tag to be voted upon: vX.Y.Z-candidate-N
 https://github.com/apache/pulsar-client-python/releases/tag/vX.Y.Z-candidate-N
 
 Pulsar's KEYS file containing PGP keys you use to sign the release:
-https://dist.apache.org/repos/dist/release/pulsar/KEYS
+https://downloads.apache.org/pulsar/KEYS
 
 Please download the Python wheels and follow the README to test.
 ```
