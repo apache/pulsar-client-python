@@ -38,11 +38,17 @@ Bump up the version number as follows.
 
 If you haven't already done it, [create and publish the GPG key](https://pulsar.apache.org/contribute/create-gpg-keys/) to sign the release artifacts.
 
+Before running the commands in the following sections, make sure the `GPG_TTY` environment variable has been set.
+
+```bash
+export GPG_TTY=$(tty)
+```
+
 ## Upgrade the C++ client dependency
 
 During the development, the C++ client dependency might be downloaded from an unofficial release. But when releasing the Python client, the dependency must be downloaded from an official release. You should modify the base url in [dep-url.sh](./build-support/dep-url.sh).
 
-Example: https://github.com/apache/pulsar-client-python/pull/62 
+Example: https://github.com/apache/pulsar-client-python/pull/62
 
 ## Cut the candidate release
 
@@ -57,7 +63,7 @@ git add pulsar/__about__.py
 git commit -m "Bump version to X.Y.0"
 git push origin branch-X.Y
 # N starts with 1
-git tag vX.Y.0-candidate-N
+git tag -u $USER@apache.org vX.Y.0-candidate-N -m "Release vX.Y.0 candidate N"
 git push origin vX.Y.0-candidate-N
 ```
 
@@ -70,7 +76,7 @@ git add pulsar/__about__.py
 git commit -m "Bump version to X.Y.Z"
 git push origin branch-X.Y
 # N starts with 1
-git tag vX.Y.Z-candidate-N
+git tag -u $USER@apache.org vX.Y.Z-candidate-N -m "Release vX.Y.Z candidate N"
 git push origin vX.Y.Z-candidate-N
 ```
 
@@ -100,8 +106,8 @@ Make sure `curl`, `jq`, `unzip`, `gpg`, `shasum` commands are available. Then yo
 svn co https://dist.apache.org/repos/dist/dev/pulsar pulsar-dist-dev-keys --depth empty
 cd pulsar-dist-dev-keys
 svn mkdir pulsar-client-python-X.Y.Z-candidate-N && cd pulsar-client-python-X.Y.Z-candidate-N
-# PROJECT_DIR is the directory of the pulsar-client-python repository 
-$PROJECT_DIR/build-support/stage-release.sh vX.Y.Z-candidate-N $WORKFLOW_ID
+# PROJECT_DIR is the directory of the pulsar-client-python repository
+$PROJECT_DIR/build-support/stage-release.sh X.Y.Z-candidate-N $WORKFLOW_ID
 svn add *
 svn ci -m "Staging artifacts and signature for Python client X.Y.Z-candidate-N"
 ```
@@ -135,12 +141,17 @@ supported platforms and architectures are:
 - musl-based Linux arm64 (linux-musl-arm64/)
 - macOS universal 2 (macos/)
 
+You can download the wheel (the `.whl` file) according to your own OS and Python version
+and install the wheel:
+- Windows: `py -m pip install *.whl --force-reinstall`
+- Linux or macOS: `python3 -m pip install *.whl --force-reinstall`
+
 The tag to be voted upon: vX.Y.Z-candidate-N
 (<commit-id>)
 https://github.com/apache/pulsar-client-python/releases/tag/vX.Y.Z-candidate-N
 
 Pulsar's KEYS file containing PGP keys you use to sign the release:
-https://dist.apache.org/repos/dist/dev/pulsar/KEYS
+https://downloads.apache.org/pulsar/KEYS
 
 Please download the Python wheels and follow the README to test.
 ```
@@ -195,7 +206,7 @@ Push the official tag:
 
 ```bash
 git checkout vX.Y.Z-candidate-N
-git tag vX.Y.Z
+git tag -u $USER@apache.org vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
