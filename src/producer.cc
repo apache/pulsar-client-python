@@ -25,21 +25,15 @@
 namespace py = pybind11;
 
 MessageId Producer_send(Producer& producer, const Message& message) {
-    MessageId messageId;
-
-    waitForAsyncValue(std::function<void(SendCallback)>(
-                          [&](SendCallback callback) { producer.sendAsync(message, callback); }),
-                      messageId);
-
-    return messageId;
+    return waitForAsyncValue<MessageId>(
+        [&](SendCallback callback) { producer.sendAsync(message, callback); });
 }
 
 void Producer_sendAsync(Producer& producer, const Message& msg, SendCallback callback) {
-    Py_BEGIN_ALLOW_THREADS
-    producer.sendAsync(msg, callback);
+    Py_BEGIN_ALLOW_THREADS producer.sendAsync(msg, callback);
     Py_END_ALLOW_THREADS
 
-    if (PyErr_CheckSignals() == -1) {
+        if (PyErr_CheckSignals() == -1) {
         PyErr_SetInterrupt();
     }
 }

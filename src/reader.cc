@@ -62,14 +62,8 @@ Message Reader_readNextTimeout(Reader& reader, int timeoutMs) {
 }
 
 bool Reader_hasMessageAvailable(Reader& reader) {
-    bool available = false;
-
-    waitForAsyncValue(
-        std::function<void(HasMessageAvailableCallback)>(
-            [&](HasMessageAvailableCallback callback) { reader.hasMessageAvailableAsync(callback); }),
-        available);
-
-    return available;
+    return waitForAsyncValue<bool>(
+        [&](HasMessageAvailableCallback callback) { reader.hasMessageAvailableAsync(callback); });
 }
 
 void Reader_close(Reader& reader) {
