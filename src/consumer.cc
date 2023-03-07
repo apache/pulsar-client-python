@@ -29,13 +29,7 @@ void Consumer_unsubscribe(Consumer& consumer) {
 }
 
 Message Consumer_receive(Consumer& consumer) {
-    Message msg;
-
-    waitForAsyncValue(std::function<void(ReceiveCallback)>(
-                          [&consumer](ReceiveCallback callback) { consumer.receiveAsync(callback); }),
-                      msg);
-
-    return msg;
+    return waitForAsyncValue<Message>([&](ReceiveCallback callback) { consumer.receiveAsync(callback); });
 }
 
 Message Consumer_receive_timeout(Consumer& consumer, int timeoutMs) {
@@ -59,32 +53,27 @@ Messages Consumer_batch_receive(Consumer& consumer) {
 void Consumer_acknowledge(Consumer& consumer, const Message& msg) { consumer.acknowledgeAsync(msg, nullptr); }
 
 void Consumer_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS
-    consumer.acknowledgeAsync(msgId, nullptr);
+    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeAsync(msgId, nullptr);
     Py_END_ALLOW_THREADS
 }
 
 void Consumer_negative_acknowledge(Consumer& consumer, const Message& msg) {
-    Py_BEGIN_ALLOW_THREADS
-    consumer.negativeAcknowledge(msg);
+    Py_BEGIN_ALLOW_THREADS consumer.negativeAcknowledge(msg);
     Py_END_ALLOW_THREADS
 }
 
 void Consumer_negative_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS
-    consumer.negativeAcknowledge(msgId);
+    Py_BEGIN_ALLOW_THREADS consumer.negativeAcknowledge(msgId);
     Py_END_ALLOW_THREADS
 }
 
 void Consumer_acknowledge_cumulative(Consumer& consumer, const Message& msg) {
-    Py_BEGIN_ALLOW_THREADS
-    consumer.acknowledgeCumulativeAsync(msg, nullptr);
+    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeCumulativeAsync(msg, nullptr);
     Py_END_ALLOW_THREADS
 }
 
 void Consumer_acknowledge_cumulative_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS
-    consumer.acknowledgeCumulativeAsync(msgId, nullptr);
+    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeCumulativeAsync(msgId, nullptr);
     Py_END_ALLOW_THREADS
 }
 

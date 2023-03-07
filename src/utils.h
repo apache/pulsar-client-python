@@ -21,12 +21,14 @@
 
 #include <pulsar/Client.h>
 #include <pulsar/MessageBatch.h>
+#include <chrono>
 #include <exception>
-#include <Python.h>
+#include <future>
+#include <pybind11/pybind11.h>
 #include "exceptions.h"
-#include "future.h"
 
 using namespace pulsar;
+namespace py = pybind11;
 
 inline void CHECK_RESULT(Result res) {
     if (res != ResultOk) {
@@ -34,56 +36,26 @@ inline void CHECK_RESULT(Result res) {
     }
 }
 
-struct WaitForCallback {
-    Promise<bool, Result> m_promise;
+namespace internal {
 
-    WaitForCallback(Promise<bool, Result> promise) : m_promise(promise) {}
+void waitForResult(std::promise<pulsar::Result>& promise);
 
-    void operator()(Result result) { m_promise.setValue(result); }
-};
-
-template <typename T>
-struct WaitForCallbackValue {
-    Promise<Result, T>& m_promise;
-
-    WaitForCallbackValue(Promise<Result, T>& promise) : m_promise(promise) {}
-
-    void operator()(Result result, const T& value) {
-        if (result == ResultOk) {
-            m_promise.setValue(value);
-        } else {
-            m_promise.setFailed(result);
-        }
-    }
-};
+}  // namespace internal
 
 void waitForAsyncResult(std::function<void(ResultCallback)> func);
 
-template <typename T, typename Callback>
-inline void waitForAsyncValue(std::function<void(Callback)> func, T& value) {
-    Result res = ResultOk;
-    Promise<Result, T> promise;
-    Future<Result, T> future = promise.getFuture();
+template <typename T>
+inline T waitForAsyncValue(std::function<void(std::function<void(Result, const T&)>)> func) {
+    auto resultPromise = std::make_shared<std::promise<Result>>();
+    auto valuePromise = std::make_shared<std::promise<T>>();
 
-    Py_BEGIN_ALLOW_THREADS func(WaitForCallbackValue<T>(promise));
-    Py_END_ALLOW_THREADS
+    func([resultPromise, valuePromise](Result result, const T& value) {
+        valuePromise->set_value(value);
+        resultPromise->set_value(result);
+    });
 
-        bool isComplete;
-    while (true) {
-        // Check periodically for Python signals
-        Py_BEGIN_ALLOW_THREADS isComplete = future.get(res, std::ref(value), std::chrono::milliseconds(100));
-        Py_END_ALLOW_THREADS
-
-            if (isComplete) {
-            CHECK_RESULT(res);
-            return;
-        }
-
-        if (PyErr_CheckSignals() == -1) {
-            PyErr_SetInterrupt();
-            return;
-        }
-    }
+    internal::waitForResult(*resultPromise);
+    return valuePromise->get_future().get();
 }
 
 struct CryptoKeyReaderWrapper {

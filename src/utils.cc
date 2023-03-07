@@ -20,28 +20,29 @@
 #include "utils.h"
 
 void waitForAsyncResult(std::function<void(ResultCallback)> func) {
-    Result res = ResultOk;
-    bool b;
-    Promise<bool, Result> promise;
-    Future<bool, Result> future = promise.getFuture();
+    auto promise = std::make_shared<std::promise<Result>>();
+    func([promise](Result result) { promise->set_value(result); });
+    internal::waitForResult(*promise);
+}
 
-    Py_BEGIN_ALLOW_THREADS func(WaitForCallback(promise));
-    Py_END_ALLOW_THREADS
+namespace internal {
 
-        bool isComplete;
+void waitForResult(std::promise<pulsar::Result>& promise) {
+    auto future = promise.get_future();
     while (true) {
-        // Check periodically for Python signals
-        Py_BEGIN_ALLOW_THREADS isComplete = future.get(b, std::ref(res), std::chrono::milliseconds(100));
-        Py_END_ALLOW_THREADS
-
-            if (isComplete) {
-            CHECK_RESULT(res);
-            return;
+        {
+            py::gil_scoped_release release;
+            auto status = future.wait_for(std::chrono::milliseconds(100));
+            if (status == std::future_status::ready) {
+                CHECK_RESULT(future.get());
+                return;
+            }
         }
-
-        if (PyErr_CheckSignals() == -1) {
-            PyErr_SetInterrupt();
-            return;
+        py::gil_scoped_acquire acquire;
+        if (PyErr_CheckSignals() != 0) {
+            raiseException(ResultInterrupted);
         }
     }
 }
+
+}  // namespace internal

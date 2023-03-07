@@ -24,73 +24,38 @@
 namespace py = pybind11;
 
 Producer Client_createProducer(Client& client, const std::string& topic, const ProducerConfiguration& conf) {
-    Producer producer;
-
-    waitForAsyncValue(std::function<void(CreateProducerCallback)>([&](CreateProducerCallback callback) {
-                          client.createProducerAsync(topic, conf, callback);
-                      }),
-                      producer);
-
-    return producer;
+    return waitForAsyncValue<Producer>(
+        [&](CreateProducerCallback callback) { client.createProducerAsync(topic, conf, callback); });
 }
 
 Consumer Client_subscribe(Client& client, const std::string& topic, const std::string& subscriptionName,
                           const ConsumerConfiguration& conf) {
-    Consumer consumer;
-
-    waitForAsyncValue(std::function<void(SubscribeCallback)>([&](SubscribeCallback callback) {
-                          client.subscribeAsync(topic, subscriptionName, conf, callback);
-                      }),
-                      consumer);
-
-    return consumer;
+    return waitForAsyncValue<Consumer>(
+        [&](SubscribeCallback callback) { client.subscribeAsync(topic, subscriptionName, conf, callback); });
 }
 
 Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>& topics,
                                  const std::string& subscriptionName, const ConsumerConfiguration& conf) {
-    Consumer consumer;
-
-    waitForAsyncValue(std::function<void(SubscribeCallback)>([&](SubscribeCallback callback) {
-                          client.subscribeAsync(topics, subscriptionName, conf, callback);
-                      }),
-                      consumer);
-
-    return consumer;
+    return waitForAsyncValue<Consumer>(
+        [&](SubscribeCallback callback) { client.subscribeAsync(topics, subscriptionName, conf, callback); });
 }
 
 Consumer Client_subscribe_pattern(Client& client, const std::string& topic_pattern,
                                   const std::string& subscriptionName, const ConsumerConfiguration& conf) {
-    Consumer consumer;
-
-    waitForAsyncValue(std::function<void(SubscribeCallback)>([&](SubscribeCallback callback) {
-                          client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
-                      }),
-                      consumer);
-
-    return consumer;
+    return waitForAsyncValue<Consumer>([&](SubscribeCallback callback) {
+        client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
+    });
 }
 
 Reader Client_createReader(Client& client, const std::string& topic, const MessageId& startMessageId,
                            const ReaderConfiguration& conf) {
-    Reader reader;
-
-    waitForAsyncValue(std::function<void(ReaderCallback)>([&](ReaderCallback callback) {
-                          client.createReaderAsync(topic, startMessageId, conf, callback);
-                      }),
-                      reader);
-
-    return reader;
+    return waitForAsyncValue<Reader>(
+        [&](ReaderCallback callback) { client.createReaderAsync(topic, startMessageId, conf, callback); });
 }
 
 std::vector<std::string> Client_getTopicPartitions(Client& client, const std::string& topic) {
-    std::vector<std::string> partitions;
-
-    waitForAsyncValue(std::function<void(GetPartitionsCallback)>([&](GetPartitionsCallback callback) {
-                          client.getPartitionsForTopicAsync(topic, callback);
-                      }),
-                      partitions);
-
-    return partitions;
+    return waitForAsyncValue<std::vector<std::string>>(
+        [&](GetPartitionsCallback callback) { client.getPartitionsForTopicAsync(topic, callback); });
 }
 
 void Client_close(Client& client) {
