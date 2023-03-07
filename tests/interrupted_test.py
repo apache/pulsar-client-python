@@ -18,23 +18,34 @@
 # under the License.
 #
 
-
+from unittest import TestCase, main
 import pulsar
+import signal
+import time
+import threading
 
-client = pulsar.Client('pulsar://localhost:6650')
-consumer = client.subscribe('my-topic', "my-subscription",
-                            properties={
-                                "consumer-name": "test-consumer-name",
-                                "consumer-id": "test-consumer-id"
-                            })
+class InterruptedTest(TestCase):
 
-while True:
-    try:
-        msg = consumer.receive()
-        print("Received message '{0}' id='{1}'".format(msg.data().decode('utf-8'), msg.message_id()))
-        consumer.acknowledge(msg)
-    except pulsar.Interrupted:
-        print("Stop receiving messages")
-        break
+    service_url = 'pulsar://localhost:6650'
 
-client.close()
+    def test_sigint(self):
+        def thread_function():
+            time.sleep(1)
+            signal.raise_signal(signal.SIGINT)
+
+        client = pulsar.Client(self.service_url)
+        consumer = client.subscribe('test-sigint', "my-sub")
+        thread = threading.Thread(target=thread_function)
+        thread.start()
+        
+        start = time.time()
+        with self.assertRaises(pulsar.Interrupted):
+            consumer.receive()
+        finish = time.time()
+        print(f"time: {finish - start}")
+        self.assertGreater(finish - start, 1)
+        self.assertLess(finish - start, 1.5)
+        client.close()
+
+if __name__ == '__main__':
+    main()
