@@ -300,7 +300,46 @@ class AuthenticationOauth2(Authentication):
             JSON encoded configuration for Oauth2 client
         """
         _check_type(str, auth_params_string, 'auth_params_string')
-        self.auth = _pulsar.AuthenticationOauth2.create(auth_params_string)
+        self.auth = _pulsar.AuthenticationOauth2.create(
+            AuthenticationOauth2._convert(auth_params_string))
+
+    @staticmethod
+    def _convert(auth_params_string):
+        import json
+        import base64
+        auth_params = json.loads(auth_params_string)
+        if not isinstance(auth_params, dict):
+            raise ValueError(f'Invalid auth params string: f{auth_params_string}')
+        if not 'private_key' in auth_params:
+            return auth_params_string
+        private_key = auth_params['private_key']
+        n = private_key.find(':')
+        if n < 0:
+            return auth_params_string
+        protocol = private_key[0:n]
+        private_key = private_key[n+1:]
+        if protocol == 'data':
+            n = private_key.find(';')
+            if n < 0:
+                raise ValueError('private_key starts with "data:" but has no content type')
+            content_type = private_key[0:n]
+            if content_type != 'application/json':
+                raise ValueError(f'Unsupported media type or encoding format: {content_type}')
+            private_key = private_key[n+1:]
+            if not private_key.startswith('base64,'):
+                raise ValueError('The content of private_key should start with "base64"')
+            private_key = private_key[7:]
+            credentials = json.loads(base64.b64decode(private_key))
+            auth_params.pop('private_key')
+            auth_params['client_id'] = credentials['client_id']
+            auth_params['client_secret'] = credentials['client_secret']
+            return json.dumps(auth_params)
+        elif protocol == 'file':
+            if private_key.startswith('//'):
+                auth_params['private_key'] = private_key[2:]
+            return json.dumps(auth_params)
+        else:
+            raise ValueError(f"Unsupported protocol: {protocol}")
 
 class AuthenticationBasic(Authentication):
     """
