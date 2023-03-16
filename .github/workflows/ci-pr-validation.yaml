@@ -73,8 +73,8 @@ jobs:
       - name: Run Oauth2 tests
         run: |
           docker compose -f ./build-support/docker-compose-pulsar-oauth2.yml up -d
-          echo "-- Wait for Pulsar service to be ready"
-          until curl http://localhost:8080/metrics > /dev/null 2>&1 ; do sleep 1; done
+          # Wait until the namespace is created, currently there is no good way to check it via CLI
+          sleep 10
           python3 tests/oauth2_test.py
           docker compose -f ./build-support/docker-compose-pulsar-oauth2.yml down
 
