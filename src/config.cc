@@ -21,8 +21,10 @@
 #include <pulsar/ConsoleLoggerFactory.h>
 #include <pulsar/ConsumerConfiguration.h>
 #include <pulsar/ProducerConfiguration.h>
+#include <pulsar/KeySharedPolicy.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <memory>
 
 namespace py = pybind11;
@@ -118,8 +120,20 @@ static ClientConfiguration& ClientConfiguration_setFileLogger(ClientConfiguratio
     return conf;
 }
 
+template <typename... Args>
+using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
+
 void export_config(py::module_& m) {
     using namespace py;
+
+    class_<KeySharedPolicy, std::shared_ptr<KeySharedPolicy>>(m, "KeySharedPolicy")
+        .def(init<>())
+        .def("setKeySharedMode", &KeySharedPolicy::setKeySharedMode, return_value_policy::reference)
+        .def("getKeySharedMode", &KeySharedPolicy::getKeySharedMode)
+        .def("setAllowOutOfOrderDelivery", &KeySharedPolicy::setAllowOutOfOrderDelivery, return_value_policy::reference)
+        .def("isAllowOutOfOrderDelivery", &KeySharedPolicy::isAllowOutOfOrderDelivery)
+        .def("setStickyRanges", overload_cast_<StickyRanges>()(&KeySharedPolicy::setStickyRanges), return_value_policy::reference)
+        .def("getStickyRanges", &KeySharedPolicy::getStickyRanges);
 
     class_<CryptoKeyReader, std::shared_ptr<CryptoKeyReader>>(m, "AbstractCryptoKeyReader")
         .def("getPublicKey", &CryptoKeyReader::getPublicKey)
@@ -222,6 +236,8 @@ void export_config(py::module_& m) {
 
     class_<ConsumerConfiguration, std::shared_ptr<ConsumerConfiguration>>(m, "ConsumerConfiguration")
         .def(init<>())
+        .def("key_shared_policy", &ConsumerConfiguration::getKeySharedPolicy)
+        .def("key_shared_policy", &ConsumerConfiguration::setKeySharedPolicy, return_value_policy::reference)
         .def("consumer_type", &ConsumerConfiguration::getConsumerType)
         .def("consumer_type", &ConsumerConfiguration::setConsumerType, return_value_policy::reference)
         .def("schema", &ConsumerConfiguration::getSchema, return_value_policy::copy)

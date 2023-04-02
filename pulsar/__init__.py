@@ -43,10 +43,12 @@ Read the instructions on `source code repository
 """
 
 import logging
+from typing import List, Tuple, Optional
+
 import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
-    LoggerLevel, BatchReceivePolicy  # noqa: F401
+    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -660,7 +662,8 @@ class Client:
                   max_pending_chunked_message=10,
                   auto_ack_oldest_chunked_message_on_queue_full=False,
                   start_message_id_inclusive=False,
-                  batch_receive_policy=None
+                  batch_receive_policy=None,
+                  key_shared_policy=None
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -745,6 +748,8 @@ class Client:
           Set the consumer to include the given position of any reset operation like Consumer::seek.
         batch_receive_policy: class ConsumerBatchReceivePolicy
           Set the batch collection policy for batch receiving.
+        key_shared_policy: class ConsumerKeySharedPolicy
+            Set the key shared policy for use when the ConsumerType is KeyShared.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -765,6 +770,7 @@ class Client:
         _check_type(bool, auto_ack_oldest_chunked_message_on_queue_full, 'auto_ack_oldest_chunked_message_on_queue_full')
         _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
         _check_type_or_none(ConsumerBatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
+        _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -796,6 +802,9 @@ class Client:
         conf.start_message_id_inclusive(start_message_id_inclusive)
         if batch_receive_policy:
             conf.batch_receive_policy(batch_receive_policy.policy())
+
+        if key_shared_policy:
+            conf.key_shared_policy(key_shared_policy.policy())
 
         c = Consumer()
         if isinstance(topic, str):
@@ -1405,6 +1414,73 @@ class ConsumerBatchReceivePolicy:
     def policy(self):
         """
         Returns the actual one BatchReceivePolicy.
+        """
+        return self._policy
+
+class ConsumerKeySharedPolicy:
+    """
+    Consumer key shared policy is used to configure the consumer behaviour when the ConsumerType is KeyShared.
+    """
+    def __init__(
+            self,
+            key_shared_mode: KeySharedMode = KeySharedMode.AutoSplit,
+            allow_out_of_order_delivery: bool = False,
+            sticky_ranges: Optional[List[Tuple[int, int]]] = None,
+    ):
+        """
+        Wrapper KeySharedPolicy.
+
+        Parameters
+        ----------
+
+        key_shared_mode: KeySharedMode, optional
+            Set the key shared mode. eg: KeySharedMode.Sticky or KeysharedMode.AutoSplit
+
+        allow_out_of_order_delivery: bool, optional
+            Set whether to allow for out of order delivery
+            If it is enabled, it relaxes the ordering requirement and allows the broker to send out-of-order
+            messages in case of failures. This makes it faster for new consumers to join without being stalled by
+            an existing slow consumer.
+
+            If this is True, a single consumer still receives all keys, but they may come in different orders.
+
+        sticky_ranges: List[Tuple[int, int]], optional
+            Set the ranges used with sticky mode. The integers can be from 0 to 2^16 (0 <= val < 65,536)
+        """
+        if key_shared_mode == KeySharedMode.Sticky and sticky_ranges is None:
+            raise ValueError("When using key_shared_mode = KeySharedMode.Sticky you must also provide sticky_ranges")
+
+        self._policy = KeySharedPolicy()
+        self._policy.setKeySharedMode(key_shared_mode)
+        self._policy.setAllowOutOfOrderDelivery(allow_out_of_order_delivery)
+
+        if sticky_ranges is not None:
+            self._policy.setStickyRanges(sticky_ranges)
+
+    @property
+    def key_shared_mode(self) -> KeySharedMode:
+        """
+        Returns the key shared mode
+        """
+        return self._policy.getKeySharedMode()
+
+    @property
+    def allow_out_of_order_delivery(self) -> bool:
+        """
+        Returns whether out of order delivery is enabled
+        """
+        return self._policy.isAllowOutOfOrderDelivery()
+
+    @property
+    def sticky_ranges(self) -> List[Tuple[int, int]]:
+        """
+        Returns the actual sticky ranges
+        """
+        return self._policy.getStickyRanges()
+
+    def policy(self):
+        """
+        Returns the actual KeySharedPolicy.
         """
         return self._policy
 

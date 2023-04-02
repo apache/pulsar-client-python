@@ -17,3 +17,9 @@ wheelhouse
 vcpkg_installed/
 *.pyd
 *.lib
+
+
+lib_pulsar.so
+tests/test.log
+.tests-container-id.txt
+
