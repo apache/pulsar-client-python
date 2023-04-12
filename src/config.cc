@@ -120,20 +120,17 @@ static ClientConfiguration& ClientConfiguration_setFileLogger(ClientConfiguratio
     return conf;
 }
 
-template <typename... Args>
-using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
-
 void export_config(py::module_& m) {
     using namespace py;
 
     class_<KeySharedPolicy, std::shared_ptr<KeySharedPolicy>>(m, "KeySharedPolicy")
         .def(init<>())
-        .def("setKeySharedMode", &KeySharedPolicy::setKeySharedMode, return_value_policy::reference)
-        .def("getKeySharedMode", &KeySharedPolicy::getKeySharedMode)
-        .def("setAllowOutOfOrderDelivery", &KeySharedPolicy::setAllowOutOfOrderDelivery, return_value_policy::reference)
-        .def("isAllowOutOfOrderDelivery", &KeySharedPolicy::isAllowOutOfOrderDelivery)
-        .def("setStickyRanges", overload_cast_<StickyRanges>()(&KeySharedPolicy::setStickyRanges), return_value_policy::reference)
-        .def("getStickyRanges", &KeySharedPolicy::getStickyRanges);
+        .def("set_key_shared_mode", &KeySharedPolicy::setKeySharedMode, return_value_policy::reference)
+        .def("get_key_shared_mode", &KeySharedPolicy::getKeySharedMode)
+        .def("set_allow_out_of_order_delivery", &KeySharedPolicy::setAllowOutOfOrderDelivery, return_value_policy::reference)
+        .def("is_allow_out_of_order_delivery", &KeySharedPolicy::isAllowOutOfOrderDelivery)
+        .def("set_sticky_ranges", static_cast<KeySharedPolicy& (KeySharedPolicy::*)(const StickyRanges&)>(&KeySharedPolicy::setStickyRanges), return_value_policy::reference)
+        .def("get_sticky_ranges", &KeySharedPolicy::getStickyRanges);
 
     class_<CryptoKeyReader, std::shared_ptr<CryptoKeyReader>>(m, "AbstractCryptoKeyReader")
         .def("getPublicKey", &CryptoKeyReader::getPublicKey)

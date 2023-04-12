@@ -1451,32 +1451,32 @@ class ConsumerKeySharedPolicy:
             raise ValueError("When using key_shared_mode = KeySharedMode.Sticky you must also provide sticky_ranges")
 
         self._policy = KeySharedPolicy()
-        self._policy.setKeySharedMode(key_shared_mode)
-        self._policy.setAllowOutOfOrderDelivery(allow_out_of_order_delivery)
+        self._policy.set_key_shared_mode(key_shared_mode)
+        self._policy.set_allow_out_of_order_delivery(allow_out_of_order_delivery)
 
         if sticky_ranges is not None:
-            self._policy.setStickyRanges(sticky_ranges)
+            self._policy.set_sticky_ranges(sticky_ranges)
 
     @property
     def key_shared_mode(self) -> KeySharedMode:
         """
         Returns the key shared mode
         """
-        return self._policy.getKeySharedMode()
+        return self._policy.get_key_shared_mode()
 
     @property
     def allow_out_of_order_delivery(self) -> bool:
         """
         Returns whether out of order delivery is enabled
         """
-        return self._policy.isAllowOutOfOrderDelivery()
+        return self._policy.is_allow_out_of_order_delivery()
 
     @property
     def sticky_ranges(self) -> List[Tuple[int, int]]:
         """
         Returns the actual sticky ranges
         """
-        return self._policy.getStickyRanges()
+        return self._policy.get_sticky_ranges()
 
     def policy(self):
         """
