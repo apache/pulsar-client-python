@@ -90,7 +90,7 @@ extras_require["functions"] = sorted(
 # avro dependencies
 extras_require["avro"] = sorted(
     {
-      "fastavro==0.24.0"
+      "fastavro==1.7.3"
     }
 )
 
