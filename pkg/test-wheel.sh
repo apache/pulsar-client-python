@@ -22,7 +22,9 @@ set -e -x
 
 cd /
 
-pip3 install /pulsar-client-python/wheelhouse/pulsar_client-*.whl
+WHEEL=$(ls /pulsar-client-python/wheelhouse/pulsar_client-*.whl)
+pip3 install "$WHEEL[avro]"
 
 # Load the wheel to ensure there are no linking problems
-python3 -c 'import pulsar'
+python3 -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
+python3 -c 'from pulsar.schema import *; s = String(); print(s.schema_info(""));'

@@ -69,7 +69,7 @@ $PY_EXE setup.py bdist_wheel
 PY_SPEC=$(echo $PYTHON_VERSION | sed 's/\.//g')
 
 cd /tmp
-$PIP_EXE install --no-dependencies --force-reinstall \
-    $ROOT_DIR/dist/pulsar_client-${PYTHON_CLIENT_VERSION}-cp$PY_SPEC-*-macosx_10_15_${PIP_TAG}.whl
-$PY_EXE -c 'import pulsar'
-
+WHEEL=$(ls $ROOT_DIR/dist/pulsar_client-${PYTHON_CLIENT_VERSION}-cp$PY_SPEC-*-macosx_10_15_${PIP_TAG}.whl)
+$PIP_EXE install --no-dependencies --force-reinstall "$WHEEL[avro]"
+$PY_EXE -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
+$PY_EXE -c 'from pulsar.schema import *; s = String(); print(s.schema_info(""));'

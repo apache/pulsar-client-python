@@ -93,6 +93,7 @@ jobs:
           - {name: 'manylinux2014', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
+          - {version: '3.7', spec: 'cp37-cp37m'}
           - {version: '3.11', spec: 'cp311-cp311'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
@@ -141,6 +142,7 @@ jobs:
     strategy:
       matrix:
         py:
+          - {version: '3.7', version_long:  '3.7.16'}
           - {version: '3.11', version_long:  '3.11.1'}
 
     steps:
@@ -187,6 +189,7 @@ jobs:
       fail-fast: false
       matrix:
         python:
+          - version: '3.7'
           - version: '3.11'
 
     steps:
@@ -227,8 +230,10 @@ jobs:
           cmake --build build --config Release --target install
           python -m pip install wheel
           python setup.py bdist_wheel
-          python -m pip install ./dist/*.whl
+          WHEEL=$(ls dist/*.whl)
+          python -m pip install "$WHEEL[avro]"
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
+          python -c 'from pulsar.schema import *; s = String(); print(s.schema_info(""));'
 
   check-completion:
     name: Check Completion
