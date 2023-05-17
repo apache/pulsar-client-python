@@ -23,7 +23,7 @@ pulsar_cpp_base_url() {
     exit 1
   fi
   VERSION=$1
-  echo "https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-cpp-${VERSION}"
+  echo "https://archive.apache.org/dist/pulsar/pulsar-client-cpp-${VERSION}"
 }
 
 download_dependency() {
