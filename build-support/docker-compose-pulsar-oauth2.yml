@@ -1,0 +1,46 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+version: '3'
+networks:
+  pulsar:
+    driver: bridge
+services:
+  standalone:
+    image: apachepulsar/pulsar:latest
+    container_name: standalone
+    hostname: local
+    restart: "no"
+    networks:
+      - pulsar
+    environment:
+      - metadataStoreUrl=zk:localhost:2181
+      - clusterName=standalone-oauth2
+      - advertisedAddress=localhost
+      - advertisedListeners=external:pulsar://localhost:6650
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+      - PULSAR_PREFIX_authenticationEnabled=true
+      - PULSAR_PREFIX_authenticationProviders=org.apache.pulsar.broker.authentication.AuthenticationProviderToken
+      - PULSAR_PREFIX_tokenPublicKey=data:;base64,MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2tZd/4gJda3U2Pc3tpgRAN7JPGWx/Gn17v/0IiZlNNRbP/Mmf0Vc6G1qsnaRaWNWOR+t6/a6ekFHJMikQ1N2X6yfz4UjMc8/G2FDPRmWjA+GURzARjVhxc/BBEYGoD0Kwvbq/u9CZm2QjlKrYaLfg3AeB09j0btNrDJ8rBsNzU6AuzChRvXj9IdcE/A/4N/UQ+S9cJ4UXP6NJbToLwajQ5km+CnxdGE6nfB7LWHvOFHjn9C2Rb9e37CFlmeKmIVFkagFM0gbmGOb6bnGI8Bp/VNGV0APef4YaBvBTqwoZ1Z4aDHy5eRxXfAMdtBkBupmBXqL6bpd15XRYUbu/7ck9QIDAQAB
+      - PULSAR_PREFIX_brokerClientAuthenticationPlugin=org.apache.pulsar.client.impl.auth.oauth2.AuthenticationOAuth2
+      - PULSAR_PREFIX_brokerClientAuthenticationParameters={"issuerUrl":"https://dev-kt-aa9ne.us.auth0.com","audience":"https://dev-kt-aa9ne.us.auth0.com/api/v2/","privateKey":"data:application/json;base64,ewogICAgICAgICAgICAiY2xpZW50X2lkIjoiWGQyM1JIc1VudlVsUDd3Y2hqTllPYUlmYXpnZUhkOXgiLAogICAgICAgICAgICAiY2xpZW50X3NlY3JldCI6InJUN3BzN1dZOHVoZFZ1QlRLV1prdHR3TGRRb3RtZEVsaWFNNXJMZm1nTmlidnF6aVotZzA3Wkg1Mk5fcG9HQWIiCiAgICAgICAgfQ=="}
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+    command: bash -c "bin/apply-config-from-env.py conf/standalone.conf && exec bin/pulsar standalone -nss -nfw"
