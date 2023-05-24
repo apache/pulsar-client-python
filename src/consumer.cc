@@ -34,19 +34,17 @@ Message Consumer_receive(Consumer& consumer) {
 
 Message Consumer_receive_timeout(Consumer& consumer, int timeoutMs) {
     Message msg;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = consumer.receive(msg, timeoutMs);
-    Py_END_ALLOW_THREADS
 
-        CHECK_RESULT(res);
+    py::gil_scoped_release release;
+    CHECK_RESULT(consumer.receive(msg, timeoutMs));
     return msg;
 }
 
 Messages Consumer_batch_receive(Consumer& consumer) {
     Messages msgs;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = consumer.batchReceive(msgs);
-    Py_END_ALLOW_THREADS CHECK_RESULT(res);
+
+    py::gil_scoped_release release;
+    CHECK_RESULT(consumer.batchReceive(msgs));
     return msgs;
 }
 
@@ -59,8 +57,8 @@ void Consumer_acknowledge_message_id(Consumer& consumer, const MessageId& msgId)
 }
 
 void Consumer_negative_acknowledge(Consumer& consumer, const Message& msg) {
-    Py_BEGIN_ALLOW_THREADS consumer.negativeAcknowledge(msg);
-    Py_END_ALLOW_THREADS
+    py::gil_scoped_release release;
+    consumer.negativeAcknowledge(msg);
 }
 
 void Consumer_negative_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
@@ -97,11 +95,8 @@ bool Consumer_is_connected(Consumer& consumer) { return consumer.isConnected(); 
 
 MessageId Consumer_get_last_message_id(Consumer& consumer) {
     MessageId msgId;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = consumer.getLastMessageId(msgId);
-    Py_END_ALLOW_THREADS
-
-        CHECK_RESULT(res);
+    py::gil_scoped_release release;
+    CHECK_RESULT(consumer.getLastMessageId(msgId));
     return msgId;
 }
 

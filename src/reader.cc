@@ -28,13 +28,13 @@ Message Reader_readNext(Reader& reader) {
     // TODO: There is currently no readNextAsync() version for the Reader.
     // Once that's available, we should also convert these ad-hoc loops.
     while (true) {
-        Py_BEGIN_ALLOW_THREADS
-            // Use 100ms timeout to periodically check whether the
-            // interpreter was interrupted
-            res = reader.readNext(msg, 100);
-        Py_END_ALLOW_THREADS
+        py::gil_scoped_release release;
 
-            if (res != ResultTimeout) {
+        // Use 100ms timeout to periodically check whether the
+        // interpreter was interrupted
+        res = reader.readNext(msg, 100);
+
+        if (res != ResultTimeout) {
             // In case of timeout we keep calling receive() to simulate a
             // blocking call until a message is available, while breaking
             // every once in a while to check the Python signal status
@@ -53,11 +53,9 @@ Message Reader_readNext(Reader& reader) {
 
 Message Reader_readNextTimeout(Reader& reader, int timeoutMs) {
     Message msg;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = reader.readNext(msg, timeoutMs);
-    Py_END_ALLOW_THREADS
+    py::gil_scoped_release release;
+    CHECK_RESULT(reader.readNext(msg, timeoutMs));
 
-        CHECK_RESULT(res);
     return msg;
 }
 
