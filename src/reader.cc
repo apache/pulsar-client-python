@@ -22,33 +22,7 @@
 namespace py = pybind11;
 
 Message Reader_readNext(Reader& reader) {
-    Message msg;
-    Result res;
-
-    // TODO: There is currently no readNextAsync() version for the Reader.
-    // Once that's available, we should also convert these ad-hoc loops.
-    while (true) {
-        Py_BEGIN_ALLOW_THREADS
-            // Use 100ms timeout to periodically check whether the
-            // interpreter was interrupted
-            res = reader.readNext(msg, 100);
-        Py_END_ALLOW_THREADS
-
-            if (res != ResultTimeout) {
-            // In case of timeout we keep calling receive() to simulate a
-            // blocking call until a message is available, while breaking
-            // every once in a while to check the Python signal status
-            break;
-        }
-
-        if (PyErr_CheckSignals() == -1) {
-            PyErr_SetInterrupt();
-            return msg;
-        }
-    }
-
-    CHECK_RESULT(res);
-    return msg;
+    return waitForAsyncValue<Message>([&](ReadNextCallback callback) { reader.readNextAsync(callback); });
 }
 
 Message Reader_readNextTimeout(Reader& reader, int timeoutMs) {
