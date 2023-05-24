@@ -49,10 +49,14 @@ inline T waitForAsyncValue(std::function<void(std::function<void(Result, const T
     auto resultPromise = std::make_shared<std::promise<Result>>();
     auto valuePromise = std::make_shared<std::promise<T>>();
 
-    func([resultPromise, valuePromise](Result result, const T& value) {
-        valuePromise->set_value(value);
-        resultPromise->set_value(result);
-    });
+    {
+        py::gil_scoped_release release;
+
+        func([resultPromise, valuePromise](Result result, const T& value) {
+            valuePromise->set_value(value);
+            resultPromise->set_value(result);
+        });
+    }
 
     internal::waitForResult(*resultPromise);
     return valuePromise->get_future().get();
