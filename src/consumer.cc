@@ -50,11 +50,12 @@ Messages Consumer_batch_receive(Consumer& consumer) {
     return msgs;
 }
 
-void Consumer_acknowledge(Consumer& consumer, const Message& msg) { consumer.acknowledgeAsync(msg, nullptr); }
+void Consumer_acknowledge(Consumer& consumer, const Message& msg) {
+    waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeAsync(msg, callback); });
+}
 
 void Consumer_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeAsync(msgId, nullptr);
-    Py_END_ALLOW_THREADS
+    waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeAsync(msgId, callback); });
 }
 
 void Consumer_negative_acknowledge(Consumer& consumer, const Message& msg) {
@@ -63,18 +64,16 @@ void Consumer_negative_acknowledge(Consumer& consumer, const Message& msg) {
 }
 
 void Consumer_negative_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS consumer.negativeAcknowledge(msgId);
-    Py_END_ALLOW_THREADS
+    waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeAsync(msgId, callback); });
 }
 
 void Consumer_acknowledge_cumulative(Consumer& consumer, const Message& msg) {
-    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeCumulativeAsync(msg, nullptr);
-    Py_END_ALLOW_THREADS
+    waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeCumulativeAsync(msg, callback); });
 }
 
 void Consumer_acknowledge_cumulative_message_id(Consumer& consumer, const MessageId& msgId) {
-    Py_BEGIN_ALLOW_THREADS consumer.acknowledgeCumulativeAsync(msgId, nullptr);
-    Py_END_ALLOW_THREADS
+    waitForAsyncResult(
+        [&](ResultCallback callback) { consumer.acknowledgeCumulativeAsync(msgId, callback); });
 }
 
 void Consumer_close(Consumer& consumer) {

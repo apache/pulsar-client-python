@@ -1305,6 +1305,11 @@ class Consumer:
 
         message:
             The received message or message id.
+
+        Raises
+        ------
+        OperationNotSupported
+             if `message` is not allowed to acknowledge
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
@@ -1324,6 +1329,11 @@ class Consumer:
 
         message:
             The received message or message id.
+
+        Raises
+        ------
+        CumulativeAcknowledgementNotAllowedError
+            if the consumer type is ConsumerType.KeyShared or ConsumerType.Shared
         """
         if isinstance(message, Message):
             self._consumer.acknowledge_cumulative(message._message)
