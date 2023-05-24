@@ -21,6 +21,8 @@
 
 # Pulsar Python client library
 
+Pulsar Python clients support a variety of Pulsar features to enable building applications connecting to your Pulsar cluster. For the supported Pulsar features, see [Client Feature Matrix](https://pulsar.apache.org/client-feature-matrix/).
+
 ## Requirements
 
 - Python >= 3.7
@@ -53,7 +55,7 @@ Make sure the PyBind11 submodule has been downloaded and the Pulsar C++ client h
 
 ```bash
 cmake -B build
-cmake --build build 
+cmake --build build
 cmake --install build
 python3 ./setup.py bdist_wheel
 python3 -m pip install dist/pulsar_client-*.whl --force-reinstall
@@ -61,13 +63,13 @@ python3 -m pip install dist/pulsar_client-*.whl --force-reinstall
 
 > **NOTE**
 >
-> 1. Here a separate `build` directory is created to store all CMake temporary files. However, the `setup.py` requires the `_pulsar.so` is under the project directory.
+> 1. The separate `build` directory is created to store all CMake temporary files. However, the `setup.py` requires the `_pulsar.so` to be under the project directory.
 > 2. Add the `--force-reinstall` option to overwrite the existing Python wheel in case your system has already installed a wheel before.
 > 3. On Windows, the Python command is `py` instead of `python3`.
 
 ## Running examples
 
-You can run `python3 -c 'import pulsar'` to see whether the wheel has been installed successfully. If it failed, check whether dependencies (e.g. `libpulsar.so`) are in the system path. If not, make sure the dependencies are in `LD_LIBRARY_PATH` (on Linux) or `DYLD_LIBRARY_PATH` (on macOS).
+You can run `python3 -c 'import pulsar'` to see whether the wheel has been installed successfully. If it fails, check whether dependencies (e.g., `libpulsar.so`) are in the system path. If not, make sure the dependencies are in `LD_LIBRARY_PATH` (on Linux) or `DYLD_LIBRARY_PATH` (on macOS).
 
 Then you can run examples as a simple end-to-end test.
 
@@ -99,7 +101,7 @@ Run all unit tests:
 ./tests/run-unit-tests.sh
 ```
 
-Run a single unit test (e.g. `PulsarTest.test_tls_auth`):
+Run a single unit test (e.g., `PulsarTest.test_tls_auth`):
 
 ```bash
 python3 ./tests/pulsar_test.py 'PulsarTest.test_tls_auth'
@@ -118,3 +120,9 @@ pydoctor --make-html \
   --html-output=<path-to-apidocs> \
   pulsar
 ```
+
+## Contribute
+
+We welcome contributions from the open source community!
+
+If your contribution adds Pulsar features for Python clients, you need to update both the [Pulsar docs](https://pulsar.apache.org/docs/client-libraries/) and the [Client Feature Matrix](https://pulsar.apache.org/client-feature-matrix/). See [Contribution Guide](https://pulsar.apache.org/contribute/site-intro/#pages) for more details.

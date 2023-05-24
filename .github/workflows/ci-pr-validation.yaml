@@ -70,6 +70,14 @@ jobs:
             WHEEL=$(find dist -name '*.whl')
             pip3 install ${WHEEL}[avro]
 
+      - name: Run Oauth2 tests
+        run: |
+          docker compose -f ./build-support/docker-compose-pulsar-oauth2.yml up -d
+          # Wait until the namespace is created, currently there is no good way to check it via CLI
+          sleep 10
+          python3 tests/oauth2_test.py
+          docker compose -f ./build-support/docker-compose-pulsar-oauth2.yml down
+
       - name: Start Pulsar service
         run: ./build-support/pulsar-test-service-start.sh
 

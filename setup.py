@@ -80,8 +80,8 @@ extras_require = {}
 extras_require["functions"] = sorted(
     {
       "protobuf>=3.6.1,<=3.20.3",
-      "grpcio<1.28,>=1.8.2",
-      "apache-bookkeeper-client>=4.9.2",
+      "grpcio>=1.8.2",
+      "apache-bookkeeper-client>=4.16.1",
       "prometheus_client",
       "ratelimit"
     }
@@ -90,7 +90,7 @@ extras_require["functions"] = sorted(
 # avro dependencies
 extras_require["avro"] = sorted(
     {
-      "fastavro==0.24.0"
+      "fastavro==1.7.3"
     }
 )
 

@@ -1483,7 +1483,6 @@ class PulsarTest(TestCase):
                              start_message_id_inclusive=True,
                              key_shared_policy=consumer_key_shared_policy)
 
-
     def test_keyshared_autosplit(self):
         client = Client(self.serviceUrl)
         topic = "my-python-topic-keyshare-autosplit-" + str(time.time())
@@ -1568,6 +1567,31 @@ class PulsarTest(TestCase):
 
         self.assertEqual(len(msgs), 10)
         client.close()
+
+    def test_acknowledge_failed(self):
+        client = Client(self.serviceUrl)
+        topic = 'test_acknowledge_failed'
+        producer = client.create_producer(topic)
+        consumer1 = client.subscribe(topic, 'sub1', consumer_type=ConsumerType.Shared)
+        consumer2 = client.subscribe(topic, 'sub2', consumer_type=ConsumerType.KeyShared)
+        msg_id = producer.send('hello'.encode())
+        msg1 = consumer1.receive()
+        with self.assertRaises(pulsar.CumulativeAcknowledgementNotAllowedError):
+            consumer1.acknowledge_cumulative(msg1)
+        with self.assertRaises(pulsar.CumulativeAcknowledgementNotAllowedError):
+            consumer1.acknowledge_cumulative(msg1.message_id())
+        msg2 = consumer2.receive()
+        with self.assertRaises(pulsar.CumulativeAcknowledgementNotAllowedError):
+            consumer2.acknowledge_cumulative(msg2)
+        with self.assertRaises(pulsar.CumulativeAcknowledgementNotAllowedError):
+            consumer2.acknowledge_cumulative(msg2.message_id())
+        consumer = client.subscribe([topic, topic + '-another'], 'sub')
+        # The message id does not have a topic name
+        with self.assertRaises(pulsar.OperationNotSupported):
+            consumer.acknowledge(msg_id)
+        client.close()
+
+
 
 if __name__ == "__main__":
     main()

@@ -291,15 +291,44 @@ class AuthenticationOauth2(Authentication):
     """
     Oauth2 Authentication implementation
     """
-    def __init__(self, auth_params_string):
+    def __init__(self, auth_params_string: str):
         """
         Create the Oauth2 authentication provider instance.
 
+        You can create the instance by setting the necessary fields in the JSON string.
+
+        .. code-block:: python
+
+            auth = AuthenticationOauth2('{"issuer_url": "xxx", "private_key": "yyy"}')
+
+        The valid JSON fields are:
+
+        * issuer_url (required)
+            The URL of the authentication provider which allows the Pulsar client to obtain an
+            access token.
+        * private_key (required)
+            The URL to the JSON credentials file. It supports the following pattern formats:
+
+            * ``/path/to/file``
+            * ``file:///path/to/file``
+            * ``file:/path/to/file``
+            * ``data:application/json;base64,<base64-encoded-value>``
+
+            The file content or the based64 encoded value is the encoded JSON string that contains
+            the following fields:
+
+            * ``client_id``
+            * ``client_secret``
+        * audience
+            The OAuth 2.0 "resource server" identifier for a Pulsar cluster.
+        * scope
+            The scope of an access request.
+
         Parameters
         ----------
-
-        auth_params_string: str
+        auth_params_string : str
             JSON encoded configuration for Oauth2 client
+
         """
         _check_type(str, auth_params_string, 'auth_params_string')
         self.auth = _pulsar.AuthenticationOauth2.create(auth_params_string)
@@ -1285,6 +1314,11 @@ class Consumer:
 
         message:
             The received message or message id.
+
+        Raises
+        ------
+        OperationNotSupported
+             if `message` is not allowed to acknowledge
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
@@ -1304,6 +1338,11 @@ class Consumer:
 
         message:
             The received message or message id.
+
+        Raises
+        ------
+        CumulativeAcknowledgementNotAllowedError
+            if the consumer type is ConsumerType.KeyShared or ConsumerType.Shared
         """
         if isinstance(message, Message):
             self._consumer.acknowledge_cumulative(message._message)
