@@ -38,8 +38,14 @@ class Schema(object):
     def decode(self, data):
         pass
 
+    def decode_message(self, msg: _pulsar.Message):
+        return self.decode(msg.data())
+
     def schema_info(self):
         return self._schema_info
+
+    def attach_client(self, client: _pulsar.Client):
+        self._client = client
 
     def _validate_object_type(self, obj):
         if not isinstance(obj, self._record_cls):

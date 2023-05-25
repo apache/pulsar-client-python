@@ -18,6 +18,10 @@
 # under the License.
 #
 
+import math
+import logging
+import requests
+from typing import List
 from unittest import TestCase, main
 
 import fastavro
@@ -26,6 +30,9 @@ from pulsar.schema import *
 from enum import Enum
 import json
 from fastavro.schema import load_schema
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)-5s %(message)s')
 
 
 class SchemaTest(TestCase):
@@ -1287,5 +1294,57 @@ class SchemaTest(TestCase):
         with self.assertRaises(TypeError) as e:
             SomeSchema(some_field=["not", "integer"])
         self.assertEqual(str(e.exception), "Array field some_field items should all be of type int")
+
+    def test_schema_evolve(self):
+        class User1(Record):
+            name = String()
+            age = Integer()
+
+        class User2(Record):
+            _sorted_fields = True
+            name = String()
+            age = Integer(required=True)
+
+        response = requests.put('http://localhost:8080/admin/v2/namespaces/'
+                                'public/default/schemaCompatibilityStrategy',
+                                data='"FORWARD"'.encode(),
+                                headers={'Content-Type': 'application/json'})
+        self.assertEqual(response.status_code, 204)
+
+        topic = 'schema-test-schema-evolve-2'
+        client = pulsar.Client(self.serviceUrl)
+        producer1 = client.create_producer(topic, schema=AvroSchema(User1))
+        consumer = client.subscribe(topic, 'sub', schema=AvroSchema(User1))
+        reader = client.create_reader(topic,
+                                      schema=AvroSchema(User1),
+                                      start_message_id=pulsar.MessageId.earliest)
+        producer2 = client.create_producer(topic, schema=AvroSchema(User2))
+
+        num_messages = 10 * 2
+        for i in range(int(num_messages / 2)):
+            producer1.send(User1(age=i+100, name=f'User1 {i}'))
+            producer2.send(User2(age=i+200, name=f'User2 {i}'))
+
+        def verify_messages(msgs: List[pulsar.Message]):
+            for i, msg in enumerate(msgs):
+                value = msg.value()
+                index = math.floor(i / 2)
+                if i % 2 == 0:
+                    self.assertEqual(value.age, index + 100)
+                    self.assertEqual(value.name, f'User1 {index}')
+                else:
+                    self.assertEqual(value.age, index + 200)
+                    self.assertEqual(value.name, f'User2 {index}')
+
+        msgs1 = []
+        msgs2 = []
+        for i in range(num_messages):
+            msgs1.append(consumer.receive())
+            msgs2.append(reader.read_next(1000))
+        verify_messages(msgs1)
+        verify_messages(msgs2)
+
+        client.close()
+
 if __name__ == '__main__':
     main()

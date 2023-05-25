@@ -19,6 +19,8 @@
 
 import _pulsar
 import io
+import json
+import logging
 import enum
 
 from . import Record
@@ -40,6 +42,8 @@ if HAS_AVRO:
                 self._schema = record_cls.schema()
             else:
                 self._schema = schema_definition
+            self._writer_schemas = dict()
+            self._logger = logging.getLogger()
             super(AvroSchema, self).__init__(record_cls, _pulsar.SchemaType.AVRO, self._schema, 'AVRO')
 
         def _get_serialized_value(self, x):
@@ -76,8 +80,47 @@ if HAS_AVRO:
             return obj
 
         def decode(self, data):
+            return self._decode_bytes(data, self._schema)
+
+        def decode_message(self, msg: _pulsar.Message):
+            if self._client is None:
+                return self.decode(msg.data())
+            topic = msg.topic_name()
+            version = msg.int_schema_version()
+            try:
+                writer_schema = self._get_writer_schema(topic, version)
+                return self._decode_bytes(msg.data(), writer_schema)
+            except Exception as e:
+                self._logger.error('Failed to get schema info of {topic} version {version}: {e}')
+                return self._decode_bytes(msg.data(), self._schema)
+
+        def _get_writer_schema(self, topic: str, version: int) -> 'dict':
+            if self._writer_schemas.get(topic) is None:
+                self._writer_schemas[topic] = dict()
+            writer_schema = self._writer_schemas[topic].get(version)
+            if writer_schema is not None:
+                return writer_schema
+            if self._client is None:
+                return self._schema
+
+            self._logger.info('Downloading schema of %s version %d...', topic, version)
+            info = self._client.get_schema_info(topic, version)
+            self._logger.info('Downloaded schema of %s version %d', topic, version)
+            if info.schema_type() != _pulsar.SchemaType.AVRO:
+                raise RuntimeError(f'The schema type of topic "{topic}" and version {version}'
+                                   f' is {info.schema_type()}')
+            writer_schema = json.loads(info.schema())
+            self._writer_schemas[topic][version] = writer_schema
+            return writer_schema
+
+        def _decode_bytes(self, data: bytes, writer_schema: dict):
             buffer = io.BytesIO(data)
-            d = fastavro.schemaless_reader(buffer, self._schema)
+            # If the record names are different between the writer schema and the reader schema,
+            # schemaless_reader will fail with fastavro._read_common.SchemaResolutionError.
+            # So we make the record name fields consistent here.
+            reader_schema: dict = self._schema
+            writer_schema['name'] = reader_schema['name']
+            d = fastavro.schemaless_reader(buffer, writer_schema, reader_schema)
             if self._record_cls is not None:
                 return self._record_cls(**d)
             else:

@@ -127,7 +127,7 @@ class Message:
         """
         Returns object with the de-serialized version of the message content
         """
-        return self._schema.decode(self._message.data())
+        return self._schema.decode_message(self._message)
 
     def properties(self):
         """
@@ -841,6 +841,7 @@ class Client:
 
         c._client = self
         c._schema = schema
+        c._schema.attach_client(self._client)
         self._consumers.append(c)
         return c
 
@@ -942,6 +943,7 @@ class Client:
         c._reader = self._client.create_reader(topic, start_message_id, conf)
         c._client = self
         c._schema = schema
+        c._schema.attach_client(self._client)
         self._consumers.append(c)
         return c
 
