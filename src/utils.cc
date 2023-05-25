@@ -21,7 +21,16 @@
 
 void waitForAsyncResult(std::function<void(ResultCallback)> func) {
     auto promise = std::make_shared<std::promise<Result>>();
-    func([promise](Result result) { promise->set_value(result); });
+
+    {
+        // Always call the Pulsar C++ client methods without holding
+        // the GIL. This avoids deadlocks due the sequence of acquiring
+        // mutexes by different threads. eg:
+        // Thread-1: GIL -> producer.lock
+        // Thread-2: producer.lock -> GIL (In a callback)
+        py::gil_scoped_release release;
+        func([promise](Result result) { promise->set_value(result); });
+    }
     internal::waitForResult(*promise);
 }
 
