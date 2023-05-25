@@ -109,17 +109,21 @@ python3 ./tests/pulsar_test.py 'PulsarTest.test_tls_auth'
 
 ## Generate API docs
 
-Pulsar Python Client uses [pydoctor](https://github.com/twisted/pydoctor) to generate API docs. To generate by yourself, run the following command in the root path of this repository:
+Pulsar Python Client uses [pydoctor](https://github.com/twisted/pydoctor) to generate API docs. To generate by yourself, you need to install the Python library first. Then run the following command in the root path of this repository:
 
 ```bash
 sudo python3 -m pip install pydoctor
+cp $(python3 -c 'import _pulsar, os; print(_pulsar.__file__)') ./_pulsar.so
 pydoctor --make-html \
-  --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/<release-version-tag> \
   --docformat=numpy --theme=readthedocs \
   --intersphinx=https://docs.python.org/3/objects.inv \
   --html-output=<path-to-apidocs> \
+  --introspect-c-modules \
+  ./_pulsar.so \
   pulsar
 ```
+
+Then the index page will be generated in `<path-to-apidocs>/index.html`.
 
 ## Contribute
 
