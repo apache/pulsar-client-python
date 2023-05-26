@@ -575,8 +575,8 @@ class Client:
 
             Supported modes:
 
-            * `PartitionsRoutingMode.RoundRobinDistribution`
-            * `PartitionsRoutingMode.UseSinglePartition`.
+            * ``PartitionsRoutingMode.RoundRobinDistribution``
+            * ``PartitionsRoutingMode.UseSinglePartition``
         lazy_start_partitioned_producers: bool, default=False
             This config affects producers of partitioned topics only. It controls whether producers register
             and connect immediately to the owner broker of each partition or start lazily on demand. The internal
@@ -751,7 +751,7 @@ class Client:
             Periods of seconds for consumer to auto discover match topics.
         initial_position: InitialPosition, default=InitialPosition.Latest
           Set the initial position of a consumer when subscribing to the topic.
-          It could be either: `InitialPosition.Earliest` or `InitialPosition.Latest`.
+          It could be either: ``InitialPosition.Earliest`` or ``InitialPosition.Latest``.
         crypto_key_reader: CryptoKeyReader, optional
             Symmetric encryption class implementation, configuring public key encryption messages for the producer
             and private key decryption messages for the consumer
@@ -1304,14 +1304,13 @@ class Consumer:
 
         Parameters
         ----------
-
-        message:
+        message : Message, _pulsar.Message, _pulsar.MessageId
             The received message or message id.
 
         Raises
         ------
         OperationNotSupported
-             if `message` is not allowed to acknowledge
+             if ``message`` is not allowed to acknowledge
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
