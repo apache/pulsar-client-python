@@ -1490,7 +1490,6 @@ class PulsarTest(TestCase):
             key_shared_mode=pulsar.KeySharedMode.AutoSplit,
             allow_out_of_order_delivery=True,
         )
-        
         consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name = 'con-1',
                                     start_message_id_inclusive=True, key_shared_policy=consumer_key_shared_policy)
         consumer2 = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name = 'con-2',
