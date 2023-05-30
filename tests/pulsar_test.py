@@ -1507,7 +1507,7 @@ class PulsarTest(TestCase):
                 msg = consumer.receive(100)
             except pulsar.Timeout:
                 break
-            msgs.append(msgs)
+            msgs.append(msg)
             consumer.acknowledge(msg)
 
         while True:
@@ -1515,7 +1515,7 @@ class PulsarTest(TestCase):
                 msg = consumer2.receive(100)
             except pulsar.Timeout:
                 break
-            msgs.append(msgs)
+            msgs.append(msg)
             consumer2.acknowledge(msg)
 
         self.assertEqual(len(msgs), 10)
@@ -1553,7 +1553,7 @@ class PulsarTest(TestCase):
                 msg = consumer.receive(100)
             except pulsar.Timeout:
                 break
-            msgs.append(msgs)
+            msgs.append(msg)
             consumer.acknowledge(msg)
 
         while True:
@@ -1561,7 +1561,7 @@ class PulsarTest(TestCase):
                 msg = consumer2.receive(100)
             except pulsar.Timeout:
                 break
-            msgs.append(msgs)
+            msgs.append(msg)
             consumer2.acknowledge(msg)
 
         self.assertEqual(len(msgs), 10)
