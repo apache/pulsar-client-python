@@ -391,7 +391,7 @@ class Client:
                  use_tls=False,
                  tls_trust_certs_file_path=None,
                  tls_allow_insecure_connection=False,
-                 tls_validate_hostname=False,
+                 tls_validate_hostname=True,
                  logger=None,
                  connection_timeout_ms=10000,
                  listener_name=None
@@ -432,7 +432,7 @@ class Client:
             Set the path to the trusted TLS certificate file. If empty defaults to certifi.
         tls_allow_insecure_connection: bool, default=False
             Configure whether the Pulsar client accepts untrusted TLS certificates from the broker.
-        tls_validate_hostname: bool, default=False
+        tls_validate_hostname: bool, default=True
             Configure whether the Pulsar client validates that the hostname of the endpoint,
             matches the common name on the TLS certificate presented by the endpoint.
         logger: optional
