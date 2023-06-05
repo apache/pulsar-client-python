@@ -249,7 +249,7 @@ git commit -m "Generate Python client $VERSION.0 doc"
 git push origin py-docs-$VERSION
 ```
 
-Then open a PR like: https://github.com/apache/pulsar-site/pull/342
+Then open a PR like: https://github.com/apache/pulsar-site/pull/600
 
 ## Announce the release
 
