@@ -20,6 +20,7 @@
 #include <pulsar/CompressionType.h>
 #include <pulsar/ConsumerConfiguration.h>
 #include <pulsar/ProducerConfiguration.h>
+#include <pulsar/KeySharedPolicy.h>
 #include <pybind11/pybind11.h>
 
 using namespace pulsar;
@@ -27,6 +28,10 @@ namespace py = pybind11;
 
 void export_enums(py::module_& m) {
     using namespace py;
+
+    enum_<KeySharedMode>(m, "KeySharedMode")
+        .value("AutoSplit", AUTO_SPLIT)
+        .value("Sticky", STICKY);
 
     enum_<ProducerConfiguration::PartitionsRoutingMode>(m, "PartitionsRoutingMode")
         .value("UseSinglePartition", ProducerConfiguration::UseSinglePartition)

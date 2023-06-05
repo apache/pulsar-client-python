@@ -32,6 +32,8 @@ from pulsar import (
     MessageId,
     CompressionType,
     ConsumerType,
+    KeySharedMode,
+    ConsumerKeySharedPolicy,
     PartitionsRoutingMode,
     AuthenticationBasic,
     AuthenticationTLS,
@@ -1437,6 +1439,134 @@ class PulsarTest(TestCase):
         producer.flush()
         client.close()
 
+    def test_keyshare_policy(self):
+        with self.assertRaises(ValueError):
+            # Raise error because sticky ranges are not provided.
+            pulsar.ConsumerKeySharedPolicy(
+                key_shared_mode=pulsar.KeySharedMode.Sticky,
+                allow_out_of_order_delivery=False,
+            )
+
+        expected_key_shared_mode = pulsar.KeySharedMode.Sticky
+        expected_allow_out_of_order_delivery = True
+        expected_sticky_ranges = [(0, 100), (101,200)]
+        consumer_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+            key_shared_mode=expected_key_shared_mode,
+            allow_out_of_order_delivery=expected_allow_out_of_order_delivery,
+            sticky_ranges=expected_sticky_ranges
+        )
+
+        self.assertEqual(consumer_key_shared_policy.key_shared_mode, expected_key_shared_mode)
+        self.assertEqual(consumer_key_shared_policy.allow_out_of_order_delivery, expected_allow_out_of_order_delivery)
+        self.assertEqual(consumer_key_shared_policy.sticky_ranges, expected_sticky_ranges)
+
+    def test_keyshared_invalid_sticky_ranges(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-keyshare-invalid-" + str(time.time())
+        with self.assertRaises(ValueError):
+            consumer_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+                key_shared_mode=pulsar.KeySharedMode.Sticky,
+                allow_out_of_order_delivery=False,
+                sticky_ranges=[(0,65536)]
+            )
+            client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared,
+                             start_message_id_inclusive=True,
+                             key_shared_policy=consumer_key_shared_policy)
+
+        with self.assertRaises(ValueError):
+            consumer_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+                key_shared_mode=pulsar.KeySharedMode.Sticky,
+                allow_out_of_order_delivery=False,
+                sticky_ranges=[(0, 100), (50, 150)]
+            )
+            client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared,
+                             start_message_id_inclusive=True,
+                             key_shared_policy=consumer_key_shared_policy)
+
+    def test_keyshared_autosplit(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-keyshare-autosplit-" + str(time.time())
+        consumer_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+            key_shared_mode=pulsar.KeySharedMode.AutoSplit,
+            allow_out_of_order_delivery=True,
+        )
+        consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name = 'con-1',
+                                    start_message_id_inclusive=True, key_shared_policy=consumer_key_shared_policy)
+        consumer2 = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name = 'con-2',
+                                    start_message_id_inclusive=True, key_shared_policy=consumer_key_shared_policy)
+        producer = client.create_producer(topic)
+
+        for i in range(10):
+            if i > 0:
+                time.sleep(0.02)
+            producer.send(b"hello-%d" % i)
+
+        msgs = []
+        while True:
+            try:
+                msg = consumer.receive(100)
+            except pulsar.Timeout:
+                break
+            msgs.append(msg)
+            consumer.acknowledge(msg)
+
+        while True:
+            try:
+                msg = consumer2.receive(100)
+            except pulsar.Timeout:
+                break
+            msgs.append(msg)
+            consumer2.acknowledge(msg)
+
+        self.assertEqual(len(msgs), 10)
+        client.close()
+
+    def test_sticky_autosplit(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-keyshare-sticky-" + str(time.time())
+        consumer_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+            key_shared_mode=pulsar.KeySharedMode.Sticky,
+            allow_out_of_order_delivery=True,
+            sticky_ranges=[(0,30000)],
+        )
+
+        consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name='con-1',
+                                    start_message_id_inclusive=True, key_shared_policy=consumer_key_shared_policy)
+
+        consumer2_key_shared_policy = pulsar.ConsumerKeySharedPolicy(
+            key_shared_mode=pulsar.KeySharedMode.Sticky,
+            allow_out_of_order_delivery=True,
+            sticky_ranges=[(30001, 65535)],
+        )
+        consumer2 = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.KeyShared, consumer_name='con-2',
+                                     start_message_id_inclusive=True, key_shared_policy=consumer2_key_shared_policy)
+        producer = client.create_producer(topic)
+
+        for i in range(10):
+            if i > 0:
+                time.sleep(0.02)
+            producer.send(b"hello-%d" % i)
+
+        msgs = []
+        while True:
+            try:
+                msg = consumer.receive(100)
+            except pulsar.Timeout:
+                break
+            msgs.append(msg)
+            consumer.acknowledge(msg)
+
+        while True:
+            try:
+                msg = consumer2.receive(100)
+            except pulsar.Timeout:
+                break
+            msgs.append(msg)
+            consumer2.acknowledge(msg)
+
+        self.assertEqual(len(msgs), 10)
+        client.close()
+
     def test_acknowledge_failed(self):
         client = Client(self.serviceUrl)
         topic = 'test_acknowledge_failed'
@@ -1459,6 +1589,7 @@ class PulsarTest(TestCase):
         with self.assertRaises(pulsar.OperationNotSupported):
             consumer.acknowledge(msg_id)
         client.close()
+
 
 
 if __name__ == "__main__":
