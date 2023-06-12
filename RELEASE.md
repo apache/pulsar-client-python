@@ -219,29 +219,37 @@ Then, create a PR in [`pulsar-site`](https://github.com/apache/pulsar-site) repo
 For minor releases, skip this section. For major releases, you should generate the HTML files into the [`pulsar-site`](https://github.com/apache/pulsar-site) repo:
 
 ```bash
+# Use the first two version numbers, e.g. export VERSION=3.2
+VERSION=X.Y
+
+# You need to install the wheel to have the _pulsar.so installed
+# It's better to run the following commands in an empty directory
+python3 -m pip install pulsar-client==$VERSION.0 --force-reinstall
+C_MODULE_PATH=$(python3 -c 'import _pulsar, os; print(_pulsar.__file__)')
+
 git clone git@github.com:apache/pulsar-client-python.git
 cd pulsar-client-python
-git checkout vX.Y.0
-# It's better to replace this URL with the URL of your own fork
+git checkout v$VERSION.0
+# You can skip this step if you already have the `pulsar-site` repository in your local env.
+# In this case, you only need to modify the `--html-output` parameter in the following command.
 git clone git@github.com:apache/pulsar-site.git
 sudo python3 -m pip install pydoctor
-cp $(python3 -c 'import _pulsar, os; print(_pulsar.__file__)') ./_pulsar.so
 pydoctor --make-html \
-  --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/vX.Y.0 \
+  --html-viewsource-base=https://github.com/apache/pulsar-client-python/tree/v$VERSION.0 \
   --docformat=numpy --theme=readthedocs \
   --intersphinx=https://docs.python.org/3/objects.inv \
-  --html-output=./pulsar-site/site2/website-next/static/api/python/X.Y.x \
+  --html-output=./pulsar-site/static/api/python/$VERSION.x \
   --introspect-c-modules \
-  ./_pulsar.so \
+  $C_MODULE_PATH \
   pulsar
 cd pulsar-site
-git checkout -b py-docs-X.Y
+git checkout -b py-docs-$VERSION
 git add .
-git commit -m "Generate Python client X.Y.0 doc"
-git push origin py-docs-X.Y
+git commit -m "Generate Python client $VERSION.0 doc"
+git push origin py-docs-$VERSION
 ```
 
-Then open a PR like: https://github.com/apache/pulsar-site/pull/342
+Then open a PR like: https://github.com/apache/pulsar-site/pull/600
 
 ## Announce the release
 
