@@ -80,9 +80,7 @@ endif()
 set(PYTHON_WRAPPER_LIBS
     ${PULSAR_LIBRARY}
 )
-if (MSVC)
-    set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} Python3::Module)
-endif ()
+set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} Python3::Module)
 
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
