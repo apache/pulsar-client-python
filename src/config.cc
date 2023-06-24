@@ -265,6 +265,8 @@ void export_config(py::module_& m) {
         .def("property", &ConsumerConfiguration::setProperty, return_value_policy::reference)
         .def("subscription_initial_position", &ConsumerConfiguration::getSubscriptionInitialPosition)
         .def("subscription_initial_position", &ConsumerConfiguration::setSubscriptionInitialPosition)
+        .def("regex_subscription_mode", &ConsumerConfiguration::setRegexSubscriptionMode)
+        .def("regex_subscription_mode", &ConsumerConfiguration::getRegexSubscriptionMode, return_value_policy::reference)
         .def("crypto_key_reader", &ConsumerConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("replicate_subscription_state_enabled",
              &ConsumerConfiguration::setReplicateSubscriptionStateEnabled)

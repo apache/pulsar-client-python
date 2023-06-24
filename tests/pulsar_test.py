@@ -46,7 +46,7 @@ from pulsar import (
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
-from _pulsar import ProducerConfiguration, ConsumerConfiguration
+from _pulsar import ProducerConfiguration, ConsumerConfiguration, RegexSubscriptionMode
 
 from schema_test import *
 
@@ -1717,6 +1717,39 @@ class PulsarTest(TestCase):
 
         client.close()
 
+    def test_regex_subscription(self):
+        import re
+
+        client = Client(self.serviceUrl)
+        topic1 = "persistent://public/default/test-regex-sub-1"
+        topic2 = "persistent://public/default/test-regex-sub-2"
+        topic3 = "non-persistent://public/default/test-regex-sub-3"
+        topic4 = "persistent://public/default/no-match-test-regex-sub-3"  # no match pattern rule topic.
+
+        producer1 = client.create_producer(topic1)
+        producer2 = client.create_producer(topic2)
+        producer3 = client.create_producer(topic3)
+        producer4 = client.create_producer(topic4)
+
+        consumer = client.subscribe(
+            re.compile('public/default/test-regex-sub-.*'), "regex-sub", consumer_type=ConsumerType.Shared,
+            regex_subscription_mode=RegexSubscriptionMode.AllTopics
+        )
+
+        num = 10
+        for i in range(num):
+            producer1.send(b"hello-1-%d" % i)
+            producer2.send(b"hello-2-%d" % i)
+            producer3.send(b"hello-3-%d" % i)
+            producer4.send(b"hello-4-%d" % i)
+
+        for i in range(3 * num):
+            msg = consumer.receive(TM)
+            consumer.acknowledge(msg)
+
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(100)
+        client.close()
 
 if __name__ == "__main__":
     main()
