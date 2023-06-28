@@ -48,7 +48,8 @@ from typing import List, Tuple, Optional
 import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
-    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode  # noqa: F401
+    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode, \ 
+    DeadLetterPolicyBuilder  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -373,6 +374,64 @@ class AuthenticationBasic(Authentication):
             _check_type(str, password, 'password')
             _check_type(str, method, 'method')
             self.auth = _pulsar.AuthenticationBasic.create(username, password, method)
+
+class ConsumerDeadLetterPolicy:
+    """
+    Configuration for the "dead letter queue" feature in consumer.
+    """
+    def __init__(self, dead_letter_topic: str = None,
+                 max_redeliver_count: int = None,
+                 initial_subscription_name: str = None):
+        """
+        Wrapper DeadLetterPolicy.
+
+        Parameters
+        ----------
+        dead_letter_topic: Name of the dead topic where the failing messages are sent.
+            The default value is: sourceTopicName + "-" + subscriptionName + "-DLQ"
+        max_redeliver_count: Maximum number of times that a message is redelivered before being sent to the dead letter queue.
+            - The maxRedeliverCount must be greater than 0.
+            - The default value is None (DLQ is not enabled)
+        initial_subscription_name: Name of the initial subscription name of the dead letter topic.
+            If this field is not set, the initial subscription for the dead letter topic is not created.
+            If this field is set but the broker's `allowAutoSubscriptionCreation` is disabled, the DLQ producer
+            fails to be created.
+        """
+        builder = DeadLetterPolicyBuilder()
+        if dead_letter_topic is not None:
+            builder.deadLetterTopic(dead_letter_topic)
+        if max_redeliver_count is not None:
+            builder.maxRedeliverCount(max_redeliver_count)
+        if initial_subscription_name is not None:
+            builder.initialSubscriptionName(initial_subscription_name)
+        self._policy = builder.build()
+
+    @property
+    def dead_letter_topic(self) -> str:
+        """
+        Return the dead letter topic for dead letter policy.
+        """
+        return self._policy.getDeadLetterTopic()
+
+    @property
+    def max_redeliver_count(self) -> int:
+        """
+        Return the max redeliver count for dead letter policy.
+        """
+        return self._policy.getMaxRedeliverCount()
+
+    @property
+    def initial_subscription_name(self) -> str:
+        """
+        Return the initial subscription name for dead letter policy.
+        """
+        return self._policy.getInitialSubscriptionName()
+
+    def policy(self):
+        """
+        Returns the actual one DeadLetterPolicy.
+        """
+        return self._policy
 
 class Client:
     """
@@ -708,6 +767,7 @@ class Client:
                   key_shared_policy=None,
                   batch_index_ack_enabled=False,
                   regex_subscription_mode=RegexSubscriptionMode.PersistentOnly,
+                  dead_letter_policy: ConsumerDeadLetterPolicy = None,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -805,6 +865,12 @@ class Client:
             * PersistentOnly: By default only subscribe to persistent topics.
             * NonPersistentOnly: Only subscribe to non-persistent topics.
             * AllTopics: Subscribe to both persistent and non-persistent topics.
+        dead_letter_policy: class ConsumerDeadLetterPolicy
+          Set dead letter policy for consumer.
+          By default, some messages are redelivered many times, even to the extent that they can never be
+          stopped. By using the dead letter mechanism, messages have the max redelivery count, when they're
+          exceeding the maximum number of redeliveries. Messages are sent to dead letter topics and acknowledged
+          automatically.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -864,6 +930,8 @@ class Client:
         if key_shared_policy:
             conf.key_shared_policy(key_shared_policy.policy())
         conf.batch_index_ack_enabled(batch_index_ack_enabled)
+        if dead_letter_policy:
+            conf.dead_letter_policy(dead_letter_policy.policy())
 
         c = Consumer()
         if isinstance(topic, str):
