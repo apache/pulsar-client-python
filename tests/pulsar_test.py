@@ -572,6 +572,33 @@ class PulsarTest(TestCase):
         reader2.close()
         client.close()
 
+    def test_reader_on_partitioned_topic(self):
+        num_of_msgs = 100
+        topic_name = "public/default/my-python-topic-test_reader_on_partitioned_topic"
+        url1 = self.adminUrl + "/admin/v2/persistent/" + topic_name + "/partitions"
+        doHttpPut(url1, "4")
+
+        client = Client(self.serviceUrl)
+        producer = client.create_producer(topic_name)
+
+        send_array = []
+        for i in range(num_of_msgs):
+            data = b"hello-%d" % i
+            producer.send(data)
+            send_array.append(data)
+
+        reader = client.create_reader(topic_name, MessageId.earliest)
+
+        read_array = []
+        for i in range(num_of_msgs):
+            msg = reader.read_next(TM)
+            self.assertTrue(msg)
+            read_array.append(msg.data())
+
+        self.assertListEqual(sorted(send_array), sorted(read_array))
+        reader.close()
+        client.close()
+
     def test_reader_is_connected(self):
         client = Client(self.serviceUrl)
         topic = "test_reader_is_connected"
