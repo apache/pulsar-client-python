@@ -797,6 +797,14 @@ class Client:
         batch_index_ack_enabled: Enable the batch index acknowledgement.
             It should be noted that this option can only work when the broker side also enables the batch index
             acknowledgement. See the `acknowledgmentAtBatchIndexLevelEnabled` config in `broker.conf`.
+        regex_subscription_mode: RegexSubscriptionMode, optional
+            Set the regex subscription mode for use when the topic is a regex pattern.
+
+            Supported modes:
+
+            * PersistentOnly: By default only subscribe to persistent topics.
+            * NonPersistentOnly: Only subscribe to non-persistent topics.
+            * AllTopics: Subscribe to both persistent and non-persistent topics.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
