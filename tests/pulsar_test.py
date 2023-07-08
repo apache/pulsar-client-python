@@ -42,6 +42,7 @@ from pulsar import (
     InitialPosition,
     CryptoKeyReader,
     ConsumerBatchReceivePolicy,
+    ProducerAccessMode,
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
@@ -164,6 +165,62 @@ class PulsarTest(TestCase):
         consumer.acknowledge(msg)
         print("receive from {}".format(msg.message_id()))
         self.assertEqual(msg_id, msg.message_id())
+        client.close()
+
+    def test_producer_access_mode_exclusive(self):
+        client = Client(self.serviceUrl)
+        topic_name = "test-access-mode-exclusive"
+        client.create_producer(topic_name, producer_name="p1", access_mode=ProducerAccessMode.Exclusive)
+        with self.assertRaises(pulsar.ProducerFenced):
+            client.create_producer(topic_name, producer_name="p2", access_mode=ProducerAccessMode.Exclusive)
+        client.close()
+
+    def test_producer_access_mode_wait_exclusive(self):
+        client = Client(self.serviceUrl)
+        topic_name = "test_producer_access_mode_wait_exclusive"
+        producer1 = client.create_producer(
+            topic=topic_name,
+            producer_name='p-1',
+            access_mode=ProducerAccessMode.Exclusive
+        )
+        assert producer1.producer_name() == 'p-1'
+
+        # when p1 close, p2 success created.
+        producer1.close()
+        producer2 = client.create_producer(
+            topic=topic_name,
+            producer_name='p-2',
+            access_mode=ProducerAccessMode.WaitForExclusive
+        )
+        assert producer2.producer_name() == 'p-2'
+
+        producer2.close()
+        client.close()
+
+    def test_producer_access_mode_exclusive_with_fencing(self):
+        client = Client(self.serviceUrl)
+        topic_name = 'test_producer_access_mode_exclusive_with_fencing'
+
+        producer1 = client.create_producer(
+            topic=topic_name,
+            producer_name='p-1',
+            access_mode=ProducerAccessMode.Exclusive
+        )
+        assert producer1.producer_name() == 'p-1'
+
+        producer2 = client.create_producer(
+            topic=topic_name,
+            producer_name='p-2',
+            access_mode=ProducerAccessMode.ExclusiveWithFencing
+        )
+        assert producer2.producer_name() == 'p-2'
+
+        # producer1 will be fenced.
+        time.sleep(0.2)
+        with self.assertRaises((pulsar.ProducerFenced, pulsar.AlreadyClosed)):
+            producer1.send('test-msg'.encode('utf-8'))
+
+        producer2.close()
         client.close()
 
     def test_producer_is_connected(self):

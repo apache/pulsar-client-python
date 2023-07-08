@@ -124,6 +124,12 @@ void export_enums(py::module_& m) {
         .value("Default", ProducerConfiguration::DefaultBatching)
         .value("KeyBased", ProducerConfiguration::KeyBasedBatching);
 
+    enum_<ProducerConfiguration::ProducerAccessMode>(m, "ProducerAccessMode", "Producer Access Mode")
+        .value("Shared", ProducerConfiguration::ProducerAccessMode::Shared)
+        .value("Exclusive", ProducerConfiguration::ProducerAccessMode::Exclusive)
+        .value("WaitForExclusive", ProducerConfiguration::ProducerAccessMode::WaitForExclusive)
+        .value("ExclusiveWithFencing", ProducerConfiguration::ProducerAccessMode::ExclusiveWithFencing);
+
     enum_<Logger::Level>(m, "LoggerLevel")
         .value("Debug", Logger::LEVEL_DEBUG)
         .value("Info", Logger::LEVEL_INFO)

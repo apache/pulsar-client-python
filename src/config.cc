@@ -223,7 +223,9 @@ void export_config(py::module_& m) {
         .def("batching_type", &ProducerConfiguration::setBatchingType, return_value_policy::reference)
         .def("batching_type", &ProducerConfiguration::getBatchingType)
         .def("encryption_key", &ProducerConfiguration::addEncryptionKey, return_value_policy::reference)
-        .def("crypto_key_reader", &ProducerConfiguration::setCryptoKeyReader, return_value_policy::reference);
+        .def("crypto_key_reader", &ProducerConfiguration::setCryptoKeyReader, return_value_policy::reference)
+        .def("access_mode", &ProducerConfiguration::setAccessMode, return_value_policy::reference)
+        .def("access_mode", &ProducerConfiguration::getAccessMode, return_value_policy::copy);
 
     class_<BatchReceivePolicy>(m, "BatchReceivePolicy")
         .def(init<int, int, long>())
