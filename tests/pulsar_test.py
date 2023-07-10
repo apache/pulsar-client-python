@@ -1617,6 +1617,48 @@ class PulsarTest(TestCase):
             consumer.acknowledge(msg_id)
         client.close()
 
+    def test_batch_index_ack(self):
+        topic_name = 'test-batch-index-ack-3'
+        client = pulsar.Client('pulsar://localhost:6650')
+        producer = client.create_producer(topic_name,
+                                          batching_enabled=True,
+                                          batching_max_messages=100,
+                                          batching_max_publish_delay_ms=10000)
+        consumer = client.subscribe(topic_name,
+                                    subscription_name='test-batch-index-ack',
+                                    batch_index_ack_enabled=True)
+
+        # Make sure send 0~5 is a batch msg.
+        for i in range(5):
+            producer.send_async(b"hello-%d" % i, callback=None)
+        producer.flush()
+
+        # Receive msgs and just ack 0, 1 msgs
+        results = []
+        for i in range(5):
+            msg = consumer.receive()
+            print("receive from {}".format(msg.message_id()))
+            results.append(msg)
+        assert len(results) == 5
+        for i in range(2):
+            consumer.acknowledge(results[i])
+            time.sleep(0.2)
+
+        # Restart consumer after, just receive 2~5 msg.
+        consumer.close()
+        consumer = client.subscribe(topic_name,
+                                    subscription_name='test-batch-index-ack',
+                                    batch_index_ack_enabled=True)
+        results2 = []
+        for i in range(2, 5):
+            msg = consumer.receive()
+            results2.append(msg)
+        assert len(results2) == 3
+        # assert no more msgs.
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(timeout_millis=1000)
+
+        client.close()
 
 
 if __name__ == "__main__":

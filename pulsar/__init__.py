@@ -692,7 +692,8 @@ class Client:
                   auto_ack_oldest_chunked_message_on_queue_full=False,
                   start_message_id_inclusive=False,
                   batch_receive_policy=None,
-                  key_shared_policy=None
+                  key_shared_policy=None,
+                  batch_index_ack_enabled=False,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -779,6 +780,9 @@ class Client:
           Set the batch collection policy for batch receiving.
         key_shared_policy: class ConsumerKeySharedPolicy
             Set the key shared policy for use when the ConsumerType is KeyShared.
+        batch_index_ack_enabled: Enable the batch index acknowledgement.
+            It should be noted that this option can only work when the broker side also enables the batch index
+            acknowledgement. See the `acknowledgmentAtBatchIndexLevelEnabled` config in `broker.conf`.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -800,6 +804,7 @@ class Client:
         _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
         _check_type_or_none(ConsumerBatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
         _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
+        _check_type(bool, batch_index_ack_enabled, 'batch_index_ack_enabled')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -834,6 +839,7 @@ class Client:
 
         if key_shared_policy:
             conf.key_shared_policy(key_shared_policy.policy())
+        conf.batch_index_ack_enabled(batch_index_ack_enabled)
 
         c = Consumer()
         if isinstance(topic, str):

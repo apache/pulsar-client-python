@@ -280,6 +280,9 @@ void export_config(py::module_& m) {
              return_value_policy::reference)
         .def("start_message_id_inclusive", &ConsumerConfiguration::isStartMessageIdInclusive)
         .def("start_message_id_inclusive", &ConsumerConfiguration::setStartMessageIdInclusive,
+             return_value_policy::reference)
+        .def("batch_index_ack_enabled", &ConsumerConfiguration::isBatchIndexAckEnabled)
+        .def("batch_index_ack_enabled", &ConsumerConfiguration::setBatchIndexAckEnabled,
              return_value_policy::reference);
 
     class_<ReaderConfiguration, std::shared_ptr<ReaderConfiguration>>(m, "ReaderConfiguration")
