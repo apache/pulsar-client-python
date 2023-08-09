@@ -48,7 +48,7 @@ from typing import List, Tuple, Optional
 import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
-    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode  # noqa: F401
+    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -523,7 +523,8 @@ class Client:
                         properties=None,
                         batching_type=BatchingType.Default,
                         encryption_key=None,
-                        crypto_key_reader=None
+                        crypto_key_reader=None,
+                        access_mode=ProducerAccessMode.Shared,
                         ):
         """
         Create a new producer on a given topic.
@@ -614,6 +615,17 @@ class Client:
         crypto_key_reader: CryptoKeyReader, optional
             Symmetric encryption class implementation, configuring public key encryption messages for the producer
             and private key decryption messages for the consumer
+        access_mode: ProducerAccessMode, optional
+            Set the type of access mode that the producer requires on the topic.
+
+            Supported modes:
+
+            * Shared: By default multiple producers can publish on a topic.
+            * Exclusive: Require exclusive access for producer.
+                         Fail immediately if there's already a producer connected.
+            * WaitForExclusive: Producer creation is pending until it can acquire exclusive access.
+            * ExclusiveWithFencing: Acquire exclusive access for the producer.
+                                    Any existing producer will be removed and invalidated immediately.
         """
         _check_type(str, topic, 'topic')
         _check_type_or_none(str, producer_name, 'producer_name')
@@ -634,6 +646,7 @@ class Client:
         _check_type_or_none(str, encryption_key, 'encryption_key')
         _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
         _check_type(bool, lazy_start_partitioned_producers, 'lazy_start_partitioned_producers')
+        _check_type(ProducerAccessMode, access_mode, 'access_mode')
 
         conf = _pulsar.ProducerConfiguration()
         conf.send_timeout_millis(send_timeout_millis)
@@ -649,6 +662,7 @@ class Client:
         conf.batching_type(batching_type)
         conf.chunking_enabled(chunking_enabled)
         conf.lazy_start_partitioned_producers(lazy_start_partitioned_producers)
+        conf.access_mode(access_mode)
         if producer_name:
             conf.producer_name(producer_name)
         if initial_sequence_id:
