@@ -426,6 +426,7 @@ class Client:
             Number of concurrent lookup-requests allowed on each broker connection to prevent overload
             on the broker.
         log_conf_file_path: str, optional
+            This parameter is deprecated. Use logger instead.
             Initialize log4cxx from a configuration file.
         use_tls: bool, default=False
             Configure whether to use TLS encryption on the connection. This setting is deprecated.
@@ -459,6 +460,8 @@ class Client:
         _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
         _check_type(bool, tls_validate_hostname, 'tls_validate_hostname')
         _check_type_or_none(str, listener_name, 'listener_name')
+        if log_conf_file_path is not None:
+           logging.warning("log_conf_file_path is deprecated, will ignore setting it. Use logger instead.")
 
         conf = _pulsar.ClientConfiguration()
         if authentication:
@@ -468,8 +471,6 @@ class Client:
         conf.io_threads(io_threads)
         conf.message_listener_threads(message_listener_threads)
         conf.concurrent_lookup_requests(concurrent_lookup_requests)
-        if log_conf_file_path:
-            conf.log_conf_file_path(log_conf_file_path)
 
         if isinstance(logger, logging.Logger):
             conf.set_logger(self._prepare_logger(logger))
