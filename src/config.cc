@@ -156,8 +156,6 @@ void export_config(py::module_& m) {
         .def("concurrent_lookup_requests", &ClientConfiguration::getConcurrentLookupRequest)
         .def("concurrent_lookup_requests", &ClientConfiguration::setConcurrentLookupRequest,
              return_value_policy::reference)
-        .def("log_conf_file_path", &ClientConfiguration::getLogConfFilePath, return_value_policy::copy)
-        .def("log_conf_file_path", &ClientConfiguration::setLogConfFilePath, return_value_policy::reference)
         .def("use_tls", &ClientConfiguration::isUseTls)
         .def("use_tls", &ClientConfiguration::setUseTls, return_value_policy::reference)
         .def("tls_trust_certs_file_path", &ClientConfiguration::getTlsTrustCertsFilePath,
