@@ -426,7 +426,8 @@ class Client:
             Number of concurrent lookup-requests allowed on each broker connection to prevent overload
             on the broker.
         log_conf_file_path: str, optional
-            Initialize log4cxx from a configuration file.
+            This parameter is deprecated and makes no effect. It's retained only for compatibility.
+            Use `logger` to customize a logger.
         use_tls: bool, default=False
             Configure whether to use TLS encryption on the connection. This setting is deprecated.
             TLS will be automatically enabled if the ``serviceUrl`` is set to ``pulsar+ssl://`` or ``https://``
@@ -468,8 +469,6 @@ class Client:
         conf.io_threads(io_threads)
         conf.message_listener_threads(message_listener_threads)
         conf.concurrent_lookup_requests(concurrent_lookup_requests)
-        if log_conf_file_path:
-            conf.log_conf_file_path(log_conf_file_path)
 
         if isinstance(logger, logging.Logger):
             conf.set_logger(self._prepare_logger(logger))

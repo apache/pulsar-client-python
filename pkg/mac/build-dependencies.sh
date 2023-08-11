@@ -150,10 +150,12 @@ if [ ! -f protobuf-${PROTOBUF_VERSION}/.done ]; then
     echo "Building Protobuf"
     download_dependency $ROOT_DIR/dependencies.yaml protobuf
     pushd protobuf-${PROTOBUF_VERSION}
-      CXXFLAGS="-fPIC -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
-            ./configure --prefix=$PREFIX
-      make -j16
-      make install
+      # Install by CMake so that the dependency can be found with CMake config mode
+      pushd cmake/
+        cmake -B build -DCMAKE_CXX_FLAGS="-fPIC -arch arm64 -arch x86_64 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX
+        cmake --build build -j16 --target install
+      popd
       touch .done
     popd
 else

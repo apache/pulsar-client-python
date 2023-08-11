@@ -773,7 +773,6 @@ class PulsarTest(TestCase):
         self._check_value_error(lambda: Client(self.serviceUrl, io_threads="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, message_listener_threads="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, concurrent_lookup_requests="test"))
-        self._check_value_error(lambda: Client(self.serviceUrl, log_conf_file_path=5))
         self._check_value_error(lambda: Client(self.serviceUrl, use_tls="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_trust_certs_file_path=5))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_allow_insecure_connection="test"))
