@@ -24,6 +24,7 @@ import logging
 from unittest import TestCase, main
 import time
 import os
+import re
 import pulsar
 import uuid
 from datetime import timedelta
@@ -46,7 +47,7 @@ from pulsar import (
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
-from _pulsar import ProducerConfiguration, ConsumerConfiguration
+from _pulsar import ProducerConfiguration, ConsumerConfiguration, RegexSubscriptionMode
 
 from schema_test import *
 
@@ -1100,7 +1101,6 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_topics_pattern_consumer(self):
-        import re
 
         client = Client(self.serviceUrl)
 
@@ -1717,6 +1717,77 @@ class PulsarTest(TestCase):
 
         client.close()
 
+    def test_regex_subscription(self):
+        client = Client(self.serviceUrl)
+        topic1 = "persistent://public/default/test-regex-sub-1"
+        topic2 = "persistent://public/default/test-regex-sub-2"
+        topic3 = "non-persistent://public/default/test-regex-sub-3"
+        topic4 = "persistent://public/default/no-match-test-regex-sub-3"  # no match pattern rule topic.
+
+        producer1 = client.create_producer(topic1)
+        producer2 = client.create_producer(topic2)
+        producer3 = client.create_producer(topic3)
+        producer4 = client.create_producer(topic4)
+
+        consumer_all = client.subscribe(
+            re.compile('public/default/test-regex-sub-.*'), "regex-sub-all",
+            consumer_type=ConsumerType.Shared, regex_subscription_mode=RegexSubscriptionMode.AllTopics
+        )
+
+        consumer_persistent = client.subscribe(
+            re.compile('public/default/test-regex-sub-.*'), "regex-sub-persistent",
+            consumer_type=ConsumerType.Shared, regex_subscription_mode=RegexSubscriptionMode.PersistentOnly
+        )
+
+        consumer_non_persistent = client.subscribe(
+            re.compile('public/default/test-regex-sub-.*'), "regex-sub-non-persistent",
+            consumer_type=ConsumerType.Shared, regex_subscription_mode=RegexSubscriptionMode.NonPersistentOnly
+        )
+
+        num = 10
+        for i in range(num):
+            producer1.send(b"hello-1-%d" % i)
+            producer2.send(b"hello-2-%d" % i)
+            producer3.send(b"hello-3-%d" % i)
+            producer4.send(b"hello-4-%d" % i)
+
+        # Assert consumer_all.
+        received_topics = set()
+        for i in range(3 * num):
+            msg = consumer_all.receive(TM)
+            topic_name = msg.topic_name()
+            self.assertIn(topic_name, [topic1, topic2, topic3])
+            received_topics.add(topic_name)
+            consumer_all.acknowledge(msg)
+        self.assertEqual(received_topics, {topic1, topic2, topic3})
+        with self.assertRaises(pulsar.Timeout):
+            consumer_all.receive(100)
+
+        # Assert consumer_persistent.
+        received_topics.clear()
+        for i in range(2 * num):
+            msg = consumer_persistent.receive(TM)
+            topic_name = msg.topic_name()
+            self.assertIn(topic_name, [topic1, topic2])
+            received_topics.add(topic_name)
+            consumer_persistent.acknowledge(msg)
+        self.assertEqual(received_topics, {topic1, topic2})
+        with self.assertRaises(pulsar.Timeout):
+            consumer_persistent.receive(100)
+
+        # Assert consumer_non_persistent.
+        received_topics.clear()
+        for i in range(num):
+            msg = consumer_non_persistent.receive(TM)
+            topic_name = msg.topic_name()
+            self.assertIn(topic_name, [topic3])
+            received_topics.add(topic_name)
+            consumer_non_persistent.acknowledge(msg)
+        self.assertEqual(received_topics, {topic3})
+        with self.assertRaises(pulsar.Timeout):
+            consumer_non_persistent.receive(100)
+
+        client.close()
 
 if __name__ == "__main__":
     main()

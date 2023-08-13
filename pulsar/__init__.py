@@ -48,7 +48,7 @@ from typing import List, Tuple, Optional
 import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
-    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode  # noqa: F401
+    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -707,6 +707,7 @@ class Client:
                   batch_receive_policy=None,
                   key_shared_policy=None,
                   batch_index_ack_enabled=False,
+                  regex_subscription_mode=RegexSubscriptionMode.PersistentOnly,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -796,6 +797,14 @@ class Client:
         batch_index_ack_enabled: Enable the batch index acknowledgement.
             It should be noted that this option can only work when the broker side also enables the batch index
             acknowledgement. See the `acknowledgmentAtBatchIndexLevelEnabled` config in `broker.conf`.
+        regex_subscription_mode: RegexSubscriptionMode, optional
+            Set the regex subscription mode for use when the topic is a regex pattern.
+
+            Supported modes:
+
+            * PersistentOnly: By default only subscribe to persistent topics.
+            * NonPersistentOnly: Only subscribe to non-persistent topics.
+            * AllTopics: Subscribe to both persistent and non-persistent topics.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -818,9 +827,11 @@ class Client:
         _check_type_or_none(ConsumerBatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
         _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
         _check_type(bool, batch_index_ack_enabled, 'batch_index_ack_enabled')
+        _check_type(RegexSubscriptionMode, regex_subscription_mode, 'regex_subscription_mode')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
+        conf.regex_subscription_mode(regex_subscription_mode)
         conf.read_compacted(is_read_compacted)
         if message_listener:
             conf.message_listener(_listener_wrapper(message_listener, schema))

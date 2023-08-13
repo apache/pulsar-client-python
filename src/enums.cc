@@ -120,6 +120,11 @@ void export_enums(py::module_& m) {
         .value("Latest", InitialPositionLatest)
         .value("Earliest", InitialPositionEarliest);
 
+    enum_<RegexSubscriptionMode>(m, "RegexSubscriptionMode", "Regex subscription mode")
+        .value("PersistentOnly", PersistentOnly)
+        .value("NonPersistentOnly", NonPersistentOnly)
+        .value("AllTopics", AllTopics);
+
     enum_<ProducerConfiguration::BatchingType>(m, "BatchingType", "Supported batching types")
         .value("Default", ProducerConfiguration::DefaultBatching)
         .value("KeyBased", ProducerConfiguration::KeyBasedBatching);
