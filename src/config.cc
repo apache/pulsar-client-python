@@ -22,6 +22,7 @@
 #include <pulsar/ConsumerConfiguration.h>
 #include <pulsar/ProducerConfiguration.h>
 #include <pulsar/KeySharedPolicy.h>
+#include <pulsar/DeadLetterPolicyBuilder.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -231,6 +232,20 @@ void export_config(py::module_& m) {
         .def("getMaxNumMessages", &BatchReceivePolicy::getMaxNumMessages)
         .def("getMaxNumBytes", &BatchReceivePolicy::getMaxNumBytes);
 
+    class_<DeadLetterPolicy>(m, "DeadLetterPolicy")
+        .def(init<>())
+        .def("getDeadLetterTopic", &DeadLetterPolicy::getDeadLetterTopic)
+        .def("getMaxRedeliverCount", &DeadLetterPolicy::getMaxRedeliverCount)
+        .def("getInitialSubscriptionName", &DeadLetterPolicy::getInitialSubscriptionName);
+
+    class_<DeadLetterPolicyBuilder>(m, "DeadLetterPolicyBuilder")
+        .def(init<>())
+        .def("deadLetterTopic", &DeadLetterPolicyBuilder::deadLetterTopic, return_value_policy::reference)
+        .def("maxRedeliverCount", &DeadLetterPolicyBuilder::maxRedeliverCount, return_value_policy::reference)
+        .def("initialSubscriptionName", &DeadLetterPolicyBuilder::initialSubscriptionName, return_value_policy::reference)
+        .def("build", &DeadLetterPolicyBuilder::build, return_value_policy::reference)
+        .def("build", &DeadLetterPolicyBuilder::build, return_value_policy::reference);
+
     class_<ConsumerConfiguration, std::shared_ptr<ConsumerConfiguration>>(m, "ConsumerConfiguration")
         .def(init<>())
         .def("key_shared_policy", &ConsumerConfiguration::getKeySharedPolicy)
@@ -285,7 +300,9 @@ void export_config(py::module_& m) {
              return_value_policy::reference)
         .def("batch_index_ack_enabled", &ConsumerConfiguration::isBatchIndexAckEnabled)
         .def("batch_index_ack_enabled", &ConsumerConfiguration::setBatchIndexAckEnabled,
-             return_value_policy::reference);
+             return_value_policy::reference)
+        .def("dead_letter_policy", &ConsumerConfiguration::setDeadLetterPolicy)
+        .def("dead_letter_policy", &ConsumerConfiguration::getDeadLetterPolicy, return_value_policy::copy);
 
     class_<ReaderConfiguration, std::shared_ptr<ReaderConfiguration>>(m, "ReaderConfiguration")
         .def(init<>())

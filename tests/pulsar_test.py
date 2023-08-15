@@ -44,6 +44,7 @@ from pulsar import (
     CryptoKeyReader,
     ConsumerBatchReceivePolicy,
     ProducerAccessMode,
+    ConsumerDeadLetterPolicy,
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
@@ -1714,6 +1715,49 @@ class PulsarTest(TestCase):
         # assert no more msgs.
         with self.assertRaises(pulsar.Timeout):
             consumer.receive(timeout_millis=1000)
+        client.close()
+
+    def test_dead_letter_policy_config(self):
+        with self.assertRaises(ValueError):
+            ConsumerDeadLetterPolicy(-1)
+
+        policy = ConsumerDeadLetterPolicy(10)
+        self.assertEqual(10, policy.max_redeliver_count)
+        self.assertEqual("", policy.dead_letter_topic)
+        self.assertEqual("", policy.initial_subscription_name)
+
+    def test_dead_letter_policy(self):
+        client = Client(self.serviceUrl)
+        topic = "my-python-topic-test-dlq" + str(time.time())
+        dlq_topic = 'dlq-' + topic
+        max_redeliver_count = 5
+        consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared,
+                                    dead_letter_policy=ConsumerDeadLetterPolicy(max_redeliver_count, dlq_topic, 'init-sub'))
+        dlq_consumer = client.subscribe(dlq_topic, "my-sub", consumer_type=ConsumerType.Shared)
+
+        # Sen num msgs.
+        producer = client.create_producer(topic)
+        num = 10
+        for i in range(num):
+            producer.send(b"hello-%d" % i)
+        producer.flush()
+
+        # Redelivery all messages maxRedeliverCountNum time.
+        for i in range(1, num * max_redeliver_count + num + 1):
+            msg = consumer.receive()
+            if i % num == 0:
+                consumer.redeliver_unacknowledged_messages()
+                print(f"Start redeliver msgs '{i}'")
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(100)
+
+        for i in range(num):
+            msg = dlq_consumer.receive()
+            self.assertTrue(msg)
+            self.assertEqual(msg.data(), b"hello-%d" % i)
+            dlq_consumer.acknowledge(msg)
+        with self.assertRaises(pulsar.Timeout):
+            dlq_consumer.receive(100)
 
         client.close()
 
