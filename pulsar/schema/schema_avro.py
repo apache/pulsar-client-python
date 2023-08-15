@@ -91,7 +91,7 @@ if HAS_AVRO:
                 writer_schema = self._get_writer_schema(topic, version)
                 return self._decode_bytes(msg.data(), writer_schema)
             except Exception as e:
-                self._logger.error('Failed to get schema info of {topic} version {version}: {e}')
+                self._logger.error(f'Failed to get schema info of {topic} version {version}: {e}')
                 return self._decode_bytes(msg.data(), self._schema)
 
         def _get_writer_schema(self, topic: str, version: int) -> 'dict':
