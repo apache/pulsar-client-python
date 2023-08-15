@@ -379,29 +379,30 @@ class ConsumerDeadLetterPolicy:
     """
     Configuration for the "dead letter queue" feature in consumer.
     """
-    def __init__(self, dead_letter_topic: str = None,
-                 max_redeliver_count: int = None,
+    def __init__(self,
+                 max_redeliver_count: int,
+                 dead_letter_topic: str = None,
                  initial_subscription_name: str = None):
         """
         Wrapper DeadLetterPolicy.
 
         Parameters
         ----------
-        dead_letter_topic: Name of the dead topic where the failing messages are sent.
-            The default value is: sourceTopicName + "-" + subscriptionName + "-DLQ"
         max_redeliver_count: Maximum number of times that a message is redelivered before being sent to the dead letter queue.
             - The maxRedeliverCount must be greater than 0.
-            - The default value is None (DLQ is not enabled)
+        dead_letter_topic: Name of the dead topic where the failing messages are sent.
+            The default value is: sourceTopicName + "-" + subscriptionName + "-DLQ"
         initial_subscription_name: Name of the initial subscription name of the dead letter topic.
             If this field is not set, the initial subscription for the dead letter topic is not created.
             If this field is set but the broker's `allowAutoSubscriptionCreation` is disabled, the DLQ producer
             fails to be created.
         """
         builder = DeadLetterPolicyBuilder()
+        if max_redeliver_count is None or max_redeliver_count < 1:
+            raise ValueError("max_redeliver_count must be greater than 0")
+        builder.maxRedeliverCount(max_redeliver_count)
         if dead_letter_topic is not None:
             builder.deadLetterTopic(dead_letter_topic)
-        if max_redeliver_count is not None:
-            builder.maxRedeliverCount(max_redeliver_count)
         if initial_subscription_name is not None:
             builder.initialSubscriptionName(initial_subscription_name)
         self._policy = builder.build()
