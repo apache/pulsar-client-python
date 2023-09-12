@@ -251,6 +251,23 @@ class PulsarTest(TestCase):
         consumer.unsubscribe()
         client.close()
 
+    def test_ordering_key(self):
+        client = Client(self.serviceUrl)
+        consumer = client.subscribe(
+            "my-python-topic-ordering-key", "my-sub", consumer_type=ConsumerType.KeyShared
+        )
+        producer = client.create_producer("my-python-topic-ordering-key")
+        producer.send(b"ordered-hello", ordering_key="random-ordering-key")
+
+        # Message should be available immediately with ordering key set
+        msg = consumer.receive(TM)
+        self.assertTrue(msg)
+        self.assertEqual(msg.data(), b"ordered-hello")
+        self.assertEqual(msg.ordering_key(), "random-ordering-key")
+        consumer.unsubscribe()
+        producer.close()
+        client.close()
+
     def test_redelivery_count(self):
         client = Client(self.serviceUrl)
         consumer = client.subscribe(

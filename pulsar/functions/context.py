@@ -126,6 +126,11 @@ class Context(object):
         pass
 
     @abstractmethod
+    def get_ordering_key(self):
+        """Returns ordering key of the input message, if one exists"""
+        pass
+
+    @abstractmethod
     def record_metric(self, metric_name, metric_value):
         """Records the metric_value. metric_value has to satisfy isinstance(metric_value, numbers.Number)"""
         pass
@@ -140,6 +145,7 @@ class Context(object):
 
           properties,
           partition_key,
+          ordering_key,
           sequence_id,
           replication_clusters,
           disable_replication,
