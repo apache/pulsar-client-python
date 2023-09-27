@@ -960,19 +960,16 @@ class PulsarTest(TestCase):
 
         # seek, and after reconnect, expected receive first message.
         consumer.seek(MessageId.earliest)
-        time.sleep(0.5)
         msg = consumer.receive(TM)
         self.assertEqual(msg.data(), b"hello-0")
 
         # seek on messageId
         consumer.seek(ids[50])
-        time.sleep(0.5)
         msg = consumer.receive(TM)
         self.assertEqual(msg.data(), b"hello-51")
 
         # ditto, but seek on timestamp
         consumer.seek(timestamps[42])
-        time.sleep(0.5)
         msg = consumer.receive(TM)
         self.assertEqual(msg.data(), b"hello-42")
 
@@ -983,7 +980,6 @@ class PulsarTest(TestCase):
 
         # earliest
         reader.seek(MessageId.earliest)
-        time.sleep(0.5)
         msg = reader.read_next(TM)
         self.assertEqual(msg.data(), b"hello-0")
         msg = reader.read_next(TM)
@@ -991,7 +987,6 @@ class PulsarTest(TestCase):
 
         # seek on messageId
         reader.seek(ids[33])
-        time.sleep(0.5)
         msg = reader.read_next(TM)
         self.assertEqual(msg.data(), b"hello-34")
         msg = reader.read_next(TM)
@@ -999,7 +994,6 @@ class PulsarTest(TestCase):
 
         # seek on timestamp
         reader.seek(timestamps[79])
-        time.sleep(0.5)
         msg = reader.read_next(TM)
         self.assertEqual(msg.data(), b"hello-79")
         msg = reader.read_next(TM)
