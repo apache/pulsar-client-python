@@ -146,6 +146,12 @@ class Message:
         """
         return self._message.partition_key()
 
+    def ordering_key(self):
+        """
+        Get the ordering key for the message.
+        """
+        return self._message.ordering_key()
+
     def publish_timestamp(self):
         """
         Get the timestamp in milliseconds with the message publish time.
@@ -1020,7 +1026,7 @@ class Client:
             Symmetric encryption class implementation, configuring public key encryption messages for the producer
             and private key decryption messages for the consumer
         """
-        
+
         # If a pulsar.MessageId object is passed, access the _pulsar.MessageId object
         if isinstance(start_message_id, MessageId):
             start_message_id = start_message_id._msg_id
@@ -1142,6 +1148,7 @@ class Producer:
     def send(self, content,
              properties=None,
              partition_key=None,
+             ordering_key=None,
              sequence_id=None,
              replication_clusters=None,
              disable_replication=False,
@@ -1164,6 +1171,8 @@ class Producer:
         partition_key: optional
             Sets the partition key for message routing. A hash of this key is used
             to determine the message's topic partition.
+        ordering_key: optional
+            Sets the ordering key for message routing.
         sequence_id:  optional
             Specify a custom sequence id for the message being published.
         replication_clusters:  optional
@@ -1180,7 +1189,7 @@ class Producer:
         deliver_after: optional
             Specify a delay in timedelta for the delivery of the messages.
         """
-        msg = self._build_msg(content, properties, partition_key, sequence_id,
+        msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
                               deliver_at, deliver_after)
         return self._producer.send(msg)
@@ -1188,6 +1197,7 @@ class Producer:
     def send_async(self, content, callback,
                    properties=None,
                    partition_key=None,
+                   ordering_key=None,
                    sequence_id=None,
                    replication_clusters=None,
                    disable_replication=False,
@@ -1239,6 +1249,8 @@ class Producer:
         partition_key: optional
             Sets the partition key for the message routing. A hash of this key is
             used to determine the message's topic partition.
+        ordering_key: optional
+            Sets the ordering key for the message routing.
         sequence_id: optional
             Specify a custom sequence id for the message being published.
         replication_clusters: optional
@@ -1254,7 +1266,7 @@ class Producer:
         deliver_after: optional
             Specify a delay in timedelta for the delivery of the messages.
         """
-        msg = self._build_msg(content, properties, partition_key, sequence_id,
+        msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
                               deliver_at, deliver_after)
         self._producer.send_async(msg, callback)
@@ -1274,7 +1286,7 @@ class Producer:
         """
         self._producer.close()
 
-    def _build_msg(self, content, properties, partition_key, sequence_id,
+    def _build_msg(self, content, properties, partition_key, ordering_key, sequence_id,
                    replication_clusters, disable_replication, event_timestamp,
                    deliver_at, deliver_after):
         data = self._schema.encode(content)
@@ -1282,6 +1294,7 @@ class Producer:
         _check_type(bytes, data, 'data')
         _check_type_or_none(dict, properties, 'properties')
         _check_type_or_none(str, partition_key, 'partition_key')
+        _check_type_or_none(str, ordering_key, 'ordering_key')
         _check_type_or_none(int, sequence_id, 'sequence_id')
         _check_type_or_none(list, replication_clusters, 'replication_clusters')
         _check_type(bool, disable_replication, 'disable_replication')
@@ -1296,6 +1309,8 @@ class Producer:
                 mb.property(k, v)
         if partition_key:
             mb.partition_key(partition_key)
+        if ordering_key:
+            mb.ordering_key(ordering_key)
         if sequence_id:
             mb.sequence_id(sequence_id)
         if replication_clusters:
