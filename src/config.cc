@@ -318,5 +318,7 @@ void export_config(py::module_& m) {
         .def("subscription_role_prefix", &ReaderConfiguration::setSubscriptionRolePrefix)
         .def("read_compacted", &ReaderConfiguration::isReadCompacted)
         .def("read_compacted", &ReaderConfiguration::setReadCompacted)
-        .def("crypto_key_reader", &ReaderConfiguration::setCryptoKeyReader, return_value_policy::reference);
+        .def("crypto_key_reader", &ReaderConfiguration::setCryptoKeyReader, return_value_policy::reference)
+        .def("start_message_id_inclusive", &ReaderConfiguration::isStartMessageIdInclusive)
+        .def("start_message_id_inclusive", &ReaderConfiguration::setStartMessageIdInclusive, return_value_policy::reference);
 }
