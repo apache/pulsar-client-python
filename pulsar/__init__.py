@@ -966,7 +966,8 @@ class Client:
                       reader_name=None,
                       subscription_role_prefix=None,
                       is_read_compacted=False,
-                      crypto_key_reader=None
+                      crypto_key_reader=None,
+                      start_message_id_inclusive=False
                       ):
         """
         Create a reader on a particular topic
@@ -1025,6 +1026,8 @@ class Client:
         crypto_key_reader: CryptoKeyReader, optional
             Symmetric encryption class implementation, configuring public key encryption messages for the producer
             and private key decryption messages for the consumer
+        start_message_id_inclusive: bool, default=False
+            Set the reader to include the startMessageId or given position of any reset operation like Reader.seek
         """
 
         # If a pulsar.MessageId object is passed, access the _pulsar.MessageId object
@@ -1039,6 +1042,7 @@ class Client:
         _check_type_or_none(str, subscription_role_prefix, 'subscription_role_prefix')
         _check_type(bool, is_read_compacted, 'is_read_compacted')
         _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
+        _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
 
         conf = _pulsar.ReaderConfiguration()
         if reader_listener:
@@ -1052,6 +1056,7 @@ class Client:
         conf.read_compacted(is_read_compacted)
         if crypto_key_reader:
             conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
+        conf.start_message_id_inclusive(start_message_id_inclusive)
 
         c = Reader()
         c._reader = self._client.create_reader(topic, start_message_id, conf)

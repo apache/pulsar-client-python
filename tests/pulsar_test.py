@@ -19,6 +19,7 @@
 #
 
 
+import random
 import threading
 import logging
 from unittest import TestCase, main
@@ -683,6 +684,41 @@ class PulsarTest(TestCase):
         self.assertTrue(reader.is_connected())
         reader.close()
         self.assertFalse(reader.is_connected())
+        client.close()
+
+    def test_reader_seek_for_message_id(self):
+        client = pulsar.Client(self.serviceUrl)
+
+        topic = "test-seek-for-message-id-" + str(int(time.time()))
+
+        producer = client.create_producer(topic)
+
+        readerExclusive = client.create_reader(topic, MessageId.latest)
+        readerInclusive = client.create_reader(topic, MessageId.latest, start_message_id_inclusive=True)
+
+        numMessages = 100
+        seekMessageId = None
+
+        r = random.randint(0, numMessages - 2)
+        for i in range(numMessages):
+            msg_content = b"msg-%d" % i
+            id = producer.send(msg_content)
+
+            if i == r:
+                seekMessageId = id
+
+        readerExclusive.seek(seekMessageId)
+        msg0 = readerExclusive.read_next(timeout_millis=3000)
+
+        readerInclusive.seek(seekMessageId)
+        msg1 = readerInclusive.read_next(timeout_millis=3000)
+
+        self.assertEqual(msg0.data(), b"msg-%d" % (r + 1))
+        self.assertEqual(msg1.data(), b"msg-%d" % r)
+
+        readerExclusive.close()
+        readerInclusive.close()
+        producer.close()
         client.close()
 
     def test_producer_sequence_after_reconnection(self):
