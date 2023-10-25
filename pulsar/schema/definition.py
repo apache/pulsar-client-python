@@ -228,7 +228,7 @@ class Field(object):
         if val is None and not self._required:
             return self.default()
 
-        if type(val) != self.python_type():
+        if not isinstance(val, self.python_type()):
             raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, _string_representation(self.python_type())))
         return val
 
@@ -309,7 +309,7 @@ class Float(Field):
         return 'float'
 
     def python_type(self):
-        return float
+        return float, int
 
     def default(self):
         if self._default is not None:
@@ -323,7 +323,7 @@ class Double(Field):
         return 'double'
 
     def python_type(self):
-        return float
+        return float, int
 
     def default(self):
         if self._default is not None:
@@ -337,7 +337,7 @@ class Bytes(Field):
         return 'bytes'
 
     def python_type(self):
-        return bytes
+        return bytes, str
 
     def default(self):
         if self._default is not None:
@@ -345,13 +345,18 @@ class Bytes(Field):
         else:
             return None
 
+    def validate_type(self, name, val):
+        if isinstance(val, str):
+            return val.encode()
+        return val
+
 
 class String(Field):
     def type(self):
         return 'string'
 
     def python_type(self):
-        return str
+        return str, bytes
 
     def validate_type(self, name, val):
         t = type(val)
@@ -359,8 +364,10 @@ class String(Field):
         if val is None and not self._required:
             return self.default()
 
-        if not (t is str or t.__name__ == 'unicode'):
+        if not (isinstance(val, (str, bytes)) or t.__name__ == 'unicode'):
             raise TypeError("Invalid type '%s' for field '%s'. Expected a string" % (t, name))
+        if isinstance(val, bytes):
+            return val.decode()
         return val
 
     def default(self):
@@ -406,7 +413,7 @@ class CustomEnum(Field):
             else:
                 raise TypeError(
                     "Invalid enum value '%s' for field '%s'. Expected: %s" % (val, name, self.values.keys()))
-        elif type(val) != self.python_type():
+        elif not isinstance(val, self.python_type()):
             raise TypeError("Invalid type '%s' for field '%s'. Expected: %s" % (type(val), name, _string_representation(self.python_type())))
         else:
             return val
@@ -493,7 +500,7 @@ class Map(Field):
         for k, v in val.items():
             if type(k) != str and not is_unicode(k):
                 raise TypeError('Map keys for field ' + name + '  should all be strings')
-            if type(v) != self.value_type.python_type():
+            if not isinstance(val, self.value_type.python_type()):
                 raise TypeError('Map values for field ' + name + ' should all be of type '
                                 + _string_representation(self.value_type.python_type()))
 
