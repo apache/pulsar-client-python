@@ -1380,28 +1380,31 @@ class SchemaTest(TestCase):
     def test_schema_type_promotion(self):
         client = pulsar.Client(self.serviceUrl)
 
-        topic = 'test_schema_type_promotion'
-        consumer = client.subscribe(
-            topic=topic,
-            subscription_name='my-sub',
-            schema=AvroSchema(ExampleRecord)
-        )
-        producer = client.create_producer(
-            topic=topic,
-            schema=AvroSchema(ExampleRecord)
-        )
+        schemas = [("avro", AvroSchema(ExampleRecord)), ("json", JsonSchema(ExampleRecord))]
 
-        sendValue = ExampleRecord(str_field=b'test', int_field=1, float_field=3, bytes_field='str')
+        for schema_name, schema in schemas:
+            topic = f'test_schema_type_promotion_{schema_name}'
 
-        producer.send(sendValue)
+            consumer = client.subscribe(
+                topic=topic,
+                subscription_name=f'my-sub-{schema_name}',
+                schema=schema
+            )
+            producer = client.create_producer(
+                topic=topic,
+                schema=schema
+            )
+            sendValue = ExampleRecord(str_field=b'test', int_field=1, float_field=3, bytes_field='str')
 
-        msg = consumer.receive()
-        msg_value = msg.value()
-        self.assertEqual(msg_value.str_field, sendValue.str_field)
-        self.assertEqual(msg_value.int_field, sendValue.int_field)
-        self.assertEqual(msg_value.float_field, sendValue.float_field)
-        self.assertEqual(msg_value.bytes_field, sendValue.bytes_field)
-        consumer.acknowledge(msg)
+            producer.send(sendValue)
+
+            msg = consumer.receive()
+            msg_value = msg.value()
+            self.assertEqual(msg_value.str_field, sendValue.str_field)
+            self.assertEqual(msg_value.int_field, sendValue.int_field)
+            self.assertEqual(msg_value.float_field, sendValue.float_field)
+            self.assertEqual(msg_value.bytes_field, sendValue.bytes_field)
+            consumer.acknowledge(msg)
 
         client.close()
 
