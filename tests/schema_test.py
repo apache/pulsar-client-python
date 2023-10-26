@@ -260,7 +260,7 @@ class SchemaTest(TestCase):
             a = Float()
 
         E3(a=1.0)  # Ok
-        self._expectTypeError(lambda:  E3(a=1))
+        E3(a=1) # Ok Type promotion: int -> float
 
         class E4(Record):
             a = Null()
@@ -290,7 +290,7 @@ class SchemaTest(TestCase):
             a = Double()
 
         E7(a=1.0)  # Ok
-        self._expectTypeError(lambda:  E3(a=1))
+        E7(a=1)  # Ok Type promotion: int -> double
 
         class Color(Enum):
             red = 1

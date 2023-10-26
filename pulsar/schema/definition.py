@@ -457,7 +457,7 @@ class Array(Field):
         super(Array, self).validate_type(name, val)
 
         for x in val:
-            if type(x) != self.array_type.python_type():
+            if not isinstance(x, self.array_type.python_type()):
                 raise TypeError('Array field ' + name + ' items should all be of type ' +
                                 _string_representation(self.array_type.type()))
         return val
@@ -500,7 +500,7 @@ class Map(Field):
         for k, v in val.items():
             if type(k) != str and not is_unicode(k):
                 raise TypeError('Map keys for field ' + name + '  should all be strings')
-            if not isinstance(val, self.value_type.python_type()):
+            if not isinstance(v, self.value_type.python_type()):
                 raise TypeError('Map values for field ' + name + ' should all be of type '
                                 + _string_representation(self.value_type.python_type()))
 
