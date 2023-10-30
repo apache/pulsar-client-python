@@ -101,6 +101,8 @@ class JsonSchema(Schema):
     def _get_serialized_value(self, o):
         if isinstance(o, enum.Enum):
             return o.value
+        elif isinstance(o, bytes):
+            return o.decode()
         else:
             data = o.__dict__.copy()
             remove_reserved_key(data)

@@ -35,6 +35,12 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)-5s %(message)s')
 
 
+class ExampleRecord(Record):
+    str_field = String()
+    int_field = Integer()
+    float_field = Float()
+    bytes_field = Bytes()
+
 class SchemaTest(TestCase):
 
     serviceUrl = 'pulsar://localhost:6650'
@@ -86,6 +92,31 @@ class SchemaTest(TestCase):
                 {"name": "j", "type": ["null", "Color"]}
             ]
         })
+
+    def test_type_promotion(self):
+        test_cases = [
+            (20, int, 20),  # No promotion necessary: int => int
+            (20, float, 20.0),  # Promotion: int => float
+            (20.0, float, 20.0),  # No Promotion necessary: float => float
+            ("Test text1", bytes, b"Test text1"),  # Promotion: str => bytes
+            (b"Test text1", str, "Test text1"),  # Promotion: bytes => str
+        ]
+
+        for value_from, type_to, value_to in test_cases:
+            if type_to == int:
+                fieldType = Integer()
+            elif type_to == float:
+                fieldType = Double()
+            elif type_to == str:
+                fieldType = String()
+            elif type_to == bytes:
+                fieldType = Bytes()
+            else:
+                fieldType = String()
+
+            field_value = fieldType.validate_type("test_field", value_from)
+            self.assertEqual(value_to, field_value)
+
 
     def test_complex(self):
         class Color(Enum):
@@ -229,7 +260,7 @@ class SchemaTest(TestCase):
             a = Float()
 
         E3(a=1.0)  # Ok
-        self._expectTypeError(lambda:  E3(a=1))
+        E3(a=1) # Ok Type promotion: int -> float
 
         class E4(Record):
             a = Null()
@@ -259,7 +290,7 @@ class SchemaTest(TestCase):
             a = Double()
 
         E7(a=1.0)  # Ok
-        self._expectTypeError(lambda:  E3(a=1))
+        E7(a=1)  # Ok Type promotion: int -> double
 
         class Color(Enum):
             red = 1
@@ -1345,6 +1376,38 @@ class SchemaTest(TestCase):
         verify_messages(msgs2)
 
         client.close()
+
+    def test_schema_type_promotion(self):
+        client = pulsar.Client(self.serviceUrl)
+
+        schemas = [("avro", AvroSchema(ExampleRecord)), ("json", JsonSchema(ExampleRecord))]
+
+        for schema_name, schema in schemas:
+            topic = f'test_schema_type_promotion_{schema_name}'
+
+            consumer = client.subscribe(
+                topic=topic,
+                subscription_name=f'my-sub-{schema_name}',
+                schema=schema
+            )
+            producer = client.create_producer(
+                topic=topic,
+                schema=schema
+            )
+            sendValue = ExampleRecord(str_field=b'test', int_field=1, float_field=3, bytes_field='str')
+
+            producer.send(sendValue)
+
+            msg = consumer.receive()
+            msg_value = msg.value()
+            self.assertEqual(msg_value.str_field, sendValue.str_field)
+            self.assertEqual(msg_value.int_field, sendValue.int_field)
+            self.assertEqual(msg_value.float_field, sendValue.float_field)
+            self.assertEqual(msg_value.bytes_field, sendValue.bytes_field)
+            consumer.acknowledge(msg)
+
+        client.close()
+
 
 if __name__ == '__main__':
     main()
