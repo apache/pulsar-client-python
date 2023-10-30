@@ -101,7 +101,7 @@ jobs:
           - {name: 'manylinux2014', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
-          - {version: '3.11', spec: 'cp311-cp311'}
+          - {version: '3.12', spec: 'cp312-cp312'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
 
