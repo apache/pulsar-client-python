@@ -56,7 +56,9 @@ from schema_test import *
 from urllib.request import urlopen, Request
 
 TM = 10000  # Do not wait forever in tests
-CERTS_DIR = os.path.dirname(os.path.abspath(__file__)) + "/test-conf/"
+TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+TOKEN_PATH = TESTS_DIR + "/.test-token.txt"
+CERTS_DIR = TESTS_DIR + "/test-conf/"
 
 def doHttpPost(url, data):
     req = Request(url, data.encode())
@@ -1247,7 +1249,7 @@ class PulsarTest(TestCase):
         client.close()
 
     def test_token_auth(self):
-        with open(".test-token.txt") as tf:
+        with open(TOKEN_PATH) as tf:
             token = tf.read().strip()
 
         # Use adminUrl to test both HTTP request and binary protocol
@@ -1266,7 +1268,7 @@ class PulsarTest(TestCase):
 
     def test_token_auth_supplier(self):
         def read_token():
-            with open(".test-token.txt") as tf:
+            with open(TOKEN_PATH) as tf:
                 return tf.read().strip()
 
         client = Client(self.serviceUrl, authentication=AuthenticationToken(read_token))

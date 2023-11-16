@@ -34,8 +34,23 @@ bin/pulsar tokens create \
             --secret-key file:///pulsar/data/tokens/secret.key \
             > /pulsar/data/tokens/token.txt
 
+# Unset the HTTP proxy to avoid the REST requests being affected
+export http_proxy=
+TOKEN=$(bin/pulsar tokens create \
+            --subject superUser \
+            --secret-key file:///pulsar/data/tokens/secret.key)
+
+put() {
+    curl -H "Authorization: Bearer $TOKEN" \
+        -L http://localhost:8080/admin/v2/$1 \
+        -H 'Content-Type: application/json' \
+        -X PUT \
+        -d $(echo $2 | sed 's/ //g')
+}
+
 export PULSAR_STANDALONE_CONF=test-conf/standalone-ssl.conf
 export PULSAR_PID_DIR=/tmp
+sed -i 's/immediateFlush: false/immediateFlush: true/' conf/log4j2.yaml
 bin/pulsar-daemon start standalone \
         --no-functions-worker --no-stream-storage \
         --bookkeeper-dir data/bookkeeper
@@ -48,57 +63,53 @@ echo "-- Pulsar service is ready -- Configure permissions"
 export PULSAR_CLIENT_CONF=test-conf/client-ssl.conf
 
 # Create "standalone" cluster if it does not exist
-bin/pulsar-admin clusters list | grep -q '^standalone$' ||
-        bin/pulsar-admin clusters create \
-                standalone \
-                --url http://localhost:8080/ \
-                --url-secure https://localhost:8443/ \
-                --broker-url pulsar://localhost:6650/ \
-                --broker-url-secure pulsar+ssl://localhost:6651/
+put clusters/standalone '{
+  "serviceUrl": "http://localhost:8080/",
+  "serviceUrlTls": "https://localhost:8443/",
+  "brokerServiceUrl": "pulsar://localhost:6650/",
+  "brokerServiceUrlTls": "pulsar+ssl://localhost:6651/"
+}'
 
 # Update "public" tenant
-bin/pulsar-admin tenants create public -r "anonymous" -c "standalone"
+put tenants/public '{
+  "adminRoles": ["anonymous"],
+  "allowedClusters": ["standalone"]
+}'
 
 # Update "public/default" with no auth required
-bin/pulsar-admin namespaces create public/default -c standalone
-bin/pulsar-admin namespaces grant-permission public/default \
-                        --actions produce,consume \
-                        --role "anonymous"
+put namespaces/public/default '{
+  "auth_policies": {
+    "namespace_auth": {
+      "anonymous": ["produce", "consume"]
+    }
+  },
+  "replication_clusters": ["standalone"]
+}'
 
 # Create "public/default-2" with no auth required
-bin/pulsar-admin namespaces create public/default-2 \
-                        --clusters standalone
-bin/pulsar-admin namespaces grant-permission public/default-2 \
-                        --actions produce,consume \
-                        --role "anonymous"
-
-# Create "public/default-3" with no auth required
-bin/pulsar-admin namespaces create public/default-3 \
-                        --clusters standalone
-bin/pulsar-admin namespaces grant-permission public/default-3 \
-                        --actions produce,consume \
-                        --role "anonymous"
-
-# Create "public/default-4" with encryption required
-bin/pulsar-admin namespaces create public/default-4 \
-                        --clusters standalone
-bin/pulsar-admin namespaces grant-permission public/default-4 \
-                        --actions produce,consume \
-                        --role "anonymous"
-bin/pulsar-admin namespaces set-encryption-required public/default-4 -e
-
-# Create "public/test-backlog-quotas" to test backlog quotas policy
-bin/pulsar-admin namespaces create public/test-backlog-quotas \
-                        --clusters standalone
+put namespaces/public/default-2 '{
+  "auth_policies": {
+    "namespace_auth": {
+      "anonymous": ["produce", "consume"]
+    }
+  },
+  "replication_clusters": ["standalone"]
+}'
 
 # Create "private" tenant
-bin/pulsar-admin tenants create private -r "" -c "standalone"
+put tenants/private '{
+  "adminRoles": [],
+  "allowedClusters": ["standalone"]
+}'
 
 # Create "private/auth" with required authentication
-bin/pulsar-admin namespaces create private/auth --clusters standalone
-
-bin/pulsar-admin namespaces grant-permission private/auth \
-                        --actions produce,consume \
-                        --role "token-principal"
+put namespaces/private/auth '{
+  "auth_policies": {
+    "namespace_auth": {
+      "token-principal": ["produce", "consume"]
+    }
+  },
+  "replication_clusters": ["standalone"]
+}'
 
 echo "-- Ready to start tests"
