@@ -23,7 +23,7 @@ pulsar_cpp_base_url() {
     exit 1
   fi
   VERSION=$1
-  echo "https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-${VERSION}-candidate-1"
+  echo "https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-cpp/pulsar-client-cpp-${VERSION}-candidate-2"
 }
 
 download_dependency() {
