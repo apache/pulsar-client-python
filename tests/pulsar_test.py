@@ -513,7 +513,7 @@ class PulsarTest(TestCase):
             authentication=Authentication(authPlugin, authParams),
         )
 
-        with self.assertRaises(pulsar.ConnectError):
+        with self.assertRaises(pulsar.AuthenticationError):
             client.subscribe("my-python-topic-auth-junk-params", "my-sub", consumer_type=ConsumerType.Shared)
 
     def test_message_listener(self):
