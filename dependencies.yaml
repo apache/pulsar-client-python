@@ -26,4 +26,4 @@ zlib: 1.2.13
 zstd: 1.5.2
 snappy: 1.1.9
 openssl: 1.1.1q
-curl: 7.85.0
+curl: 8.4.0
