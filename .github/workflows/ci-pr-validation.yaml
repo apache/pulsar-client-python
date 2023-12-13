@@ -87,6 +87,10 @@ jobs:
       - name: Stop Pulsar service
         run: ./build-support/pulsar-test-service-stop.sh
 
+      - name: Test functions install
+        run: |
+            WHEEL=$(find dist -name '*.whl')
+            pip3 install ${WHEEL}[functions] --force-reinstall
 
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
