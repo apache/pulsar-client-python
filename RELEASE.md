@@ -71,7 +71,7 @@ For patch releases (`X.Y.Z`), you need to reuse the existing branch:
 
 ```bash
 git checkout branch-X.Y
-sed -i 's/__version__.*/__version__=X.Y.Z/' pulsar/__about__.py
+sed -i "s/__version__.*/__version__=\"X.Y.Z\"/" pulsar/__about__.py
 git add pulsar/__about__.py
 git commit -m "Bump version to X.Y.Z"
 git push origin branch-X.Y
