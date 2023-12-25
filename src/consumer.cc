@@ -64,7 +64,8 @@ void Consumer_negative_acknowledge(Consumer& consumer, const Message& msg) {
 }
 
 void Consumer_negative_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
-    waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeAsync(msgId, callback); });
+    Py_BEGIN_ALLOW_THREADS consumer.negativeAcknowledge(msgId);
+    Py_END_ALLOW_THREADS
 }
 
 void Consumer_acknowledge_cumulative(Consumer& consumer, const Message& msg) {
