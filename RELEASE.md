@@ -58,7 +58,7 @@ For major and minor releases (`X.Y.0`), you need to create a new branch:
 
 ```bash
 git checkout -b branch-X.Y
-sed -i 's/__version__.*/__version__=X.Y.0/' pulsar/__about__.py
+perl -pi -e "s/__version__.*/__version__='X.Y.Z'/" pulsar/__about__.py
 git add pulsar/__about__.py
 git commit -m "Bump version to X.Y.0"
 git push origin branch-X.Y
@@ -71,7 +71,7 @@ For patch releases (`X.Y.Z`), you need to reuse the existing branch:
 
 ```bash
 git checkout branch-X.Y
-perl -pi -e "s/__version__.*/__version__=\"X.Y.Z\"/" pulsar/__about__.py
+perl -pi -e "s/__version__.*/__version__='X.Y.Z'/" pulsar/__about__.py
 git add pulsar/__about__.py
 git commit -m "Bump version to X.Y.Z"
 git push origin branch-X.Y
@@ -164,7 +164,7 @@ You need to move the main version to the next iteration.
 
 ```bash
 git checkout main
-sed -i.bak 's/X.Y.0a1/X.Y+1.0a1/' pulsar/__about__.py
+perl -pi -e "s/X.Y.0a1/X.Y+1.0a1/" pulsar/__about__.py
 git add pulsar/__about__.py
 git commit -m "Bumped version to X.Y.0a1"
 ```
