@@ -47,13 +47,22 @@ jobs:
             pulsar
 
   unit-tests:
-    name: Run unit tests
+    name: Run unit tests for Python ${{matrix.version}}
     runs-on: ubuntu-22.04
     timeout-minutes: 120
 
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['3.8', '3.12']
+
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{matrix.version}}"
 
       - name: Install Pulsar C++ client
         run: build-support/install-dependencies.sh
@@ -66,7 +75,8 @@ jobs:
 
       - name: Python install
         run: |
-            ./setup.py bdist_wheel
+            python3 -m pip install -U pip setuptools wheel requests
+            python3 setup.py bdist_wheel
             WHEEL=$(find dist -name '*.whl')
             pip3 install ${WHEEL}[avro]
 
@@ -90,7 +100,7 @@ jobs:
       - name: Test functions install
         run: |
             WHEEL=$(find dist -name '*.whl')
-            pip3 install ${WHEEL}[functions] --force-reinstall
+            pip3 install ${WHEEL}[all] --force-reinstall
 
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}

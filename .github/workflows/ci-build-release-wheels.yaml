@@ -41,7 +41,6 @@ jobs:
           - {name: 'manylinux2014', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
-          - {version: '3.7', spec: 'cp37-cp37m'}
           - {version: '3.8', spec: 'cp38-cp38'}
           - {version: '3.9', spec: 'cp39-cp39'}
           - {version: '3.10', spec: 'cp310-cp310'}
@@ -103,7 +102,6 @@ jobs:
       fail-fast: false
       matrix:
         py:
-          - {version: '3.7', version_long:  '3.7.15'}
           - {version: '3.8', version_long:  '3.8.13'}
           - {version: '3.9', version_long:  '3.9.14'}
           - {version: '3.10', version_long:  '3.10.7'}
@@ -156,7 +154,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - {version: '3.7'}
           - {version: '3.8'}
           - {version: '3.9'}
           - {version: '3.10'}
