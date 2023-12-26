@@ -286,7 +286,10 @@ class PulsarTest(TestCase):
         for i in range(4):
             msg = consumer.receive(TM)
             print("Received message %s" % msg.data())
-            consumer.negative_acknowledge(msg)
+            if i % 2 == 0:
+                consumer.negative_acknowledge(msg)
+            else:
+                consumer.negative_acknowledge(msg.message_id())
             redelivery_count = msg.redelivery_count()
 
         self.assertTrue(msg)
