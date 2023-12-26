@@ -22,6 +22,7 @@ set -e -x
 
 cd `dirname $0`
 
+python3 -m pip install pyyaml
 CPP_CLIENT_VERSION=$(./dep-version.py pulsar-cpp ../dependencies.yaml)
 PYBIND11_VERSION=$(./dep-version.py pybind11 ../dependencies.yaml)
 source ./dep-url.sh

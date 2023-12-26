@@ -25,7 +25,7 @@ Pulsar Python clients support a variety of Pulsar features to enable building ap
 
 ## Requirements
 
-- Python >= 3.7
+- Python 3.8, 3.9, 3.10, 3.11, 3.12
 - A C++ compiler that supports C++11
 - CMake >= 3.18
 - [Pulsar C++ client library](https://github.com/apache/pulsar-client-cpp)
