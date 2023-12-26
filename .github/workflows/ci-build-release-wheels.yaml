@@ -144,7 +144,7 @@ jobs:
           path: dist/*.whl
 
   windows-wheels:
-    name: Wheel Windows - Py ${{matrix.py.version}}
+    name: Wheel Windows - Py ${{matrix.python.version}}
     runs-on: windows-2019
     env:
       PULSAR_CPP_DIR: 'C:\\pulsar-cpp'
@@ -196,7 +196,7 @@ jobs:
         shell: bash
         run: |
           cmake --build build --config Release --target install
-          python -m pip install wheel
+          python -m pip install wheel setuptools
           python setup.py bdist_wheel
           python -m pip install ./dist/*.whl
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'

@@ -29,7 +29,7 @@ PYTHON_VERSION_LONG=$2
 source pkg/mac/common.sh
 source build-support/dep-url.sh
 
-pip3 install pyyaml
+pip3 install pyyaml setuptools
 
 dep=$ROOT_DIR/build-support/dep-version.py
 PYBIND11_VERSION=$($dep pybind11)
