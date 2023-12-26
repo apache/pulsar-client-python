@@ -449,7 +449,7 @@ class SchemaTest(TestCase):
 
         self.assertIsNotNone(msg.schema_version())
 
-        self.assertEquals(b'\x00\x00\x00\x00\x00\x00\x00\x00', msg.schema_version().encode())
+        self.assertEqual(b'\x00\x00\x00\x00\x00\x00\x00\x00', msg.schema_version().encode())
 
         self.assertEqual(r, msg.value())
 
