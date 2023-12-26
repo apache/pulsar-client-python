@@ -146,7 +146,7 @@ jobs:
           path: dist/*.whl
 
   windows-wheels:
-    name: Wheel Windows - Py ${{matrix.py.version}}
+    name: Wheel Windows - Py ${{matrix.python.version}}
     runs-on: windows-2019
     env:
       PULSAR_CPP_DIR: 'C:\\pulsar-cpp'
