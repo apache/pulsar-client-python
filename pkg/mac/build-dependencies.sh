@@ -89,6 +89,7 @@ if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
       make install
 
       curl -O -L https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl
+      $PREFIX/bin/pip3 install wheel setuptools
       $PREFIX/bin/pip3 install wheel-*.whl
 
       touch .done
