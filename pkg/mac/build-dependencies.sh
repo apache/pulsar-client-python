@@ -72,33 +72,6 @@ else
 fi
 
 ###############################################################################
-if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
-  echo "Building Python $PYTHON_VERSION_LONG"
-  curl -O -L https://www.python.org/ftp/python/${PYTHON_VERSION_LONG}/Python-${PYTHON_VERSION_LONG}.tgz
-  tar xfz Python-${PYTHON_VERSION_LONG}.tgz
-
-  pushd Python-${PYTHON_VERSION_LONG}
-      if [ $PYTHON_VERSION = '3.7' ]; then
-          patch -p1 < ${ROOT_DIR}/pkg/mac/python-3.7.patch
-      fi
-
-      CFLAGS="-fPIC -O3 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -I${PREFIX}/include ${PY_CFLAGS}" \
-          LDFLAGS=" ${PY_CFLAGS} -L${PREFIX}/lib" \
-          ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2
-      make -j16
-      make install
-
-      curl -O -L https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl
-      $PREFIX/bin/pip3 install wheel setuptools
-      $PREFIX/bin/pip3 install wheel-*.whl
-
-      touch .done
-  popd
-else
-  echo "Using cached Python $PYTHON_VERSION_LONG"
-fi
-
-###############################################################################
 OPENSSL_VERSION_UNDERSCORE=$(echo $OPENSSL_VERSION | sed 's/\./_/g')
 if [ ! -f openssl-OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.done ]; then
     echo "Building OpenSSL"
@@ -134,6 +107,35 @@ if [ ! -f openssl-OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.done ]; then
     touch openssl-OpenSSL_${OPENSSL_VERSION_UNDERSCORE}.done
 else
     echo "Using cached OpenSSL"
+fi
+
+###############################################################################
+if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
+  echo "Building Python $PYTHON_VERSION_LONG"
+  curl -O -L https://www.python.org/ftp/python/${PYTHON_VERSION_LONG}/Python-${PYTHON_VERSION_LONG}.tgz
+  tar xfz Python-${PYTHON_VERSION_LONG}.tgz
+
+  pushd Python-${PYTHON_VERSION_LONG}
+      if [ $PYTHON_VERSION = '3.7' ]; then
+          patch -p1 < ${ROOT_DIR}/pkg/mac/python-3.7.patch
+      fi
+
+      CFLAGS="-fPIC -O3 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -I${PREFIX}/include ${PY_CFLAGS}" \
+          LDFLAGS=" ${PY_CFLAGS} -L${PREFIX}/lib" \
+          ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk \
+              --with-universal-archs=universal2 \
+              --with-openssl=$PREFIX
+      make -j16
+      make install
+
+      curl -O -L https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl
+      $PREFIX/bin/pip3 install wheel setuptools
+      $PREFIX/bin/pip3 install wheel-*.whl
+
+      touch .done
+  popd
+else
+  echo "Using cached Python $PYTHON_VERSION_LONG"
 fi
 
 ###############################################################################
