@@ -46,6 +46,11 @@ void Producer_close(Producer& producer) {
     waitForAsyncResult([&](ResultCallback callback) { producer.closeAsync(callback); });
 }
 
+void Producer_closeAsync(Producer& producer, ResultCallback callback) {
+    py::gil_scoped_release release;
+    producer.closeAsync(callback);
+}
+
 void export_producer(py::module_& m) {
     using namespace py;
 
@@ -76,5 +81,6 @@ void export_producer(py::module_& m) {
              "Flush all the messages buffered in the client and wait until all messages have been\n"
              "successfully persisted\n")
         .def("close", &Producer_close)
+        .def("close_async", &Producer_closeAsync)
         .def("is_connected", &Producer::isConnected);
 }

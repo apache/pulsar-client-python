@@ -26,3 +26,4 @@ cd $ROOT_DIR/tests
 python3 custom_logger_test.py
 python3 interrupted_test.py
 python3 pulsar_test.py
+python3 asyncio_test.py
