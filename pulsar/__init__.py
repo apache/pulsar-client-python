@@ -1237,6 +1237,8 @@ class Producer:
         --------
 
         The ``callback`` will be invoked once the message has been acknowledged by the broker.
+        Users are responsible to handle the exception inside the callback. If any exception was
+        thrown from the callback, the process would terminate immediately.
 
         .. code-block:: python
 
