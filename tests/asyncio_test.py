@@ -41,22 +41,21 @@ class AsyncioTest(IsolatedAsyncioTestCase):
 
     async def test_batch_send(self):
         producer = await self._client.create_producer('awaitio-test-batch-send')
-        async with asyncio.TaskGroup() as tg:
-            tasks = []
-            for i in range(5):
-                tasks.append(tg.create_task(producer.send(f'msg-{i}'.encode())))
-            msg_ids = await asyncio.gather(*tasks)
-            self.assertEqual(len(msg_ids), 5)
-            ledger_id = msg_ids[0].ledger_id()
-            entry_id = msg_ids[0].entry_id()
-            # These messages should be in the same entry
-            for i in range(5):
-                msg_id = msg_ids[i]
-                print(f'{i} was sent to {msg_id}')
-                self.assertIsInstance(msg_id, pulsar.MessageId)
-                self.assertEqual(msg_ids[i].ledger_id(), ledger_id)
-                self.assertEqual(msg_ids[i].entry_id(), entry_id)
-                self.assertEqual(msg_ids[i].batch_index(), i)
+        tasks = []
+        for i in range(5):
+            tasks.append(asyncio.create_task(producer.send(f'msg-{i}'.encode())))
+        msg_ids = await asyncio.gather(*tasks)
+        self.assertEqual(len(msg_ids), 5)
+        ledger_id = msg_ids[0].ledger_id()
+        entry_id = msg_ids[0].entry_id()
+        # These messages should be in the same entry
+        for i in range(5):
+            msg_id = msg_ids[i]
+            print(f'{i} was sent to {msg_id}')
+            self.assertIsInstance(msg_id, pulsar.MessageId)
+            self.assertEqual(msg_ids[i].ledger_id(), ledger_id)
+            self.assertEqual(msg_ids[i].entry_id(), entry_id)
+            self.assertEqual(msg_ids[i].batch_index(), i)
 
     async def test_create_producer_failure(self):
         try:
