@@ -63,7 +63,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             await self._client.create_producer('tenant/ns/awaitio-test-send-failure')
             self.fail()
         except PulsarException as e:
-            self.assertEqual(e.error(), pulsar.Result.TopicNotFound)
+            self.assertEqual(e.error(), pulsar.Result.AuthorizationError)
 
     async def test_send_failure(self):
         producer = await self._client.create_producer('awaitio-test-send-failure')
