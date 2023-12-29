@@ -163,7 +163,7 @@ class Client:
         self._client.close_async(functools.partial(_set_future, future, value=None))
         await future
 
-def _set_future(future: asyncio.Future[Any], result: _pulsar.Result, value: Any):
+def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
     def complete():
         if result == _pulsar.Result.Ok:
             future.set_result(value)
