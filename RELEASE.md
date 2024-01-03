@@ -185,7 +185,8 @@ svn move -m "Release Apache Pulsar Client Python X.Y.Z" \
 
 1. You need to create an account on PyPI: https://pypi.org/account/register/
 2. Ask anyone that has been a release manager before to add you as a maintainer for [pulsar-client](https://pypi.org/manage/project/pulsar-client/releases/) on PyPI
-3. Once you have completed the following steps in this section, you can check if the wheels are uploaded successfully in Download files. Remember to switch to the correct version in Release history).
+3. PyPI has discontinued the use of plain usernames and passwords for login. It is now necessary to generate and obtain an API token for PyPI. Please visit pypi.org, navigate to "Account Settings", then "API tokens" to generate your API token. Remember to copy it.
+4. Once you have completed the following steps in this section, you can check if the wheels are uploaded successfully in Download files. Remember to switch to the correct version in Release history.
 
 Then, upload the wheels to PyPI:
 
@@ -193,6 +194,8 @@ Then, upload the wheels to PyPI:
 sudo python3 -m pip install twine
 ./build-support/upload-pypi.sh https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-python-X.Y.Z
 ```
+
+To sign in to PyPI, please use `__token__` as your username and enter your API token as the password.
 
 To verify the wheels have been uploaded successfully, you can try installing the wheel:
 
@@ -212,7 +215,7 @@ git push origin vX.Y.Z
 
 Then, [create a release](https://github.com/apache/pulsar-client-python/releases/new). Choose the `vX.Y.Z` tag and click the `Generate release notes` button to generate the release note automatically. Here is an example release note: https://github.com/apache/pulsar-client-python/releases/tag/v3.0.0
 
-Then, create a PR in [`pulsar-site`](https://github.com/apache/pulsar-site) repo to update the website. Here is an example: https://github.com/apache/pulsar-site/pull/343
+Then, create a PR in [`pulsar-site`](https://github.com/apache/pulsar-site) repo to update the website. Here is an example: https://github.com/apache/pulsar-site/pull/761
 
 ## Generate the API documents
 
