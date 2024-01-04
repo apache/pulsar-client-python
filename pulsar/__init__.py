@@ -105,6 +105,12 @@ class MessageId:
         """
         return self._msg_id.serialize()
 
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the message id.
+        """
+        return str(self._msg_id)
+
     @staticmethod
     def deserialize(message_id_bytes):
         """

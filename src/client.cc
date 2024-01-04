@@ -18,6 +18,7 @@
  */
 #include "utils.h"
 
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -26,6 +27,12 @@ namespace py = pybind11;
 Producer Client_createProducer(Client& client, const std::string& topic, const ProducerConfiguration& conf) {
     return waitForAsyncValue<Producer>(
         [&](CreateProducerCallback callback) { client.createProducerAsync(topic, conf, callback); });
+}
+
+void Client_createProducerAsync(Client& client, const std::string& topic, ProducerConfiguration conf,
+                                CreateProducerCallback callback) {
+    py::gil_scoped_release release;
+    client.createProducerAsync(topic, conf, callback);
 }
 
 Consumer Client_subscribe(Client& client, const std::string& topic, const std::string& subscriptionName,
@@ -68,10 +75,16 @@ void Client_close(Client& client) {
     waitForAsyncResult([&](ResultCallback callback) { client.closeAsync(callback); });
 }
 
+void Client_closeAsync(Client& client, ResultCallback callback) {
+    py::gil_scoped_release release;
+    client.closeAsync(callback);
+}
+
 void export_client(py::module_& m) {
     py::class_<Client, std::shared_ptr<Client>>(m, "Client")
         .def(py::init<const std::string&, const ClientConfiguration&>())
         .def("create_producer", &Client_createProducer)
+        .def("create_producer_async", &Client_createProducerAsync)
         .def("subscribe", &Client_subscribe)
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
@@ -79,5 +92,6 @@ void export_client(py::module_& m) {
         .def("get_topic_partitions", &Client_getTopicPartitions)
         .def("get_schema_info", &Client_getSchemaInfo)
         .def("close", &Client_close)
+        .def("close_async", &Client_closeAsync)
         .def("shutdown", &Client::shutdown);
 }
