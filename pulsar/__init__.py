@@ -526,6 +526,19 @@ class Client:
             matches the common name on the TLS certificate presented by the endpoint.
         logger: optional
             Set a Python logger for this Pulsar client. Should be an instance of `logging.Logger`.
+            It should be noted that if the Python logger is configured, during the termination of the Python
+            interpreter, the Python logger will be unavailable and the default logger will be used for logging.
+            To avoid strange behavior, you'd better delete all instances explicitly before exiting.
+
+            .. code-block:: python
+
+                import logging
+                client = Client(service_url, logger=logging.getLogger('pulsar'))
+                producer = client.create_producer(topic)
+                # ...
+                del producer
+                del client
+
         connection_timeout_ms: int, default=10000
             Set timeout in milliseconds on TCP connections.
         listener_name: str, optional
