@@ -52,6 +52,7 @@ from pulsar.schema import JsonSchema, Record, Integer
 from _pulsar import ProducerConfiguration, ConsumerConfiguration, RegexSubscriptionMode
 
 from schema_test import *
+from reader_test import *
 
 from urllib.request import urlopen, Request
 
