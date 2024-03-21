@@ -43,7 +43,7 @@ Read the instructions on `source code repository
 """
 
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 import _pulsar
 
@@ -627,7 +627,7 @@ class Client:
                         properties=None,
                         batching_type: BatchingType = BatchingType.Default,
                         encryption_key=None,
-                        crypto_key_reader: CryptoKeyReader = None,
+                        crypto_key_reader: Union[None, CryptoKeyReader] = None,
                         access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
                         ):
         """
@@ -804,7 +804,7 @@ class Client:
                   properties=None,
                   pattern_auto_discovery_period=60,
                   initial_position: InitialPosition = InitialPosition.Latest,
-                  crypto_key_reader: CryptoKeyReader = None,
+                  crypto_key_reader: Union[None, CryptoKeyReader] = None,
                   replicate_subscription_state_enabled=False,
                   max_pending_chunked_message=10,
                   auto_ack_oldest_chunked_message_on_queue_full=False,
@@ -813,7 +813,7 @@ class Client:
                   key_shared_policy=None,
                   batch_index_ack_enabled=False,
                   regex_subscription_mode: RegexSubscriptionMode = RegexSubscriptionMode.PersistentOnly,
-                  dead_letter_policy: ConsumerDeadLetterPolicy = None,
+                  dead_letter_policy: Union[None, ConsumerDeadLetterPolicy] = None,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -1005,7 +1005,7 @@ class Client:
                       reader_name=None,
                       subscription_role_prefix=None,
                       is_read_compacted=False,
-                      crypto_key_reader: CryptoKeyReader = None,
+                      crypto_key_reader: Union[None, CryptoKeyReader] = None,
                       start_message_id_inclusive=False
                       ):
         """
