@@ -1428,6 +1428,12 @@ class Consumer:
         """
         return self._consumer.subscription_name()
 
+    def consumer_name(self):
+        """
+        Return the consumer name.
+        """
+        return self._consumer.consumer_name()
+
     def unsubscribe(self):
         """
         Unsubscribe the current consumer from the topic.
