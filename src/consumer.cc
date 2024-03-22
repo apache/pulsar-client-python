@@ -112,6 +112,7 @@ void export_consumer(py::module_& m) {
         .def("topic", &Consumer::getTopic, "return the topic this consumer is subscribed to",
              py::return_value_policy::copy)
         .def("subscription_name", &Consumer::getSubscriptionName, py::return_value_policy::copy)
+        .def("consumer_name", &Consumer::getConsumerName, py::return_value_policy::copy)
         .def("unsubscribe", &Consumer_unsubscribe)
         .def("receive", &Consumer_receive)
         .def("receive", &Consumer_receive_timeout)

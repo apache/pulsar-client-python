@@ -1886,5 +1886,13 @@ class PulsarTest(TestCase):
 
         client.close()
 
+    def test_consumer_name(self):
+        client = Client(self.serviceUrl)
+        name = 'my-consumer-name'
+        consumer = client.subscribe('test_consumer_name', 'sub', consumer_name=name)
+        self.assertEqual(consumer.consumer_name(), name)
+        client.close()
+
+
 if __name__ == "__main__":
     main()
