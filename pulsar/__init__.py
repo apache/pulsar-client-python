@@ -1481,6 +1481,7 @@ class Consumer:
         for msg in msgs:
             m = Message()
             m._message = msg
+            m._schema = self._schema
             messages.append(m)
         return messages
 
