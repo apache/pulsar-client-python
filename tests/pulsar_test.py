@@ -146,18 +146,21 @@ class PulsarTest(TestCase):
 
         sent_messages = []
 
+        event = threading.Event()
         def send_callback(producer, msg):
             sent_messages.append(msg)
+            if len(sent_messages) >= 3:
+                event.set()
 
         producer.send_async(b"hello", send_callback)
         producer.send_async(b"hello", send_callback)
         producer.send_async(b"hello", send_callback)
 
-        i = 0
-        while len(sent_messages) < 3 and i < 100:
-            time.sleep(0.1)
-            i += 1
+        event.wait(3000)
         self.assertEqual(len(sent_messages), 3)
+        for i in range(0, len(sent_messages)):
+            msg_id = sent_messages[i]
+            self.assertEqual(msg_id.batch_index(), i)
         client.close()
 
     def test_producer_send(self):
