@@ -41,6 +41,12 @@ Consumer Client_subscribe(Client& client, const std::string& topic, const std::s
         [&](SubscribeCallback callback) { client.subscribeAsync(topic, subscriptionName, conf, callback); });
 }
 
+void Client_subscribeAsync(Client& client, const std::string& topic, const std::string& subscriptionName,
+                          const ConsumerConfiguration& conf, SubscribeCallback callback) {
+    py::gil_scoped_release release;
+    client.subscribeAsync(topic, subscriptionName, conf, callback);
+}
+
 Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>& topics,
                                  const std::string& subscriptionName, const ConsumerConfiguration& conf) {
     return waitForAsyncValue<Consumer>(
@@ -86,6 +92,7 @@ void export_client(py::module_& m) {
         .def("create_producer", &Client_createProducer)
         .def("create_producer_async", &Client_createProducerAsync)
         .def("subscribe", &Client_subscribe)
+        .def("subscribe_async", &Client_subscribeAsync)
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
         .def("create_reader", &Client_createReader)

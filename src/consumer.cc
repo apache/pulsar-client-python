@@ -19,6 +19,7 @@
 #include "utils.h"
 
 #include <pulsar/Consumer.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -30,6 +31,11 @@ void Consumer_unsubscribe(Consumer& consumer) {
 
 Message Consumer_receive(Consumer& consumer) {
     return waitForAsyncValue<Message>([&](ReceiveCallback callback) { consumer.receiveAsync(callback); });
+}
+
+void Consumer_receiveAsync(Consumer& consumer, ReceiveCallback callback) {
+      py::gil_scoped_acquire acquire;
+      consumer.receiveAsync(callback);
 }
 
 Message Consumer_receive_timeout(Consumer& consumer, int timeoutMs) {
@@ -52,6 +58,33 @@ Messages Consumer_batch_receive(Consumer& consumer) {
 
 void Consumer_acknowledge(Consumer& consumer, const Message& msg) {
     waitForAsyncResult([&](ResultCallback callback) { consumer.acknowledgeAsync(msg, callback); });
+}
+
+void Consumer_acknowledgeAsync(Consumer& consumer, const Message& msg, py::object callback) {
+    // Capture the callback by value to ensure it's safe to use in the async context
+    auto py_callback = std::make_shared<py::object>(callback);
+
+    // Call the Pulsar asynchronous acknowledge method
+    consumer.acknowledgeAsync(msg, [py_callback](pulsar::Result result) {
+        // Acquire the Python GIL before calling any Python code
+        py::gil_scoped_acquire acquire;
+
+        try {
+            if (result == pulsar::ResultOk) {
+                py::print("result ok");
+                // Call the Python callback with None if the acknowledgment was successful
+                (*py_callback)(pulsar::ResultOk, py::none());
+                py::print("callback called");
+            } else {
+                py::print("error");
+                // Raise a Python exception for failure
+                PyErr_SetString(PyExc_Exception, "AcknowledgeAsync failed");
+                (*py_callback)(pulsar::ResultOk, py::none());  // Or pass some error object to indicate failure
+            }
+        } catch (const py::error_already_set& e) {
+            throw py::error_already_set();
+        }
+    });
 }
 
 void Consumer_acknowledge_message_id(Consumer& consumer, const MessageId& msgId) {
@@ -79,6 +112,11 @@ void Consumer_acknowledge_cumulative_message_id(Consumer& consumer, const Messag
 
 void Consumer_close(Consumer& consumer) {
     waitForAsyncResult([&consumer](ResultCallback callback) { consumer.closeAsync(callback); });
+}
+
+void Consumer_closeAsync(Consumer& consumer, ResultCallback callback){
+    py::gil_scoped_acquire acquire;
+    consumer.closeAsync(callback);
 }
 
 void Consumer_pauseMessageListener(Consumer& consumer) { CHECK_RESULT(consumer.pauseMessageListener()); }
@@ -116,14 +154,17 @@ void export_consumer(py::module_& m) {
         .def("unsubscribe", &Consumer_unsubscribe)
         .def("receive", &Consumer_receive)
         .def("receive", &Consumer_receive_timeout)
+        .def("receive_async", &Consumer_receiveAsync)
         .def("batch_receive", &Consumer_batch_receive)
         .def("acknowledge", &Consumer_acknowledge)
         .def("acknowledge", &Consumer_acknowledge_message_id)
+        .def("acknowledge_async", &Consumer_acknowledgeAsync)
         .def("acknowledge_cumulative", &Consumer_acknowledge_cumulative)
         .def("acknowledge_cumulative", &Consumer_acknowledge_cumulative_message_id)
         .def("negative_acknowledge", &Consumer_negative_acknowledge)
         .def("negative_acknowledge", &Consumer_negative_acknowledge_message_id)
         .def("close", &Consumer_close)
+        .def("close_async", &Consumer_closeAsync)
         .def("pause_message_listener", &Consumer_pauseMessageListener)
         .def("resume_message_listener", &Consumer_resumeMessageListener)
         .def("redeliver_unacknowledged_messages", &Consumer::redeliverUnacknowledgedMessages)
