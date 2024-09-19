@@ -1,0 +1,1 @@
+/home/nl/PycharmProjects/pulsar-client-python/lib_pulsar.so

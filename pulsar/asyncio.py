@@ -185,9 +185,7 @@ class Consumer:
         """
         Acknowledge the failure to process a single message.
         """
-        future = asyncio.get_running_loop().create_future()
-        self._consumer.negative_acknowledge_async(msg, functools.partial(_set_future, future))
-        await future
+        self._consumer.negative_acknowledge(msg)
 
     async def batch_receive(self) -> Iterable[pulsar.Message]:
         """
@@ -214,12 +212,14 @@ class Consumer:
         self._consumer.close_async(functools.partial(_set_future, future, value=None))
         await future
 
-    async def seek(self, position: int):
+    async def seek(self, position: tuple[int, int, int, int]):
         """
         Reset the subscription associated with this consumer to a specific message id or publish timestamp. The message id can either be a specific message or represent the first or last messages in the topic. ...
         """
+        partition, ledger_id, entry_id, batch_index = position
+        message_id = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
         future = asyncio.get_running_loop().create_future()
-        self._consumer.seek_async(position, functools.partial(_set_future, future))
+        self._consumer.seek_async(message_id, functools.partial(_set_future, future))
         await future
 
     async def unsubscribe(self):
@@ -332,7 +332,7 @@ class Client:
         self._client.shutdown()
 
 
-def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
+def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Optional[Any] = None):
     def complete():
         if result == _pulsar.Result.Ok:
             future.set_result(value)
