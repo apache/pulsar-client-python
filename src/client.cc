@@ -21,6 +21,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <cmath>
 
 namespace py = pybind11;
 
@@ -53,10 +54,24 @@ Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>&
         [&](SubscribeCallback callback) { client.subscribeAsync(topics, subscriptionName, conf, callback); });
 }
 
+void Client_subscribe_topicsAsync(Client& client, const std::vector<std::string>& topics, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
+    client.subscribeAsync(topics, subscriptionName, conf, [callback](Result result, pulsar::Consumer consumer){
+        py::gil_scoped_acquire acquire;
+        callback(result, consumer);
+    });
+}
+
 Consumer Client_subscribe_pattern(Client& client, const std::string& topic_pattern,
                                   const std::string& subscriptionName, const ConsumerConfiguration& conf) {
     return waitForAsyncValue<Consumer>([&](SubscribeCallback callback) {
         client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
+    });
+}
+
+void Client_subscribe_patternAsync(Client& client, const std::string& topic_pattern, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
+    client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, [callback](Result result, Consumer consumer){
+        py::gil_scoped_acquire acquire;
+        callback(result, consumer);
     });
 }
 
@@ -94,7 +109,9 @@ void export_client(py::module_& m) {
         .def("subscribe", &Client_subscribe)
         .def("subscribe_async", &Client_subscribeAsync)
         .def("subscribe_topics", &Client_subscribe_topics)
+        .def("subscribe_topics_async", &Client_subscribe_topicsAsync)
         .def("subscribe_pattern", &Client_subscribe_pattern)
+        .def("subscribe_pattern_async", &Client_subscribe_patternAsync)
         .def("create_reader", &Client_createReader)
         .def("get_topic_partitions", &Client_getTopicPartitions)
         .def("get_schema_info", &Client_getSchemaInfo)
