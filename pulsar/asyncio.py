@@ -23,13 +23,16 @@ The Pulsar Python client APIs that work with the asyncio module.
 
 import asyncio
 import functools
-from typing import Any, Iterable, Optional, Union
+import logging
+from typing import Any, Iterable, Optional, Union, Tuple
 
 import _pulsar
 
 import pulsar
-from pulsar import _listener_wrapper
+from pulsar import Message, _listener_wrapper
 
+from pulsar import schema
+_schema = schema
 
 class PulsarException(BaseException):
     """
@@ -163,15 +166,25 @@ class Producer:
 
 
 class Consumer:
-    def __init__(self, consumer: _pulsar.Consumer) -> None:
+    # BUG: schema stuff doesn´t work at all because 90% of the methods are missing
+    def __init__(self, consumer: _pulsar.Consumer):
         self._consumer: _pulsar.Consumer = consumer
+
+    def _prepare_logger(logger):
+        import logging
+        def log(level, message):
+            old_threads = logging.logThreads
+            logging.logThreads = False
+            logger.log(logging.getLevelName(level), message)
+            logging.logThreads = old_threads
+        return log
 
     async def acknowledge(self, msg: pulsar.Message) -> None:
         """
         Acknowledge the reception of a single message.
         """
         future = asyncio.get_running_loop().create_future()
-        self._consumer.acknowledge_async(msg, functools.partial(_set_future, future))
+        self._consumer.acknowledge_async(msg._message, functools.partial(_set_future, future))
         await future
 
     async def acknowledge_cumulative(self, msg: pulsar.Message) -> None:
@@ -186,7 +199,7 @@ class Consumer:
         """
         Acknowledge the failure to process a single message.
         """
-        self._consumer.negative_acknowledge(msg)
+        self._consumer.negative_acknowledge(msg._message)
 
     async def batch_receive(self) -> Iterable[pulsar.Message]:
         """
@@ -203,7 +216,12 @@ class Consumer:
         future = asyncio.get_running_loop().create_future()
 
         self._consumer.receive_async(functools.partial(_set_future, future))
-        return await future
+        msg = await future
+
+        m = Message()
+        m._message = msg
+        m._schema = self._schema
+        return m
 
     async def close(self):
         """
@@ -213,7 +231,7 @@ class Consumer:
         self._consumer.close_async(functools.partial(_set_future, future, value=None))
         await future
 
-    async def seek(self, position: tuple[int, int, int, int] | pulsar.MessageId):
+    async def seek(self, position: Tuple[int, int, int, int] | pulsar.MessageId):
         """
         Reset the subscription associated with this consumer to a specific message id or publish timestamp. The message id can either be a specific message or represent the first or last messages in the topic. ...
         """
@@ -300,6 +318,7 @@ class Client:
         """
         assert service_url.startswith('pulsar://'), "The service url must start with 'pulsar://'"
         self._client = pulsar.Client(service_url, **kwargs)._client
+        self._consumers = []
 
     async def subscribe(self, topic, subscription_name,
                         consumer_type: _pulsar.ConsumerType = _pulsar.ConsumerType.Exclusive,
@@ -325,10 +344,14 @@ class Client:
                         batch_index_ack_enabled=False,
                         regex_subscription_mode: _pulsar.RegexSubscriptionMode = _pulsar.RegexSubscriptionMode.PersistentOnly,
                         dead_letter_policy: Union[None, pulsar.ConsumerDeadLetterPolicy] = None,) -> Consumer:
+        print("subscribe called")
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
         conf.regex_subscription_mode(regex_subscription_mode)
         conf.read_compacted(is_read_compacted)
+
+        print("core conf set")
+
         if message_listener:
             conf.message_listener(_listener_wrapper(message_listener, schema))
         conf.receiver_queue_size(receiver_queue_size)
@@ -363,18 +386,36 @@ class Client:
         if dead_letter_policy:
             conf.dead_letter_policy(dead_letter_policy.policy())
 
+        print("opt conf set")
+
         future = asyncio.get_running_loop().create_future()
 
+        print("future created")
+
+        c = Consumer(None)
         if isinstance(topic, str):
+            print("single")
             self._client.subscribe_async(topic, subscription_name, conf, functools.partial(_set_future, future))
+            c._consumer = await future
         elif isinstance(topic, list):
+            print("multi")
             self._client.subscribe_topics_async(topic, subscription_name, conf, functools.partial(_set_future, future))
+            c._consumer = await future
         elif isinstance(topic, pulsar._retype):
+            print("regex")
             self._client.subscribe_pattern_async(topic, subscription_name, conf, functools.partial(_set_future, future))
+            c._consumer = await future
         else:
             raise ValueError("Argument 'topic' is expected to be of a type between (str, list, re.pattern)")
 
-        return Consumer(await future)
+        c._client = self
+        c._schema = schema
+        c._schema.attach_client(self._client)
+
+        print("consumer created")
+        self._consumers.append(c)
+
+        return c
 
     async def create_producer(self, topic,
                               producer_name=None,
