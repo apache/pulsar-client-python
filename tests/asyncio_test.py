@@ -36,7 +36,7 @@ from unittest import (
 
 # TODO: Write tests for everything else
 
-service_url = 'pulsar://159.69.189.225'
+service_url = 'pulsar://localhost'
 
 class AsyncioTest(IsolatedAsyncioTestCase):
 
