@@ -344,13 +344,11 @@ class Client:
                         batch_index_ack_enabled=False,
                         regex_subscription_mode: _pulsar.RegexSubscriptionMode = _pulsar.RegexSubscriptionMode.PersistentOnly,
                         dead_letter_policy: Union[None, pulsar.ConsumerDeadLetterPolicy] = None,) -> Consumer:
-        print("subscribe called")
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
         conf.regex_subscription_mode(regex_subscription_mode)
         conf.read_compacted(is_read_compacted)
 
-        print("core conf set")
 
         if message_listener:
             conf.message_listener(_listener_wrapper(message_listener, schema))
@@ -386,23 +384,16 @@ class Client:
         if dead_letter_policy:
             conf.dead_letter_policy(dead_letter_policy.policy())
 
-        print("opt conf set")
-
         future = asyncio.get_running_loop().create_future()
-
-        print("future created")
 
         c = Consumer(None)
         if isinstance(topic, str):
-            print("single")
             self._client.subscribe_async(topic, subscription_name, conf, functools.partial(_set_future, future))
             c._consumer = await future
         elif isinstance(topic, list):
-            print("multi")
             self._client.subscribe_topics_async(topic, subscription_name, conf, functools.partial(_set_future, future))
             c._consumer = await future
         elif isinstance(topic, pulsar._retype):
-            print("regex")
             self._client.subscribe_pattern_async(topic, subscription_name, conf, functools.partial(_set_future, future))
             c._consumer = await future
         else:
@@ -412,7 +403,6 @@ class Client:
         c._schema = schema
         c._schema.attach_client(self._client)
 
-        print("consumer created")
         self._consumers.append(c)
 
         return c
