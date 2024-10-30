@@ -231,7 +231,7 @@ class Consumer:
         self._consumer.close_async(functools.partial(_set_future, future, value=None))
         await future
 
-    async def seek(self, position: Tuple[int, int, int, int] | pulsar.MessageId):
+    async def seek(self, position: Union[Tuple[int, int, int, int], pulsar.MessageId]):
         """
         Reset the subscription associated with this consumer to a specific message id or publish timestamp. The message id can either be a specific message or represent the first or last messages in the topic. ...
         """
