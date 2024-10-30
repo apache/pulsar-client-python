@@ -32,7 +32,7 @@ ENV PATH="/opt/python/${PYTHON_SPEC}/bin:${PATH}"
 ENV PYTHON_INCLUDE_DIR /opt/python/${PYTHON_SPEC}/include
 ENV PYTHON_LIBRARIES   /opt/python/${PYTHON_SPEC}/lib/python${PYTHON_VERSION}
 
-RUN pip3 install pyyaml
+RUN pip3 install pyyaml setuptools
 
 ADD .build/dependencies.yaml /
 ADD .build/dep-version.py /usr/local/bin
