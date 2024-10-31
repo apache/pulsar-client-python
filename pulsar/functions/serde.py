@@ -39,7 +39,7 @@
 """
 SerDe defines the interface for serialization/deserialization.
 
-Everytime a message is read from pulsar topic, the serde is invoked to
+Every time a message is read from pulsar topic, the serde is invoked to
 serialize the bytes into an object before invoking the process method.
 Anytime a python object needs to be written back to pulsar, it is
 serialized into bytes before writing.
