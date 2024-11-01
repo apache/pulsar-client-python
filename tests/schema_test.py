@@ -19,7 +19,6 @@
 #
 
 import math
-import logging
 import requests
 from typing import List
 from unittest import TestCase, main
@@ -30,10 +29,6 @@ from pulsar.schema import *
 from enum import Enum
 import json
 from fastavro.schema import load_schema
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)-5s %(message)s')
-
 
 class ExampleRecord(Record):
     str_field = String()
