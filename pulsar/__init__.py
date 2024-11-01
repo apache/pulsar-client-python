@@ -617,7 +617,7 @@ class Client:
                         max_pending_messages=1000,
                         max_pending_messages_across_partitions=50000,
                         block_if_queue_full=False,
-                        batching_enabled=False,
+                        batching_enabled=True,
                         batching_max_messages=1000,
                         batching_max_allowed_size_in_bytes=128*1024,
                         batching_max_publish_delay_ms=10,
@@ -670,7 +670,7 @@ class Client:
 
             SNAPPY is supported since Pulsar 2.4. Consumers will need to be at least at that release in order to
             be able to receive messages compressed with SNAPPY.
-        batching_enabled: bool, default=False
+        batching_enabled: bool, default=True
             When automatic batching is enabled, multiple calls to `send` can result in a single batch to be sent to the
             broker, leading to better throughput, especially when publishing small messages.
             All messages in a batch will be published as a single batched message. The consumer will be delivered
