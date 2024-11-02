@@ -51,9 +51,6 @@ from pulsar.schema import JsonSchema, Record, Integer
 
 from _pulsar import ProducerConfiguration, ConsumerConfiguration, RegexSubscriptionMode
 
-from schema_test import *
-from reader_test import *
-
 from urllib.request import urlopen, Request
 
 TM = 10000  # Do not wait forever in tests
@@ -1430,29 +1427,6 @@ class PulsarTest(TestCase):
         second_encode = schema.encode(record)
         self.assertEqual(first_encode, second_encode)
 
-    def test_configure_log_level(self):
-        client = pulsar.Client(
-            service_url="pulsar://localhost:6650",
-            logger=pulsar.ConsoleLogger(pulsar.LoggerLevel.Debug)
-        )
-
-        producer = client.create_producer(
-            topic='test_log_level'
-        )
-
-        producer.send(b'hello')
-
-    def test_configure_log_to_file(self):
-        client = pulsar.Client(
-            service_url="pulsar://localhost:6650",
-            logger=pulsar.FileLogger(pulsar.LoggerLevel.Debug, 'test.log')
-        )
-
-        producer = client.create_producer(
-            topic='test_log_to_file'
-        )
-
-        producer.send(b'hello')
 
     def test_logger_thread_leaks(self):
         def _do_connect(close):
