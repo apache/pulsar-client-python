@@ -33,7 +33,7 @@ ENV PATH="/opt/python/${PYTHON_SPEC}/bin:${PATH}"
 ENV PYTHON_INCLUDE_DIR /opt/python/${PYTHON_SPEC}/include
 ENV PYTHON_LIBRARIES   /opt/python/${PYTHON_SPEC}/lib/python${PYTHON_VERSION}
 
-RUN pip install pyyaml
+RUN pip install pyyaml setuptools
 
 RUN apk add cmake
 
