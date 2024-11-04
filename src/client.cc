@@ -56,7 +56,6 @@ Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>&
 
 void Client_subscribe_topicsAsync(Client& client, const std::vector<std::string>& topics, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
     client.subscribeAsync(topics, subscriptionName, conf, [callback](Result result, pulsar::Consumer consumer){
-        py::gil_scoped_acquire acquire;
         callback(result, consumer);
     });
 }
