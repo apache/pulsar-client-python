@@ -41,7 +41,8 @@ service_url = 'pulsar://localhost'
 class AsyncioTest(IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
-        self._client = Client(service_url)
+        self._client = Client(service_url,
+                              operation_timeout_seconds=5)
 
     async def asyncTearDown(self) -> None:
         await self._client.close()
@@ -67,8 +68,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             await self._client.create_producer('tenant/ns/awaitio-test-send-failure')
             self.fail()
         except PulsarException as e:
-            # self.assertEqual(e.error(), pulsar.Result.AuthorizationError or pulsar.Result.TopicNotFound)
-            self.assertTrue(e.error() == pulsar.Result.AuthorizationError or e.error() == pulsar.Result.TopicNotFound)
+            self.assertEqual(e.error(), pulsar.Result.Timeout)
 
     async def test_send_failure(self):
         producer = await self._client.create_producer('awaitio-test-send-failure')
