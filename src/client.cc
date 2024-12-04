@@ -55,9 +55,8 @@ Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>&
 }
 
 void Client_subscribe_topicsAsync(Client& client, const std::vector<std::string>& topics, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
-    client.subscribeAsync(topics, subscriptionName, conf, [callback](Result result, pulsar::Consumer consumer){
-        callback(result, consumer);
-    });
+    py::gil_scoped_release release;
+    client.subscribeAsync(topics, subscriptionName, conf, callback);
 }
 
 Consumer Client_subscribe_pattern(Client& client, const std::string& topic_pattern,
@@ -68,10 +67,8 @@ Consumer Client_subscribe_pattern(Client& client, const std::string& topic_patte
 }
 
 void Client_subscribe_patternAsync(Client& client, const std::string& topic_pattern, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
-    client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, [callback](Result result, Consumer consumer){
-        py::gil_scoped_acquire acquire;
-        callback(result, consumer);
-    });
+      py::gil_scoped_release release;
+      client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
 }
 
 Reader Client_createReader(Client& client, const std::string& topic, const MessageId& startMessageId,

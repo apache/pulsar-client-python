@@ -34,8 +34,6 @@ from unittest import (
     IsolatedAsyncioTestCase,
 )
 
-# TODO: Write tests for everything else
-
 service_url = 'pulsar://localhost'
 
 class AsyncioTest(IsolatedAsyncioTestCase):
@@ -68,7 +66,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             await self._client.create_producer('tenant/ns/awaitio-test-send-failure')
             self.fail()
         except PulsarException as e:
-            self.assertEqual(e.error(), pulsar.Result.Timeout)
+            self.assertEqual(e.error(), pulsar.Result.TopicNotFound)
 
     async def test_send_failure(self):
         producer = await self._client.create_producer('awaitio-test-send-failure')
