@@ -166,7 +166,6 @@ class Producer:
 
 
 class Consumer:
-    # BUG: schema stuff doesn´t work at all because 90% of the methods are missing
     def __init__(self, consumer: _pulsar.Consumer):
         self._consumer: _pulsar.Consumer = consumer
 
