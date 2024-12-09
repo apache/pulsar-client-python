@@ -1576,7 +1576,7 @@ class Consumer:
         """
         self._consumer.redeliver_unacknowledged_messages()
 
-    def seek(self, messageid):
+    def seek(self, messageid: Union[MessageId, _pulsar.MessageId, int]):
         """
         Reset the subscription associated with this consumer to a specific message id or publish timestamp.
         The message id can either be a specific message or represent the first or last messages in the topic.
@@ -1586,10 +1586,10 @@ class Consumer:
         Parameters
         ----------
 
-        messageid:
+        messageid: MessageId, _pulsar.MessageId or int
             The message id for seek, OR an integer event time to seek to
         """
-        self._consumer.seek(messageid)
+        self._consumer.seek(_seek_arg_convert(messageid))
 
     def close(self):
         """
@@ -1745,7 +1745,7 @@ class Reader:
         """
         return self._reader.has_message_available();
 
-    def seek(self, messageid):
+    def seek(self, messageid: Union[MessageId, _pulsar.MessageId, int]):
         """
         Reset this reader to a specific message id or publish timestamp.
         The message id can either be a specific message or represent the first or last messages in the topic.
@@ -1755,10 +1755,10 @@ class Reader:
         Parameters
         ----------
 
-        messageid:
+        messageid: MessageId, _pulsar.MessageId or int
             The message id for seek, OR an integer event time to seek to
         """
-        self._reader.seek(messageid)
+        self._reader.seek(_seek_arg_convert(messageid))
 
     def close(self):
         """
@@ -1829,3 +1829,11 @@ def _listener_wrapper(listener, schema):
         m._schema = schema
         listener(c, m)
     return wrapper
+
+def _seek_arg_convert(seek_arg):
+    if isinstance(seek_arg, MessageId):
+        return seek_arg._msg_id
+    elif isinstance(seek_arg, (_pulsar.MessageId, int)):
+        return seek_arg
+    else:
+        raise ValueError(f"invalid seek_arg type {type(seek_arg)}")
