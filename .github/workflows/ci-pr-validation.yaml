@@ -157,7 +157,7 @@ jobs:
   mac-wheels:
     name: Wheel MacOS Universal2 - Py ${{matrix.py.version}}
     needs: unit-tests
-    runs-on: macos-12
+    runs-on: macos-14
     timeout-minutes: 300
 
     strategy:
