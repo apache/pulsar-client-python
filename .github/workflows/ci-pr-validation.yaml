@@ -176,6 +176,9 @@ jobs:
           path: .pulsar-mac-build/deps/install
           key: ${{matrix.py.version_long}}-${{ hashFiles('dependencies.yaml') }}-${{ hashFiles('pkg/mac/*') }}
 
+      - name: Install Python deps
+        run: pip3 install -U pyyaml
+
       - name: Build dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: pkg/mac/build-dependencies.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
