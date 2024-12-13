@@ -193,10 +193,14 @@ jobs:
 
       - name: Build Pulsar C++ client
         if: steps.cache-cpp.outputs.cache-hit != 'true'
-        run: pkg/mac/build-pulsar-cpp.sh
+        run: |
+          source venv/bin/activate
+          pkg/mac/build-pulsar-cpp.sh
 
       - name: Build and test Mac wheels
-        run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
+        run: |
+          source venv/bin/activate
+          pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
 
   windows-wheels:
     name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
