@@ -39,3 +39,5 @@ RUN pip3 install pyyaml setuptools
 ADD .build/dependencies.yaml /
 ADD .build/dep-version.py /usr/local/bin
 ADD .build/dep-url.sh /
+
+RUN yum install -y curl zip unzip tar perl-IPC-Cmd

@@ -33,12 +33,12 @@ cd apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}
 
 git clone https://github.com/microsoft/vcpkg.git
 cd vcpkg
-# The following dependencies are required to build vcpkg on arm64 Linux
-yum install -y curl zip unzip tar perl-IPC-Cmd
+
+# manylinux2014 does not have ninja in the system package manager
 git clone https://github.com/ninja-build/ninja.git
 cd ninja
 git checkout release
-/opt/python/cp312-cp312/bin/python configure.py --bootstrap
+./configure.py --bootstrap
 mv ninja /usr/bin/
 cd ..
 ./bootstrap-vcpkg.sh
