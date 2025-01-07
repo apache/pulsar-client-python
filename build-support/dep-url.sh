@@ -49,7 +49,7 @@ download_dependency() {
       ;;
     "boost")
       VERSION_UNDERSCORE=$(echo $VERSION | sed 's/\./_/g')
-      URL=https://boostorg.jfrog.io/artifactory/main/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.gz
+      URL=https://github.com/boostorg/boost/archive/refs/tags/boost-${VERSION}.tar.gz
       ;;
     "protobuf")
       URL=https://github.com/google/protobuf/releases/download/v${VERSION}/protobuf-cpp-${VERSION}.tar.gz
