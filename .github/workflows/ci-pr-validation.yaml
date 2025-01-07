@@ -169,38 +169,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
 
-      - name: Dependencies cache
-        uses: actions/cache@v3
-        id: cache-deps
-        with:
-          path: .pulsar-mac-build/deps/install
-          key: ${{matrix.py.version_long}}-${{ hashFiles('dependencies.yaml') }}-${{ hashFiles('pkg/mac/*') }}
-
-      - name: Build dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          python3 -m pip install pyyaml setuptools
-          pkg/mac/build-dependencies.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
-
-      - name: Pulsar C++ cache
-        uses: actions/cache@v3
-        id: cache-cpp
-        with:
-          path: .pulsar-mac-build/cpp/install
-          key: ${{ hashFiles('dependencies.yaml') }}-${{ hashFiles('pulsar-client-cpp-version.txt') }}-${{ hashFiles('pkg/mac/*') }}
-
-      - name: Build Pulsar C++ client
-        if: steps.cache-cpp.outputs.cache-hit != 'true'
-        run: |
-          source venv/bin/activate
-          pkg/mac/build-pulsar-cpp.sh
-
       - name: Build and test Mac wheels
         run: |
-          source venv/bin/activate
-          pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
+          pkg/mac/build-mac-wheels.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
 
   windows-wheels:
     name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
