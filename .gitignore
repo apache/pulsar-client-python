@@ -22,5 +22,4 @@ vcpkg_installed/
 lib_pulsar.so
 tests/test.log
 .tests-container-id.txt
-include/
-lib/
+

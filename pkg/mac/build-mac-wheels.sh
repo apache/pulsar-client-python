@@ -30,7 +30,12 @@ cd "${ROOT_DIR}"
 
 source build-support/dep-url.sh
 
-if [ ! -f lib/libpulsarwithdeps.a ]; then
+CACHE_DIR=$ROOT_DIR/.pulsar-mac-build
+PREFIX=${CACHE_DIR}/install
+mkdir -p $PREFIX
+
+mkdir -p $PREFIX/lib/
+if [ ! -f $PREFIX/lib/libpulsarwithdeps.a ]; then
     VERSION=$(cat ./dependencies.yaml | grep pulsar-cpp | awk '{print $2}')
     curl -O -L $(pulsar_cpp_base_url $VERSION)/macos-arm64.zip
     curl -O -L $(pulsar_cpp_base_url $VERSION)/macos-x86_64.zip
@@ -39,10 +44,8 @@ if [ ! -f lib/libpulsarwithdeps.a ]; then
     unzip -q macos-x86_64.zip -d x86_64
     libtool -static -o libpulsarwithdeps.a arm64/lib/libpulsarwithdeps.a x86_64/lib/libpulsarwithdeps.a
 
-    rm -rf include/ lib/
-    mkdir -p include/ lib/
-    mv arm64/include/* include/
-    mv libpulsarwithdeps.a lib/
+    mv arm64/include/ $PREFIX/
+    mv libpulsarwithdeps.a $PREFIX/lib/
     rm -rf arm64/ x86_64/ macos-arm64.zip macos-x86_64.zip
 fi
 
@@ -50,9 +53,6 @@ PYTHON_VERSION=$1
 PYTHON_VERSION_LONG=$2
 
 MACOSX_DEPLOYMENT_TARGET=13
-CACHE_DIR=$ROOT_DIR/.pulsar-mac-build
-mkdir -p $CACHE_DIR
-PREFIX=${CACHE_DIR}/install
 pushd $CACHE_DIR
 
 # We need to build OpenSSL from source to have universal2 binaries
