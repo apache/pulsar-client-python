@@ -24,20 +24,11 @@ ARG PYTHON_VERSION
 ARG PYTHON_SPEC
 ARG ARCH
 
+ENV CPP_BINARY_TYPE=rpm
 ENV PYTHON_VERSION=${PYTHON_VERSION}
 ENV PYTHON_SPEC=${PYTHON_SPEC}
 
 ENV PATH="/opt/python/${PYTHON_SPEC}/bin:${PATH}"
 ENV ARCH=${ARCH}
 
-ENV PYTHON_INCLUDE_DIR /opt/python/${PYTHON_SPEC}/include
-ENV PYTHON_LIBRARIES   /opt/python/${PYTHON_SPEC}/lib/python${PYTHON_VERSION}
-ENV Python3_ROOT_DIR /opt/python/${PYTHON_SPEC}/
-
-RUN pip3 install pyyaml setuptools
-
-ADD .build/dependencies.yaml /
-ADD .build/dep-version.py /usr/local/bin
-ADD .build/dep-url.sh /
-
-RUN yum install -y curl zip unzip tar perl-IPC-Cmd
+RUN pip3 install setuptools

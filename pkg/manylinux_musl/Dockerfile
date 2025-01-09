@@ -30,13 +30,6 @@ ARG ARCH
 ENV ARCH=${ARCH}
 
 ENV PATH="/opt/python/${PYTHON_SPEC}/bin:${PATH}"
-ENV PYTHON_INCLUDE_DIR /opt/python/${PYTHON_SPEC}/include
-ENV PYTHON_LIBRARIES   /opt/python/${PYTHON_SPEC}/lib/python${PYTHON_VERSION}
 
-RUN pip install pyyaml setuptools
-
-ADD .build/dependencies.yaml /
-ADD .build/dep-version.py /usr/local/bin
-ADD .build/dep-url.sh /
-
-RUN apk add build-base cmake ninja zip unzip curl git
+RUN pip install setuptools
+ENV CPP_BINARY_TYPE="apk"
