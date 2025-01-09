@@ -140,10 +140,7 @@ cmake -B build \
         -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_PREFIX_PATH=$PREFIX \
-        -DCMAKE_CXX_FLAGS=-I$PREFIX/include \
         -DLINK_STATIC=ON \
-        -DPULSAR_LIBRARY=${ROOT_DIR}/lib/libpulsarwithdeps.a \
-        -DPULSAR_INCLUDE=${ROOT_DIR}/include \
         -DPython3_ROOT_DIR=$PREFIX
 cmake --build build --config Release -j8
 cp -f build/lib_pulsar.so .
