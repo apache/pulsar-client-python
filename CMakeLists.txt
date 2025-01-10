@@ -38,13 +38,9 @@ if (MSVC)
 endif ()
 
 if (LINK_STATIC)
-    if (MSVC)
-        find_library(PULSAR_LIBRARY NAMES pulsarWithDeps.lib)
-    else ()
-        find_library(PULSAR_LIBRARY NAMES libpulsar.a)
-    endif ()
+    find_library(PULSAR_LIBRARY NAMES pulsarwithdeps pulsarWithDeps.lib)
     add_definitions("-DPULSAR_STATIC")
-else()
+else ()
     find_library(PULSAR_LIBRARY NAMES pulsar libpulsar)
 endif()
 message(STATUS "PULSAR_LIBRARY: ${PULSAR_LIBRARY}")
@@ -88,43 +84,11 @@ set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS} Python3::Module)
 message(STATUS "All libraries: ${PYTHON_WRAPPER_LIBS}")
 
 if (LINK_STATIC AND NOT MSVC)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-
-    # We need to include all the static libs individually because we cannot easily create a universal2 libpulsar.a
-    # with all the deps included.
-    find_package(OpenSSL REQUIRED)
-    message("OPENSSL_LIBRARIES: " ${OPENSSL_LIBRARIES})
-
-    find_package(Protobuf REQUIRED)
-    message("Protobuf_LIBRARIES: " ${Protobuf_LIBRARIES})
-
-    find_package(curl REQUIRED)
-    message("CURL_LIBRARIES: " ${CURL_LIBRARIES})
-
-    find_package(zlib)
-    message("ZLIB_LIBRARIES: " ${ZLIB_LIBRARIES})
-
-    find_library(LIB_ZSTD NAMES libzstd.a)
-    message(STATUS "ZStd: ${LIB_ZSTD}")
-    find_library(LIB_SNAPPY NAMES libsnappy.a)
-    message(STATUS "LIB_SNAPPY: ${LIB_SNAPPY}")
-
-    set(PYTHON_WRAPPER_LIBS ${PYTHON_WRAPPER_LIBS}
-                        ${OPENSSL_LIBRARIES}
-                        ${Protobuf_LIBRARIES}
-                        ${ZLIB_LIBRARIES}
-                        ${LIB_ZSTD}
-                        ${LIB_SNAPPY}
-                        ${CURL_LIBRARIES}
-                        )
-
     if (APPLE)
         set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
-        target_link_libraries(_pulsar -Wl,-all_load ${PYTHON_WRAPPER_LIBS})
+        target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
     else ()
-        if (NOT MSVC)
-          set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
-        endif()
+        set (CMAKE_SHARED_LINKER_FLAGS " -static-libgcc  -static-libstdc++")
         target_link_libraries(_pulsar ${PYTHON_WRAPPER_LIBS})
     endif ()
 elseif (LINK_STATIC) # MSVC

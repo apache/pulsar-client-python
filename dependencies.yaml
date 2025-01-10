@@ -17,13 +17,7 @@
 # under the License.
 #
 
-cmake: 3.24.2
 pulsar-cpp: 3.5.1
 pybind11: 2.10.1
-boost: 1.80.0
-protobuf: 3.20.0
-zlib: 1.2.13
-zstd: 1.5.2
-snappy: 1.1.9
+# The OpenSSL dependency is only used when building Python from source
 openssl: 1.1.1q
-curl: 8.4.0

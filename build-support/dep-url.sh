@@ -38,37 +38,14 @@ download_dependency() {
   VERSION=$(grep $DEP $DEP_FILE | sed 's/://' | awk '{print $2}')
 
   case $DEP in
-    "cmake")
-      URL=https://github.com/Kitware/CMake/releases/download/v${VERSION}/cmake-${VERSION}-linux-${ARCH}.tar.gz
-      ;;
     "pulsar-cpp")
       URL=$(pulsar_cpp_base_url $VERSION)/apache-pulsar-client-cpp-${VERSION}.tar.gz
       ;;
     "pybind11")
       URL=https://github.com/pybind/pybind11/archive/refs/tags/v${VERSION}.tar.gz
       ;;
-    "boost")
-      VERSION_UNDERSCORE=$(echo $VERSION | sed 's/\./_/g')
-      URL=https://boostorg.jfrog.io/artifactory/main/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.gz
-      ;;
-    "protobuf")
-      URL=https://github.com/google/protobuf/releases/download/v${VERSION}/protobuf-cpp-${VERSION}.tar.gz
-      ;;
-    "zlib")
-      URL=https://github.com/madler/zlib/archive/v${VERSION}.tar.gz
-      ;;
-    "zstd")
-      URL=https://github.com/facebook/zstd/releases/download/v${VERSION}/zstd-${VERSION}.tar.gz
-      ;;
-    "snappy")
-      URL=https://github.com/google/snappy/archive/refs/tags/${VERSION}.tar.gz
-      ;;
     "openssl")
       URL=https://github.com/openssl/openssl/archive/OpenSSL_$(echo $VERSION | sed 's/\./_/g').tar.gz
-      ;;
-    "curl")
-      VERSION_UNDERSCORE=$(echo $VERSION | sed 's/\./_/g')
-      URL=https://github.com/curl/curl/releases/download/curl-${VERSION_UNDERSCORE}/curl-${VERSION}.tar.gz
       ;;
     *)
       echo "Unknown dependency $DEP for version $VERSION"

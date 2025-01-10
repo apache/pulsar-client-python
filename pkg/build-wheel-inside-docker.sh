@@ -21,19 +21,39 @@
 set -e -x
 
 cd /pulsar-client-python
+source build-support/dep-url.sh
 
-PYBIND11_VERSION=$(./build-support/dep-version.py pybind11)
-curl -L -O https://github.com/pybind/pybind11/archive/refs/tags/v${PYBIND11_VERSION}.tar.gz
-tar zxf v${PYBIND11_VERSION}.tar.gz
+# Build cpp wheels
+PULSAR_CPP_VERSION=$(cat ./dependencies.yaml | grep pulsar-cpp | awk '{print $2}')
+
+if [ $CPP_BINARY_TYPE == "rpm" ]; then
+    if [ $ARCH == "aarch64" ]; then
+        RPM_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/rpm-arm64/aarch64
+    else
+        RPM_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/rpm-x86_64/x86_64
+    fi
+    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-$PULSAR_CPP_VERSION-1.$ARCH.rpm
+    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-devel-$PULSAR_CPP_VERSION-1.$ARCH.rpm
+    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-debuginfo-$PULSAR_CPP_VERSION-1.$ARCH.rpm
+    rpm -ivh *.rpm
+else # apk
+    if [ $ARCH == "aarch64" ]; then
+        APK_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/apk-arm64/aarch64
+    else
+        APK_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/apk-x86_64/x86_64
+    fi
+    curl -O -L $APK_ROOT_DIR/apache-pulsar-client-$PULSAR_CPP_VERSION-r0.apk
+    curl -O -L $APK_ROOT_DIR/apache-pulsar-client-dev-$PULSAR_CPP_VERSION-r0.apk
+    apk add --allow-untrusted *.apk
+fi
+
+download_dependency $PWD/dependencies.yaml pybind11
 rm -rf pybind11
-mv pybind11-${PYBIND11_VERSION} pybind11
+mv pybind11-* pybind11
 
-rm -f CMakeCache.txt CMakeFiles
-
-cmake . \
-      -DCMAKE_BUILD_TYPE=Release
-
-make -j4
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j8
+mv build/lib_pulsar.so .
 
 ./setup.py bdist_wheel
 

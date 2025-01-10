@@ -127,7 +127,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
 
       - uses: docker/setup-buildx-action@v2
-      - run: build-support/copy-deps-versionfile.sh
 
       - name: Build Manylinux Docker image
         uses: docker/build-push-action@v3
@@ -157,7 +156,7 @@ jobs:
   mac-wheels:
     name: Wheel MacOS Universal2 - Py ${{matrix.py.version}}
     needs: unit-tests
-    runs-on: macos-12
+    runs-on: macos-14
     timeout-minutes: 300
 
     strategy:
@@ -169,33 +168,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
 
-      - name: Dependencies cache
-        uses: actions/cache@v3
-        id: cache-deps
-        with:
-          path: .pulsar-mac-build/deps/install
-          key: ${{matrix.py.version_long}}-${{ hashFiles('dependencies.yaml') }}-${{ hashFiles('pkg/mac/*') }}
-
-      - name: Install Python deps
-        run: pip3 install -U pyyaml
-
-      - name: Build dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: pkg/mac/build-dependencies.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
-
-      - name: Pulsar C++ cache
-        uses: actions/cache@v3
-        id: cache-cpp
-        with:
-          path: .pulsar-mac-build/cpp/install
-          key: ${{ hashFiles('dependencies.yaml') }}-${{ hashFiles('pulsar-client-cpp-version.txt') }}-${{ hashFiles('pkg/mac/*') }}
-
-      - name: Build Pulsar C++ client
-        if: steps.cache-cpp.outputs.cache-hit != 'true'
-        run: pkg/mac/build-pulsar-cpp.sh
-
       - name: Build and test Mac wheels
-        run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}}
+        run: |
+          pkg/mac/build-mac-wheels.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
 
   windows-wheels:
     name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
