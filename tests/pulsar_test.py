@@ -1019,10 +1019,21 @@ class PulsarTest(TestCase):
         msg = consumer.receive(TM)
         self.assertEqual(msg.data(), b"hello-0")
 
+        # seek with wrong type
+        with self.assertRaises(ValueError, msg="invalid seek_arg type <class 'float'>"):
+            consumer.seek(1.0)
+
         # seek on messageId
         consumer.seek(ids[50])
         msg = consumer.receive(TM)
         self.assertEqual(msg.data(), b"hello-51")
+
+        # seek on a user provided MessageId
+        msg_id = MessageId(ledger_id=ids[60].ledger_id(),
+                           entry_id=ids[60].entry_id())
+        consumer.seek(msg_id)
+        msg = consumer.receive(TM)
+        self.assertEqual(msg.data(), b"hello-61")
 
         # ditto, but seek on timestamp
         consumer.seek(timestamps[42])
@@ -1033,6 +1044,10 @@ class PulsarTest(TestCase):
         reader = client.create_reader(topic, MessageId.latest)
         with self.assertRaises(pulsar.Timeout):
             reader.read_next(100)
+
+        # seek with wrong type
+        with self.assertRaises(ValueError, msg="invalid seek_arg type <class 'float'>"):
+            consumer.seek(1.0)
 
         # earliest
         reader.seek(MessageId.earliest)
@@ -1047,6 +1062,13 @@ class PulsarTest(TestCase):
         self.assertEqual(msg.data(), b"hello-34")
         msg = reader.read_next(TM)
         self.assertEqual(msg.data(), b"hello-35")
+
+        # seek on a user provided MessageId
+        msg_id = MessageId(ledger_id=ids[44].ledger_id(),
+                           entry_id=ids[44].entry_id())
+        reader.seek(msg_id)
+        msg = reader.read_next(TM)
+        self.assertEqual(msg.data(), b"hello-45")
 
         # seek on timestamp
         reader.seek(timestamps[79])
