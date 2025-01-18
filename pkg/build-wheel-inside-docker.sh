@@ -34,7 +34,6 @@ if [ $CPP_BINARY_TYPE == "rpm" ]; then
     fi
     curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-$PULSAR_CPP_VERSION-1.$ARCH.rpm
     curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-devel-$PULSAR_CPP_VERSION-1.$ARCH.rpm
-    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-debuginfo-$PULSAR_CPP_VERSION-1.$ARCH.rpm
     rpm -ivh *.rpm
 else # apk
     if [ $ARCH == "aarch64" ]; then
