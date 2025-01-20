@@ -24,17 +24,32 @@ cd /pulsar-client-python
 source build-support/dep-url.sh
 
 # Build cpp wheels
+if [[ $ARCH == "aarch64" ]]; then
+    export VCPKG_FORCE_SYSTEM_BINARIES=1
+fi
 PULSAR_CPP_VERSION=$(cat ./dependencies.yaml | grep pulsar-cpp | awk '{print $2}')
 
 if [ $CPP_BINARY_TYPE == "rpm" ]; then
-    if [ $ARCH == "aarch64" ]; then
-        RPM_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/rpm-arm64/aarch64
-    else
-        RPM_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/rpm-x86_64/x86_64
-    fi
-    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-$PULSAR_CPP_VERSION-1.$ARCH.rpm
-    curl -O -L $RPM_ROOT_DIR/apache-pulsar-client-devel-$PULSAR_CPP_VERSION-1.$ARCH.rpm
-    rpm -ivh *.rpm
+    # The pre-built RPM packages have incompatible ABI with manylinux2014, so we have to build from source
+    download_dependency ./dependencies.yaml pulsar-cpp
+    cd apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}
+
+    git clone https://github.com/microsoft/vcpkg.git
+    cd vcpkg
+
+    # manylinux2014 does not have ninja in the system package manager
+    git clone https://github.com/ninja-build/ninja.git
+    cd ninja
+    git checkout release
+    ./configure.py --bootstrap
+    mv ninja /usr/bin/
+    cd ..
+    ./bootstrap-vcpkg.sh
+    cd ..
+    cmake -B build-cpp -DINTEGRATE_VCPKG=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_DYNAMIC_LIB=ON -DBUILD_STATIC_LIB=ON
+    cmake --build build-cpp -j8 --target install
+    cd ..
+    rm -rf apache-pulsar-client-cpp-$(PULSAR_CPP_VERSION)
 else # apk
     if [ $ARCH == "aarch64" ]; then
         APK_ROOT_DIR=$(pulsar_cpp_base_url $PULSAR_CPP_VERSION)/apk-arm64/aarch64
