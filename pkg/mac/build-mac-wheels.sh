@@ -52,7 +52,8 @@ fi
 PYTHON_VERSION=$1
 PYTHON_VERSION_LONG=$2
 
-MACOSX_DEPLOYMENT_TARGET=13
+# When building Python from source, it will read this environment variable to determine the minimum supported macOS version
+export MACOSX_DEPLOYMENT_TARGET=13
 pushd $CACHE_DIR
 
 # We need to build OpenSSL from source to have universal2 binaries
@@ -99,8 +100,8 @@ if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
     tar xfz Python-${PYTHON_VERSION_LONG}.tgz
 
     pushd Python-${PYTHON_VERSION_LONG}
-        CFLAGS="-fPIC -O3 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
-            ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2 --with-openssl=$PREFIX
+        export CFLAGS="-fPIC -O3"
+        ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2 --with-openssl=$PREFIX
         make -j16
         make install
 
