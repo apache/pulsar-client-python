@@ -99,7 +99,8 @@ if [ ! -f Python-${PYTHON_VERSION_LONG}/.done ]; then
     tar xfz Python-${PYTHON_VERSION_LONG}.tgz
 
     pushd Python-${PYTHON_VERSION_LONG}
-        ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2 --with-openssl=$PREFIX
+        CFLAGS="-fPIC -O3 -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}" \
+            ./configure --prefix=$PREFIX --enable-shared --enable-universalsdk --with-universal-archs=universal2 --with-openssl=$PREFIX
         make -j16
         make install
 
