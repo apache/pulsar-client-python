@@ -87,7 +87,7 @@ jobs:
               /pulsar-client-python/pkg/test-wheel.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-${{matrix.image.name}}-py${{matrix.python.version}}-${{matrix.cpu.platform}}
           path: wheelhouse/*.whl
@@ -115,7 +115,7 @@ jobs:
         run: pkg/mac/build-mac-wheels.sh ${{matrix.py.version}} ${{matrix.py.version_long}}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-mac-py${{matrix.py.version}}
           path: dist/*.whl
@@ -179,7 +179,7 @@ jobs:
           python -c 'import pulsar; c = pulsar.Client("pulsar://localhost:6650"); c.close()'
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-windows-py${{matrix.python.version}}
           path: dist/*.whl
