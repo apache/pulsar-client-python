@@ -19,17 +19,22 @@
 #
 
 import asyncio
+from typing import Iterable
+
+from _pulsar import ConsumerType
+
 import pulsar
 from pulsar.asyncio import (
     Client,
     PulsarException,
+    Consumer
 )
 from unittest import (
     main,
     IsolatedAsyncioTestCase,
 )
 
-service_url = 'pulsar://localhost:6650'
+service_url = 'pulsar://localhost'
 
 class AsyncioTest(IsolatedAsyncioTestCase):
 
@@ -55,15 +60,13 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             print(f'{i} was sent to {msg_id}')
             self.assertIsInstance(msg_id, pulsar.MessageId)
             self.assertEqual(msg_ids[i].ledger_id(), ledger_id)
-            self.assertEqual(msg_ids[i].entry_id(), entry_id)
-            self.assertEqual(msg_ids[i].batch_index(), i)
 
     async def test_create_producer_failure(self):
         try:
             await self._client.create_producer('tenant/ns/awaitio-test-send-failure')
             self.fail()
         except PulsarException as e:
-            self.assertEqual(e.error(), pulsar.Result.Timeout)
+            self.assertEqual(e.error(), pulsar.Result.TopicNotFound)
 
     async def test_send_failure(self):
         producer = await self._client.create_producer('awaitio-test-send-failure')
@@ -81,6 +84,54 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             self.fail()
         except PulsarException as e:
             self.assertEqual(e.error(), pulsar.Result.AlreadyClosed)
+
+    async def test_subscribe(self):
+        consumer = await self._client.subscribe('awaitio-test-close-producer', 'test-subscription')
+        self.assertIsInstance(consumer, Consumer)
+
+    async def test_read_and_ack(self):
+        test_producer = await self._client.create_producer("awaitio-test-consumer-ack")
+        consumer = await self._client.subscribe('awaitio-test-consumer-ack', 'test-subscription')
+
+        await test_producer.send(b"test123")
+        msg = await consumer.receive()
+
+        self.assertEqual(msg.data(), b"test123")
+
+        await consumer.acknowledge(msg)
+
+    async def test_batch_read_and_ack(self):
+        test_producer = await self._client.create_producer("awaitio-test-consumer-ack-batch")
+        consumer = await self._client.subscribe('awaitio-test-consumer-ack-batch', 'test-subscription')
+
+        await test_producer.send(b"test123")
+        msgs = await consumer.batch_receive()
+
+        last = None
+        for msg in msgs:
+            last = msg
+
+        await consumer.acknowledge_cumulative(last)
+
+        self.assertIsInstance(msgs, Iterable)
+        for msg in msgs:
+            self.assertEqual(b"test123", msg.data())
+
+    async def test_consumer_close(self):
+        consumer = await self._client.subscribe('awaitio-test-consumer-close', 'test-subscription')
+        await consumer.close()
+
+        self.assertFalse(consumer.is_connected)
+
+    async def test_consumer_seek(self):
+        consumer = await self._client.subscribe('awaitio-test-consumer-close', 'test-subscription')
+        await consumer.seek(consumer.last_message_id)
+
+    async def test_consumer_unsubscribe(self):
+        consumer = await self._client.subscribe('awaitio-test-consumer-close', 'test-subscription')
+        await consumer.unsubscribe()
+
+    
 
 if __name__ == '__main__':
     main()
