@@ -132,7 +132,7 @@ stay open for at least 72 hours ***
 Python wheels:
 https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-python-X.Y.Z-candidate-N/
 
-The supported python versions are 3.8, 3.9, 3.10, 3.11 and 3.12. The
+The supported python versions are 3.9, 3.10, 3.11, 3.12 and 3.13. The
 supported platforms and architectures are:
 - Windows x86_64 (windows/)
 - glibc-based Linux x86_64 (linux-glibc-x86_64/)
@@ -195,7 +195,7 @@ sudo python3 -m pip install twine
 ./build-support/upload-pypi.sh https://dist.apache.org/repos/dist/release/pulsar/pulsar-client-python-X.Y.Z
 ```
 
-To sign in to PyPI, please use `__token__` as your username and enter your API token as the password.
+Please ensure an API token is available to upload the wheels because `twine upload` requires an API token. If you don't have an available API token, navigate to https://pypi.org/manage/account/token/ to generate a new token.
 
 To verify the wheels have been uploaded successfully, you can try installing the wheel:
 
