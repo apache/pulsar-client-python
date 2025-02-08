@@ -21,6 +21,7 @@
 set -e -x
 
 cd /pulsar-client-python
+ROOT_DIR=$PWD
 source build-support/dep-url.sh
 
 # Build cpp wheels
@@ -46,6 +47,9 @@ if [ $CPP_BINARY_TYPE == "rpm" ]; then
     cd ..
     ./bootstrap-vcpkg.sh
     cd ..
+    if [ $PULSAR_CPP_VERSION == "3.7.0" ]; then
+        patch lib/CMakeLists.txt $ROOT_DIR/pkg/manylinux2014/pulsar-client-cpp-3.7.0.patch
+    fi
     cmake -B build-cpp -DINTEGRATE_VCPKG=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_DYNAMIC_LIB=ON -DBUILD_STATIC_LIB=ON
     cmake --build build-cpp -j8 --target install
     cd ..
