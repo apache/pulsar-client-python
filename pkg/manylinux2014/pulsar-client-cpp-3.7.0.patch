@@ -1,0 +1,13 @@
+--- lib/CMakeLists.txt
++++ lib/CMakeLists.txt
+@@ -93,10 +93,6 @@
+     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+         target_link_options(pulsarShared PRIVATE -Wl,-Bsymbolic)
+     endif ()
+-    check_cxx_symbol_exists(__GLIBCXX__ iostream GLIBCXX)
+-    if (GLIBCXX)
+-        target_link_libraries(pulsarShared PUBLIC -static-libgcc -static-libstdc++)
+-    endif ()
+ endif()
+
+ check_cxx_symbol_exists(getauxval sys/auxv.h HAVE_AUXV_GETAUXVAL)
