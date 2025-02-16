@@ -21,8 +21,6 @@
 The Pulsar Python client library is based on the existing C++ client library.
 All the same features are exposed through the Python interface.
 
-Currently, the supported Python versions are 3.7, 3.8, 3.9 and 3.10.
-
 =================
 Install from PyPI
 =================
