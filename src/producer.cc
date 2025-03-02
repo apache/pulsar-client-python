@@ -30,10 +30,10 @@ MessageId Producer_send(Producer& producer, const Message& message) {
 }
 
 void Producer_sendAsync(Producer& producer, const Message& msg, SendCallback callback) {
-    Py_BEGIN_ALLOW_THREADS producer.sendAsync(msg, callback);
-    Py_END_ALLOW_THREADS
+    py::gil_scoped_release release;
+    producer.sendAsync(msg, callback);
 
-        if (PyErr_CheckSignals() == -1) {
+    if (PyErr_CheckSignals() == -1) {
         PyErr_SetInterrupt();
     }
 }
