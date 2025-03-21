@@ -828,6 +828,7 @@ class PulsarTest(TestCase):
         self._check_value_error(lambda: Client(None))
         self._check_value_error(lambda: Client(self.serviceUrl, authentication="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, operation_timeout_seconds="test"))
+        self._check_value_error(lambda: Client(self.serviceUrl, stats_interval_in_seconds="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, io_threads="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, message_listener_threads="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, concurrent_lookup_requests="test"))

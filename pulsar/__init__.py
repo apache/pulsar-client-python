@@ -482,6 +482,7 @@ class Client:
                  message_listener_threads=1,
                  concurrent_lookup_requests=50000,
                  log_conf_file_path=None,
+                 stats_interval_in_seconds=600,
                  use_tls=False,
                  tls_trust_certs_file_path=None,
                  tls_allow_insecure_connection=False,
@@ -520,6 +521,9 @@ class Client:
         log_conf_file_path: str, optional
             This parameter is deprecated and makes no effect. It's retained only for compatibility.
             Use `logger` to customize a logger.
+        stats_interval_in_seconds: int, default=600
+            Set the interval between each stats information update. Stats are printed and/or
+            passed to the statistics listener at this interval. Set to 0 to disable stats collection.
         use_tls: bool, default=False
             Configure whether to use TLS encryption on the connection. This setting is deprecated.
             TLS will be automatically enabled if the ``serviceUrl`` is set to ``pulsar+ssl://`` or ``https://``
@@ -560,6 +564,7 @@ class Client:
         _check_type(int, message_listener_threads, 'message_listener_threads')
         _check_type(int, concurrent_lookup_requests, 'concurrent_lookup_requests')
         _check_type_or_none(str, log_conf_file_path, 'log_conf_file_path')
+        _check_type(int, stats_interval_in_seconds, 'stats_interval_in_seconds')
         _check_type(bool, use_tls, 'use_tls')
         _check_type_or_none(str, tls_trust_certs_file_path, 'tls_trust_certs_file_path')
         _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
@@ -574,6 +579,7 @@ class Client:
         conf.io_threads(io_threads)
         conf.message_listener_threads(message_listener_threads)
         conf.concurrent_lookup_requests(concurrent_lookup_requests)
+        conf.stats_interval_in_seconds(stats_interval_in_seconds)
 
         if isinstance(logger, logging.Logger):
             conf.set_logger(self._prepare_logger(logger))
