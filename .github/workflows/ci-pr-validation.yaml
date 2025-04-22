@@ -29,7 +29,7 @@ concurrency:
 jobs:
   check-and-lint:
     name: Lint and check code
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -48,7 +48,7 @@ jobs:
 
   unit-tests:
     name: Run unit tests for Python ${{matrix.version}}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 120
 
     strategy:
@@ -105,7 +105,7 @@ jobs:
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
     needs: unit-tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 300
 
     strategy:
