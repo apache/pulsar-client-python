@@ -31,14 +31,14 @@ fi
 PULSAR_CPP_VERSION=$(cat ./dependencies.yaml | grep pulsar-cpp | awk '{print $2}')
 
 if [ $CPP_BINARY_TYPE == "rpm" ]; then
-    # The pre-built RPM packages have incompatible ABI with manylinux2014, so we have to build from source
+    # The pre-built RPM packages have incompatible ABI with manylinux, so we have to build from source
     download_dependency ./dependencies.yaml pulsar-cpp
     cd apache-pulsar-client-cpp-${PULSAR_CPP_VERSION}
 
     git clone https://github.com/microsoft/vcpkg.git
     cd vcpkg
 
-    # manylinux2014 does not have ninja in the system package manager
+    # manylinux does not have ninja in the system package manager
     git clone https://github.com/ninja-build/ninja.git
     cd ninja
     git checkout release
@@ -48,7 +48,7 @@ if [ $CPP_BINARY_TYPE == "rpm" ]; then
     ./bootstrap-vcpkg.sh
     cd ..
     if [ $PULSAR_CPP_VERSION == "3.7.0" ]; then
-        patch lib/CMakeLists.txt $ROOT_DIR/pkg/manylinux2014/pulsar-client-cpp-3.7.0.patch
+        patch lib/CMakeLists.txt $ROOT_DIR/pkg/manylinux/pulsar-client-cpp-3.7.0.patch
     fi
     cmake -B build-cpp -DINTEGRATE_VCPKG=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_DYNAMIC_LIB=ON -DBUILD_STATIC_LIB=ON
     cmake --build build-cpp -j8 --target install

@@ -31,14 +31,14 @@ jobs:
 
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 300
 
     strategy:
       fail-fast: false
       matrix:
         image:
-          - {name: 'manylinux2014', py_suffix: ''}
+          - {name: 'manylinux', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
           - {version: '3.9', spec: 'cp39-cp39'}

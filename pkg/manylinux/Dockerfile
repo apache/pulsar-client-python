@@ -18,7 +18,7 @@
 #
 
 ARG ARCH
-FROM quay.io/pypa/manylinux2014_${ARCH}
+FROM quay.io/pypa/manylinux_2_28_${ARCH}
 
 ARG PYTHON_VERSION
 ARG PYTHON_SPEC

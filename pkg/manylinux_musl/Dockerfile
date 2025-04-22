@@ -18,7 +18,7 @@
 #
 
 ARG ARCH
-FROM quay.io/pypa/musllinux_1_1_${ARCH}
+FROM quay.io/pypa/musllinux_1_2_${ARCH}
 
 ARG PYTHON_VERSION
 ARG PYTHON_SPEC
