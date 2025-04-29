@@ -54,6 +54,7 @@ from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, Part
 from pulsar.__about__ import __version__
 
 from pulsar.exceptions import *
+from pulsar.tableview import TableView
 
 from pulsar.functions.function import Function
 from pulsar.functions.context import Context

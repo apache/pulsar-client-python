@@ -89,6 +89,12 @@ void export_client(py::module_& m) {
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
         .def("create_reader", &Client_createReader)
+        .def("create_table_view", [](Client& client, const std::string& topic,
+                                     const TableViewConfiguration& config) {
+            return waitForAsyncValue<TableView>([&](TableViewCallback callback) {
+                client.createTableViewAsync(topic, config, callback);
+            });
+        })
         .def("get_topic_partitions", &Client_getTopicPartitions)
         .def("get_schema_info", &Client_getSchemaInfo)
         .def("close", &Client_close)

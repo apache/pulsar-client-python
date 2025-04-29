@@ -16,34 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include "utils.h"
 #include <pybind11/pybind11.h>
+#include <pulsar/TableView.h>
+#include <pulsar/Schema.h>
+#include <pulsar/TableViewConfiguration.h>
+
 namespace py = pybind11;
+using namespace pulsar;
 
-using Module = py::module_;
+void export_table_view(py::module_& m) {
+    py::class_<TableViewConfiguration>(m, "TableViewConfiguration")
+        .def(py::init<>())
+        .def("subscription_name",
+             [](TableViewConfiguration& config, const std::string& name) { config.subscriptionName = name; })
+        .def("schema",
+             [](TableViewConfiguration& config, const SchemaInfo& schema) { config.schemaInfo = schema; });
 
-void export_client(Module& m);
-void export_message(Module& m);
-void export_producer(Module& m);
-void export_consumer(Module& m);
-void export_reader(Module& m);
-void export_config(Module& m);
-void export_enums(Module& m);
-void export_authentication(Module& m);
-void export_schema(Module& m);
-void export_exceptions(Module& m);
-void export_table_view(Module& m);
-
-PYBIND11_MODULE(_pulsar, m) {
-    export_exceptions(m);
-    export_client(m);
-    export_message(m);
-    export_producer(m);
-    export_consumer(m);
-    export_reader(m);
-    export_config(m);
-    export_enums(m);
-    export_authentication(m);
-    export_schema(m);
-    export_table_view(m);
+    py::class_<TableView>(m, "TableView").def(py::init<>());
 }
