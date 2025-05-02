@@ -1126,6 +1126,42 @@ class Client:
         self._consumers.append(c)
         return c
 
+    def create_table_view(self, topic: str,
+                          subscription_name: Optional[str] = None,
+                          schema: schema.Schema = schema.BytesSchema()) -> TableView:
+        """
+        Create a table view on a particular topic
+
+        Parameters
+        ----------
+
+        topic: str
+            The name of the topic.
+        subscription_name: str, optional
+            The name of the subscription. If it's not specified, a random subscription name
+            will be used.
+        schema: pulsar.schema.Schema, default=pulsar.schema.BytesSchema
+            Define the schema of this table view. If the schema is incompatible with the topic's
+            schema, this method will throw an exception. This schema is also used to deserialize
+            the value of messages in the table view.
+
+        Returns
+        -------
+        TableView
+            A table view instance.
+        """
+        _check_type(str, topic, 'topic')
+        _check_type_or_none(str, subscription_name, 'subscription_name')
+        _check_type(_schema.Schema, schema, 'schema')
+
+        tv_conf = _pulsar.TableViewConfiguration()
+        if subscription_name is not None:
+            tv_conf.subscription_name(subscription_name)
+        tv_conf.schema(schema.schema_info())
+        tv = self._client.create_table_view(topic, tv_conf)
+        self._table_view = TableView(tv, topic, subscription_name, schema)
+        return self._table_view
+
     def get_topic_partitions(self, topic):
         """
         Get the list of partitions for a given topic.

@@ -21,7 +21,60 @@
 The TableView implementation.
 """
 
+from typing import Any, Optional
+from pulsar.schema.schema import Schema
+import _pulsar
+
 class TableView():
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, table_view: _pulsar.TableView, topic: str,
+                 subscription: Optional[str], schema: Schema) -> None:
+        self._table_view = table_view
+        self._topic = topic
+        self._subscription = subscription
+        self._schema = schema
+
+    def get(self, key: str) -> Optional[Any]:
+        """
+        Return the value associated with the given key in the table view.
+
+        Parameters
+        ----------
+        key: str
+            The message key
+
+        Returns
+        -------
+        Optional[Any]
+            The value associated with the key, or None if the key does not exist.
+        """
+        pair = self._table_view.get(key)
+        if pair[0]:
+            return self._schema.decode(pair[1])
+        else:
+            return None
+        #value = self._table_view.get(key)
+        #if value is None:
+        #    return None
+        #return self._schema.decode(value)
+
+    def close(self) -> None:
+        """
+        Close the table view.
+        """
+        self._table_view.close()
+
+    def __len__(self) -> int:
+        """
+        Return the number of entries in the table view.
+        """
+        return self._table_view.size()
+
+    def __str__(self) -> str:
+        if self._subscription is None:
+            return f"TableView(topic={self._topic})"
+        else:
+            return f"TableView(topic={self._topic}, subscription={self._subscription})"
+
+    def __repr__(self) -> str:
+        return self.__str__()

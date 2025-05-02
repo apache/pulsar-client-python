@@ -20,6 +20,9 @@
 #include <pulsar/TableView.h>
 #include <pulsar/Schema.h>
 #include <pulsar/TableViewConfiguration.h>
+#include <pybind11/stl.h>
+#include <utility>
+#include "utils.h"
 
 namespace py = pybind11;
 using namespace pulsar;
@@ -32,5 +35,22 @@ void export_table_view(py::module_& m) {
         .def("schema",
              [](TableViewConfiguration& config, const SchemaInfo& schema) { config.schemaInfo = schema; });
 
-    py::class_<TableView>(m, "TableView").def(py::init<>());
+    py::class_<TableView>(m, "TableView")
+        .def(py::init<>())
+        .def("get",
+             [](const TableView& view, const std::string& key) -> std::pair<bool, py::bytes> {
+                 py::gil_scoped_release release;
+                 std::string value;
+                 bool available = view.getValue(key, value);
+                 py::gil_scoped_acquire acquire;
+                 if (available) {
+                     return std::make_pair(true, py::bytes(std::move(value)));
+                 } else {
+                     return std::make_pair(false, py::bytes());
+                 }
+             })
+        .def("size", &TableView::size, py::call_guard<py::gil_scoped_release>())
+        .def("close", [](TableView& view) {
+            waitForAsyncResult([&view](ResultCallback callback) { view.closeAsync(callback); });
+        });
 }
