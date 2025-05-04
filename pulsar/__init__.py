@@ -49,7 +49,7 @@ import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
     LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode, \
-    DeadLetterPolicyBuilder  # noqa: F401
+    DeadLetterPolicyBuilder, ConsumerCryptoFailureAction  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -846,6 +846,7 @@ class Client:
                   batch_index_ack_enabled=False,
                   regex_subscription_mode: RegexSubscriptionMode = RegexSubscriptionMode.PersistentOnly,
                   dead_letter_policy: Union[None, ConsumerDeadLetterPolicy] = None,
+                  crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -949,6 +950,19 @@ class Client:
           stopped. By using the dead letter mechanism, messages have the max redelivery count, when they're
           exceeding the maximum number of redeliveries. Messages are sent to dead letter topics and acknowledged
           automatically.
+        crypto_failure_action: ConsumerCryptoFailureAction, default=ConsumerCryptoFailureAction.FAIL
+          Set the behavior when the decryption fails. The default is to fail the message.
+
+          Supported actions:
+
+          * ConsumerCryptoFailureAction.FAIL: Fail consume until crypto succeeds
+          * ConsumerCryptoFailureAction.DISCARD:
+            Message is silently acknowledged and not delivered to the application.
+          * ConsumerCryptoFailureAction.CONSUME:
+            Deliver the encrypted message to the application. It's the application's responsibility
+            to decrypt the message. If message is also compressed, decompression will fail. If the
+            message contains batch messages, client will not be able to retrieve individual messages
+            in the batch.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -972,6 +986,7 @@ class Client:
         _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
         _check_type(bool, batch_index_ack_enabled, 'batch_index_ack_enabled')
         _check_type(RegexSubscriptionMode, regex_subscription_mode, 'regex_subscription_mode')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -1010,6 +1025,7 @@ class Client:
         conf.batch_index_ack_enabled(batch_index_ack_enabled)
         if dead_letter_policy:
             conf.dead_letter_policy(dead_letter_policy.policy())
+        conf.crypto_failure_action(crypto_failure_action)
 
         c = Consumer()
         if isinstance(topic, str):
@@ -1038,7 +1054,8 @@ class Client:
                       subscription_role_prefix=None,
                       is_read_compacted=False,
                       crypto_key_reader: Union[None, CryptoKeyReader] = None,
-                      start_message_id_inclusive=False
+                      start_message_id_inclusive=False,
+                      crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
                       ):
         """
         Create a reader on a particular topic
@@ -1099,6 +1116,19 @@ class Client:
             and private key decryption messages for the consumer
         start_message_id_inclusive: bool, default=False
             Set the reader to include the startMessageId or given position of any reset operation like Reader.seek
+        crypto_failure_action: ConsumerCryptoFailureAction, default=ConsumerCryptoFailureAction.FAIL
+          Set the behavior when the decryption fails. The default is to fail the message.
+
+          Supported actions:
+
+          * ConsumerCryptoFailureAction.FAIL: Fail consume until crypto succeeds
+          * ConsumerCryptoFailureAction.DISCARD:
+            Message is silently acknowledged and not delivered to the application.
+          * ConsumerCryptoFailureAction.CONSUME:
+            Deliver the encrypted message to the application. It's the application's responsibility
+            to decrypt the message. If message is also compressed, decompression will fail. If the
+            message contains batch messages, client will not be able to retrieve individual messages
+            in the batch.
         """
 
         # If a pulsar.MessageId object is passed, access the _pulsar.MessageId object
@@ -1114,6 +1144,7 @@ class Client:
         _check_type(bool, is_read_compacted, 'is_read_compacted')
         _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
         _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ReaderConfiguration()
         if reader_listener:
@@ -1128,6 +1159,7 @@ class Client:
         if crypto_key_reader:
             conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
         conf.start_message_id_inclusive(start_message_id_inclusive)
+        conf.crypto_failure_action(crypto_failure_action)
 
         c = Reader()
         c._reader = self._client.create_reader(topic, start_message_id, conf)

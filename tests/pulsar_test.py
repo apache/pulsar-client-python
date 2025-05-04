@@ -482,6 +482,63 @@ class PulsarTest(TestCase):
 
         client.close()
 
+    def test_encryption_failure(self):
+        publicKeyPath = CERTS_DIR + "public-key.client-rsa.pem"
+        privateKeyPath = CERTS_DIR + "private-key.client-rsa.pem"
+        crypto_key_reader = CryptoKeyReader(publicKeyPath, privateKeyPath)
+        client = Client(self.serviceUrl)
+        topic = "my-python-test-end-to-end-encryption-failure-" + str(time.time())
+        producer = client.create_producer(
+            topic=topic, encryption_key="client-rsa.pem", crypto_key_reader=crypto_key_reader
+        )
+        producer.send(b"msg-0")
+
+        def verify_next_message(value: bytes):
+            consumer = client.subscribe(topic, subscription,
+                                        crypto_key_reader=crypto_key_reader)
+            msg = consumer.receive(3000)
+            self.assertEqual(msg.data(), value)
+            consumer.acknowledge(msg)
+            consumer.close()
+
+        subscription = "my-sub"
+        consumer = client.subscribe(topic, subscription,
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.FAIL)
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(3000)
+        consumer.close()
+        producer.send(b"msg-1")
+        verify_next_message(b"msg-0") # msg-0 won't be skipped
+
+        consumer = client.subscribe(topic, subscription,
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.DISCARD)
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(3000)
+        consumer.close()
+
+        producer.send(b"msg-2")
+        verify_next_message(b"msg-2") # msg-1 is skipped since the crypto failure action is DISCARD
+
+        # Encrypted messages will be consumed since the crypto failure action is CONSUME
+        consumer = client.subscribe(topic, 'another-sub',
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
+        for i in range(3):
+            msg = consumer.receive(3000)
+            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
+            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+
+        reader = client.create_reader(topic, MessageId.earliest,
+                                      crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
+        for i in range(3):
+            msg = reader.read_next(3000)
+            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
+            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+
+        client.close()
+
     def test_tls_auth3(self):
         authPlugin = "tls"
         authParams = "tlsCertFile:%s/client-cert.pem,tlsKeyFile:%s/client-key.pem" % (CERTS_DIR, CERTS_DIR)

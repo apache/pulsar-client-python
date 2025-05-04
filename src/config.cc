@@ -313,7 +313,11 @@ void export_config(py::module_& m) {
         .def("batch_index_ack_enabled", &ConsumerConfiguration::setBatchIndexAckEnabled,
              return_value_policy::reference)
         .def("dead_letter_policy", &ConsumerConfiguration::setDeadLetterPolicy)
-        .def("dead_letter_policy", &ConsumerConfiguration::getDeadLetterPolicy, return_value_policy::copy);
+        .def("dead_letter_policy", &ConsumerConfiguration::getDeadLetterPolicy, return_value_policy::copy)
+        .def("crypto_failure_action", &ConsumerConfiguration::getCryptoFailureAction,
+            return_value_policy::copy)
+        .def("crypto_failure_action", &ConsumerConfiguration::setCryptoFailureAction,
+            return_value_policy::reference);
 
     class_<ReaderConfiguration, std::shared_ptr<ReaderConfiguration>>(m, "ReaderConfiguration")
         .def(init<>())
@@ -331,5 +335,9 @@ void export_config(py::module_& m) {
         .def("read_compacted", &ReaderConfiguration::setReadCompacted)
         .def("crypto_key_reader", &ReaderConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("start_message_id_inclusive", &ReaderConfiguration::isStartMessageIdInclusive)
-        .def("start_message_id_inclusive", &ReaderConfiguration::setStartMessageIdInclusive, return_value_policy::reference);
+        .def("start_message_id_inclusive", &ReaderConfiguration::setStartMessageIdInclusive, return_value_policy::reference)
+        .def("crypto_failure_action", &ReaderConfiguration::getCryptoFailureAction,
+            return_value_policy::copy)
+        .def("crypto_failure_action", &ReaderConfiguration::setCryptoFailureAction,
+            return_value_policy::reference);
 }
