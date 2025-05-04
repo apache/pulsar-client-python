@@ -22,6 +22,7 @@
 import random
 import threading
 import logging
+from typing import Optional
 from unittest import TestCase, main
 import time
 import os
@@ -1511,10 +1512,22 @@ class PulsarTest(TestCase):
         with self.assertRaises(TypeError):
             fun()
 
-    def _test_basic_auth(self, id, auth):
-        client = Client(self.adminUrl, authentication=auth)
+    def _test_basic_auth(self, topic_id: int, auth,
+                         use_tls: bool = False,
+                         tls_private_key_file_path: Optional[str] = None,
+                         tls_certificate_file_path: Optional[str] = None) -> None:
+        if use_tls:
+            service_url = self.serviceUrlTls
+            tls_trust_certs_file_path = CERTS_DIR + 'cacert.pem'
+        else:
+            service_url = self.adminUrl
+            tls_trust_certs_file_path = None
+        client = Client(service_url, authentication=auth,
+                        tls_trust_certs_file_path=tls_trust_certs_file_path,
+                        tls_private_key_file_path=tls_private_key_file_path,
+                        tls_certificate_file_path=tls_certificate_file_path)
 
-        topic = "persistent://private/auth/my-python-topic-basic-auth-" + str(id)
+        topic = "persistent://private/auth/my-python-topic-basic-auth-" + str(topic_id)
         consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared)
         producer = client.create_producer(topic)
         producer.send(b"hello")
@@ -1545,6 +1558,17 @@ class PulsarTest(TestCase):
             self._test_basic_auth(5, AuthenticationBasic(
                 auth_params_string='{{"username": "{}","password": "{}", "method": "unknown"}}'.format(username, password)
             ))
+
+    def test_tls_encryption_with_other_auth(self):
+        self._test_basic_auth(6, AuthenticationBasic('admin', '123456'),
+                              use_tls=True,
+                              tls_private_key_file_path=CERTS_DIR + 'client-key.pem',
+                              tls_certificate_file_path=CERTS_DIR + 'client-cert.pem')
+        with self.assertRaises(pulsar.ConnectError):
+            self._test_basic_auth(7, AuthenticationBasic('admin', '123456'),
+                                  use_tls=True,
+                                  tls_private_key_file_path=CERTS_DIR + 'client-cert.pem',
+                                  tls_certificate_file_path=CERTS_DIR + 'client-key.pem')
 
     def test_invalid_basic_auth(self):
         username = "invalid"

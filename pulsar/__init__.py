@@ -489,7 +489,9 @@ class Client:
                  tls_validate_hostname=False,
                  logger=None,
                  connection_timeout_ms=10000,
-                 listener_name=None
+                 listener_name=None,
+                 tls_private_key_file_path: Optional[str] = None,
+                 tls_certificate_file_path: Optional[str] = None,
                  ):
         """
         Create a new Pulsar client instance.
@@ -555,6 +557,10 @@ class Client:
             Listener name for lookup. Clients can use listenerName to choose one of the listeners as
             the service URL to create a connection to the broker as long as the network is accessible.
             ``advertisedListeners`` must be enabled in broker side.
+        tls_private_key_file_path: str, optional
+            The path to the TLS private key file
+        tls_certificate_file_path: str, optional
+            The path to the TLS certificate file.
         """
         _check_type(str, service_url, 'service_url')
         _check_type_or_none(Authentication, authentication, 'authentication')
@@ -570,6 +576,8 @@ class Client:
         _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
         _check_type(bool, tls_validate_hostname, 'tls_validate_hostname')
         _check_type_or_none(str, listener_name, 'listener_name')
+        _check_type_or_none(str, tls_private_key_file_path, 'tls_private_key_file_path')
+        _check_type_or_none(str, tls_certificate_file_path, 'tls_certificate_file_path')
 
         conf = _pulsar.ClientConfiguration()
         if authentication:
@@ -601,6 +609,10 @@ class Client:
             conf.tls_trust_certs_file_path(certifi.where())
         conf.tls_allow_insecure_connection(tls_allow_insecure_connection)
         conf.tls_validate_hostname(tls_validate_hostname)
+        if tls_private_key_file_path is not None:
+            conf.tls_private_key_file_path(tls_private_key_file_path)
+        if tls_certificate_file_path is not None:
+            conf.tls_certificate_file_path(tls_certificate_file_path)
         self._client = _pulsar.Client(service_url, conf)
         self._consumers = []
 

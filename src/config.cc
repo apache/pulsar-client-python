@@ -166,6 +166,14 @@ void export_config(py::module_& m) {
              return_value_policy::copy)
         .def("tls_trust_certs_file_path", &ClientConfiguration::setTlsTrustCertsFilePath,
              return_value_policy::reference)
+        .def("tls_private_key_file_path", &ClientConfiguration::getTlsPrivateKeyFilePath,
+             return_value_policy::copy)
+        .def("tls_private_key_file_path", &ClientConfiguration::setTlsPrivateKeyFilePath,
+             return_value_policy::reference)
+        .def("tls_certificate_file_path", &ClientConfiguration::getTlsCertificateFilePath,
+             return_value_policy::copy)
+        .def("tls_certificate_file_path", &ClientConfiguration::setTlsCertificateFilePath,
+             return_value_policy::reference)
         .def("tls_allow_insecure_connection", &ClientConfiguration::isTlsAllowInsecureConnection)
         .def("tls_allow_insecure_connection", &ClientConfiguration::setTlsAllowInsecureConnection,
              return_value_policy::reference)
