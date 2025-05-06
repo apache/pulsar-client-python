@@ -1253,6 +1253,29 @@ class PulsarTest(TestCase):
         s = MessageId.latest.serialize()
         self.assertEqual(MessageId.deserialize(s), MessageId.latest)
 
+        client = Client(self.serviceUrl)
+        topic = f'test-message-id-compare-{str(time.time())}'
+        producer = client.create_producer(topic)
+        consumer = client.subscribe(topic, 'sub')
+
+        sent_ids = []
+        received_ids = []
+        for i in range(5):
+            sent_ids.append(MessageId.wrap(producer.send(b'msg-%d' % i)))
+            msg = consumer.receive(TM)
+            received_ids.append(MessageId.wrap(msg.message_id()))
+            self.assertEqual(sent_ids[i], received_ids[i])
+            consumer.acknowledge(received_ids[i])
+        consumer.acknowledge_cumulative(received_ids[4])
+
+        for i in range(4):
+            self.assertLess(sent_ids[i], sent_ids[i + 1])
+            self.assertLessEqual(sent_ids[i], sent_ids[i + 1])
+            self.assertGreater(sent_ids[i + 1], sent_ids[i])
+            self.assertGreaterEqual(sent_ids[i + 1], sent_ids[i])
+            self.assertNotEqual(sent_ids[i], sent_ids[i + 1])
+        client.close()
+
     def test_get_topics_partitions(self):
         client = Client(self.serviceUrl)
         topic_partitioned = "persistent://public/default/test_get_topics_partitions"
