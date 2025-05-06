@@ -81,7 +81,7 @@ class MessageId:
     """
 
     def __init__(self, partition=-1, ledger_id=-1, entry_id=-1, batch_index=-1):
-        self._msg_id = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
+        self._msg_id: _pulsar.MessageId = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
 
     earliest = _pulsar.MessageId.earliest
     latest = _pulsar.MessageId.latest
@@ -111,6 +111,24 @@ class MessageId:
         """
         return str(self._msg_id)
 
+    def __eq__(self, other) -> bool:
+        return self._msg_id == other._msg_id
+
+    def __ne__(self, other) -> bool:
+        return self._msg_id != other._msg_id
+
+    def __le__(self, other) -> bool:
+        return self._msg_id <= other._msg_id
+
+    def __lt__(self, other) -> bool:
+        return self._msg_id < other._msg_id
+
+    def __ge__(self, other) -> bool:
+        return self._msg_id >= other._msg_id
+
+    def __gt__(self, other) -> bool:
+        return self._msg_id > other._msg_id
+
     @staticmethod
     def deserialize(message_id_bytes):
         """
@@ -119,6 +137,14 @@ class MessageId:
         """
         return _pulsar.MessageId.deserialize(message_id_bytes)
 
+    @classmethod
+    def wrap(cls, msg_id: _pulsar.MessageId):
+        """
+        Wrap the underlying MessageId type from the C extension to the Python type.
+        """
+        self = cls()
+        self._msg_id = msg_id
+        return self
 
 class Message:
     """
@@ -170,9 +196,13 @@ class Message:
         """
         return self._message.event_timestamp()
 
-    def message_id(self):
+    def message_id(self) -> _pulsar.MessageId:
         """
         The message ID that can be used to refer to this particular message.
+
+        Returns
+        ----------
+        A `_pulsar.MessageId` object that represents where the message is persisted.
         """
         return self._message.message_id()
 
@@ -1231,7 +1261,7 @@ class Producer:
              event_timestamp=None,
              deliver_at=None,
              deliver_after=None,
-             ):
+             ) -> _pulsar.MessageId:
         """
         Publish a message on the topic. Blocks until the message is acknowledged
 
@@ -1264,6 +1294,10 @@ class Producer:
             The timestamp is milliseconds and based on UTC
         deliver_after: optional
             Specify a delay in timedelta for the delivery of the messages.
+
+        Returns
+        ----------
+        A `_pulsar.MessageId` object that represents where the message is persisted.
         """
         msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
@@ -1502,7 +1536,7 @@ class Consumer:
             messages.append(m)
         return messages
 
-    def acknowledge(self, message):
+    def acknowledge(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of a single message.
 
@@ -1511,7 +1545,7 @@ class Consumer:
 
         Parameters
         ----------
-        message : Message, _pulsar.Message, _pulsar.MessageId
+        message : Message, MessageId, _pulsar.Message, _pulsar.MessageId
             The received message or message id.
 
         Raises
@@ -1521,10 +1555,12 @@ class Consumer:
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
+        elif isinstance(message, MessageId):
+            self._consumer.acknowledge(message._msg_id)
         else:
             self._consumer.acknowledge(message)
 
-    def acknowledge_cumulative(self, message):
+    def acknowledge_cumulative(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of all the messages in the stream up to (and
         including) the provided message.
@@ -1545,6 +1581,8 @@ class Consumer:
         """
         if isinstance(message, Message):
             self._consumer.acknowledge_cumulative(message._message)
+        elif isinstance(message, MessageId):
+            self._consumer.acknowledge_cumulative(message._msg_id)
         else:
             self._consumer.acknowledge_cumulative(message)
 
