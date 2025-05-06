@@ -66,6 +66,29 @@ class TableViewTest(TestCase):
             'key-1': 'value-1'
         })
 
+        def listener(key: str, value: str):
+            if len(value) == 0:
+                d.pop(key)
+            else:
+                d[key] = value
+
+        d.clear()
+        table_view.for_each_and_listen(listener)
+        self.assertEqual(d, {
+            'key-0': 'value-0',
+            'key-1': 'value-1'
+        })
+
+        producer.send('value-0-new'.encode(), partition_key='key-0')
+        producer.send(''.encode(), partition_key='key-1')
+        producer.send('value-2'.encode(), partition_key='key-2')
+        def assert_latest_values():
+            self.assertEqual(d, {
+                'key-0': 'value-0-new',
+                'key-2': 'value-2'
+            })
+        self._wait_for_assertion(assert_latest_values)
+
     def _wait_for_assertion(self, assertion: Callable, timeout=5) -> None:
         start_time = time.time()
         while time.time() - start_time < timeout:

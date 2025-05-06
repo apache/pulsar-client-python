@@ -66,6 +66,19 @@ class TableView():
         """
         self._table_view.for_each(lambda k, v: callback(k, self._schema.decode(v)))
 
+    def for_each_and_listen(self, callback: Callable[[str, Any], None]) -> None:
+        """
+        Iterate over all entries in the table view and call the callback function
+        with the key and value for each entry, then listen for changes. The callback
+        will be called when a new entry is added or an existing entry is updated.
+
+        Parameters
+        ----------
+        callback: Callable[[str, Any], None]
+            The callback function to call for each entry.
+        """
+        self._table_view.for_each_and_listen(lambda k, v: callback(k, self._schema.decode(v)))
+
     def close(self) -> None:
         """
         Close the table view.
