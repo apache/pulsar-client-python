@@ -21,6 +21,7 @@
 #include <pulsar/Schema.h>
 #include <pulsar/TableViewConfiguration.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 #include <utility>
 #include "utils.h"
 
@@ -50,6 +51,7 @@ void export_table_view(py::module_& m) {
                  }
              })
         .def("size", &TableView::size, py::call_guard<py::gil_scoped_release>())
+        .def("for_each", &TableView::forEach, py::call_guard<py::gil_scoped_release>())
         .def("close", [](TableView& view) {
             waitForAsyncResult([&view](ResultCallback callback) { view.closeAsync(callback); });
         });

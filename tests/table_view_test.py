@@ -29,7 +29,7 @@ class TableViewTest(TestCase):
     def setUp(self):
         self._client: Client = Client('pulsar://localhost:6650')
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self._client.close()
 
     def test_get(self):
@@ -51,6 +51,20 @@ class TableViewTest(TestCase):
         producer.close()
         table_view.close()
         
+    def test_for_each(self):
+        topic = f'table_view_test_for_each-{time.time()}'
+        table_view = self._client.create_table_view(topic)
+        producer = self._client.create_producer(topic)
+        producer.send('value-0'.encode(), partition_key='key-0')
+        producer.send('value-1'.encode(), partition_key='key-1')
+        self._wait_for_assertion(lambda: self.assertEqual(len(table_view), 2))
+
+        d = dict()
+        table_view.for_each(lambda key, value: d.__setitem__(key, value))
+        self.assertEqual(d, {
+            'key-0': 'value-0',
+            'key-1': 'value-1'
+        })
 
     def _wait_for_assertion(self, assertion: Callable, timeout=5) -> None:
         start_time = time.time()

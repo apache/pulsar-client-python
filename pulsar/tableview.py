@@ -21,7 +21,7 @@
 The TableView implementation.
 """
 
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from pulsar.schema.schema import Schema
 import _pulsar
 
@@ -53,10 +53,18 @@ class TableView():
             return self._schema.decode(pair[1])
         else:
             return None
-        #value = self._table_view.get(key)
-        #if value is None:
-        #    return None
-        #return self._schema.decode(value)
+
+    def for_each(self, callback: Callable[[str, Any], None]) -> None:
+        """
+        Iterate over all entries in the table view and call the callback function
+        with the key and value for each entry.
+
+        Parameters
+        ----------
+        callback: Callable[[str, Any], None]
+            The callback function to call for each entry.
+        """
+        self._table_view.for_each(lambda k, v: callback(k, self._schema.decode(v)))
 
     def close(self) -> None:
         """
