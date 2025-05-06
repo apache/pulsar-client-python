@@ -49,7 +49,7 @@ import _pulsar
 
 from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
     LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode, \
-    DeadLetterPolicyBuilder  # noqa: F401
+    DeadLetterPolicyBuilder, ConsumerCryptoFailureAction  # noqa: F401
 
 from pulsar.__about__ import __version__
 
@@ -82,7 +82,7 @@ class MessageId:
     """
 
     def __init__(self, partition=-1, ledger_id=-1, entry_id=-1, batch_index=-1):
-        self._msg_id = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
+        self._msg_id: _pulsar.MessageId = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
 
     earliest = _pulsar.MessageId.earliest
     latest = _pulsar.MessageId.latest
@@ -112,6 +112,24 @@ class MessageId:
         """
         return str(self._msg_id)
 
+    def __eq__(self, other) -> bool:
+        return self._msg_id == other._msg_id
+
+    def __ne__(self, other) -> bool:
+        return self._msg_id != other._msg_id
+
+    def __le__(self, other) -> bool:
+        return self._msg_id <= other._msg_id
+
+    def __lt__(self, other) -> bool:
+        return self._msg_id < other._msg_id
+
+    def __ge__(self, other) -> bool:
+        return self._msg_id >= other._msg_id
+
+    def __gt__(self, other) -> bool:
+        return self._msg_id > other._msg_id
+
     @staticmethod
     def deserialize(message_id_bytes):
         """
@@ -120,6 +138,14 @@ class MessageId:
         """
         return _pulsar.MessageId.deserialize(message_id_bytes)
 
+    @classmethod
+    def wrap(cls, msg_id: _pulsar.MessageId):
+        """
+        Wrap the underlying MessageId type from the C extension to the Python type.
+        """
+        self = cls()
+        self._msg_id = msg_id
+        return self
 
 class Message:
     """
@@ -171,9 +197,13 @@ class Message:
         """
         return self._message.event_timestamp()
 
-    def message_id(self):
+    def message_id(self) -> _pulsar.MessageId:
         """
         The message ID that can be used to refer to this particular message.
+
+        Returns
+        ----------
+        A `_pulsar.MessageId` object that represents where the message is persisted.
         """
         return self._message.message_id()
 
@@ -490,7 +520,9 @@ class Client:
                  tls_validate_hostname=False,
                  logger=None,
                  connection_timeout_ms=10000,
-                 listener_name=None
+                 listener_name=None,
+                 tls_private_key_file_path: Optional[str] = None,
+                 tls_certificate_file_path: Optional[str] = None,
                  ):
         """
         Create a new Pulsar client instance.
@@ -556,6 +588,10 @@ class Client:
             Listener name for lookup. Clients can use listenerName to choose one of the listeners as
             the service URL to create a connection to the broker as long as the network is accessible.
             ``advertisedListeners`` must be enabled in broker side.
+        tls_private_key_file_path: str, optional
+            The path to the TLS private key file
+        tls_certificate_file_path: str, optional
+            The path to the TLS certificate file.
         """
         _check_type(str, service_url, 'service_url')
         _check_type_or_none(Authentication, authentication, 'authentication')
@@ -571,6 +607,8 @@ class Client:
         _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
         _check_type(bool, tls_validate_hostname, 'tls_validate_hostname')
         _check_type_or_none(str, listener_name, 'listener_name')
+        _check_type_or_none(str, tls_private_key_file_path, 'tls_private_key_file_path')
+        _check_type_or_none(str, tls_certificate_file_path, 'tls_certificate_file_path')
 
         conf = _pulsar.ClientConfiguration()
         if authentication:
@@ -602,6 +640,10 @@ class Client:
             conf.tls_trust_certs_file_path(certifi.where())
         conf.tls_allow_insecure_connection(tls_allow_insecure_connection)
         conf.tls_validate_hostname(tls_validate_hostname)
+        if tls_private_key_file_path is not None:
+            conf.tls_private_key_file_path(tls_private_key_file_path)
+        if tls_certificate_file_path is not None:
+            conf.tls_certificate_file_path(tls_certificate_file_path)
         self._client = _pulsar.Client(service_url, conf)
         self._consumers = []
 
@@ -835,6 +877,7 @@ class Client:
                   batch_index_ack_enabled=False,
                   regex_subscription_mode: RegexSubscriptionMode = RegexSubscriptionMode.PersistentOnly,
                   dead_letter_policy: Union[None, ConsumerDeadLetterPolicy] = None,
+                  crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
                   ):
         """
         Subscribe to the given topic and subscription combination.
@@ -938,6 +981,19 @@ class Client:
           stopped. By using the dead letter mechanism, messages have the max redelivery count, when they're
           exceeding the maximum number of redeliveries. Messages are sent to dead letter topics and acknowledged
           automatically.
+        crypto_failure_action: ConsumerCryptoFailureAction, default=ConsumerCryptoFailureAction.FAIL
+          Set the behavior when the decryption fails. The default is to fail the message.
+
+          Supported actions:
+
+          * ConsumerCryptoFailureAction.FAIL: Fail consume until crypto succeeds
+          * ConsumerCryptoFailureAction.DISCARD:
+            Message is silently acknowledged and not delivered to the application.
+          * ConsumerCryptoFailureAction.CONSUME:
+            Deliver the encrypted message to the application. It's the application's responsibility
+            to decrypt the message. If message is also compressed, decompression will fail. If the
+            message contains batch messages, client will not be able to retrieve individual messages
+            in the batch.
         """
         _check_type(str, subscription_name, 'subscription_name')
         _check_type(ConsumerType, consumer_type, 'consumer_type')
@@ -961,6 +1017,7 @@ class Client:
         _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
         _check_type(bool, batch_index_ack_enabled, 'batch_index_ack_enabled')
         _check_type(RegexSubscriptionMode, regex_subscription_mode, 'regex_subscription_mode')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -999,6 +1056,7 @@ class Client:
         conf.batch_index_ack_enabled(batch_index_ack_enabled)
         if dead_letter_policy:
             conf.dead_letter_policy(dead_letter_policy.policy())
+        conf.crypto_failure_action(crypto_failure_action)
 
         c = Consumer()
         if isinstance(topic, str):
@@ -1027,7 +1085,8 @@ class Client:
                       subscription_role_prefix=None,
                       is_read_compacted=False,
                       crypto_key_reader: Union[None, CryptoKeyReader] = None,
-                      start_message_id_inclusive=False
+                      start_message_id_inclusive=False,
+                      crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
                       ):
         """
         Create a reader on a particular topic
@@ -1088,6 +1147,19 @@ class Client:
             and private key decryption messages for the consumer
         start_message_id_inclusive: bool, default=False
             Set the reader to include the startMessageId or given position of any reset operation like Reader.seek
+        crypto_failure_action: ConsumerCryptoFailureAction, default=ConsumerCryptoFailureAction.FAIL
+          Set the behavior when the decryption fails. The default is to fail the message.
+
+          Supported actions:
+
+          * ConsumerCryptoFailureAction.FAIL: Fail consume until crypto succeeds
+          * ConsumerCryptoFailureAction.DISCARD:
+            Message is silently acknowledged and not delivered to the application.
+          * ConsumerCryptoFailureAction.CONSUME:
+            Deliver the encrypted message to the application. It's the application's responsibility
+            to decrypt the message. If message is also compressed, decompression will fail. If the
+            message contains batch messages, client will not be able to retrieve individual messages
+            in the batch.
         """
 
         # If a pulsar.MessageId object is passed, access the _pulsar.MessageId object
@@ -1103,6 +1175,7 @@ class Client:
         _check_type(bool, is_read_compacted, 'is_read_compacted')
         _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
         _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ReaderConfiguration()
         if reader_listener:
@@ -1117,6 +1190,7 @@ class Client:
         if crypto_key_reader:
             conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
         conf.start_message_id_inclusive(start_message_id_inclusive)
+        conf.crypto_failure_action(crypto_failure_action)
 
         c = Reader()
         c._reader = self._client.create_reader(topic, start_message_id, conf)
@@ -1256,7 +1330,7 @@ class Producer:
              event_timestamp=None,
              deliver_at=None,
              deliver_after=None,
-             ):
+             ) -> _pulsar.MessageId:
         """
         Publish a message on the topic. Blocks until the message is acknowledged
 
@@ -1289,6 +1363,10 @@ class Producer:
             The timestamp is milliseconds and based on UTC
         deliver_after: optional
             Specify a delay in timedelta for the delivery of the messages.
+
+        Returns
+        ----------
+        A `_pulsar.MessageId` object that represents where the message is persisted.
         """
         msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
                               replication_clusters, disable_replication, event_timestamp,
@@ -1527,7 +1605,7 @@ class Consumer:
             messages.append(m)
         return messages
 
-    def acknowledge(self, message):
+    def acknowledge(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of a single message.
 
@@ -1536,7 +1614,7 @@ class Consumer:
 
         Parameters
         ----------
-        message : Message, _pulsar.Message, _pulsar.MessageId
+        message : Message, MessageId, _pulsar.Message, _pulsar.MessageId
             The received message or message id.
 
         Raises
@@ -1546,10 +1624,12 @@ class Consumer:
         """
         if isinstance(message, Message):
             self._consumer.acknowledge(message._message)
+        elif isinstance(message, MessageId):
+            self._consumer.acknowledge(message._msg_id)
         else:
             self._consumer.acknowledge(message)
 
-    def acknowledge_cumulative(self, message):
+    def acknowledge_cumulative(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of all the messages in the stream up to (and
         including) the provided message.
@@ -1570,6 +1650,8 @@ class Consumer:
         """
         if isinstance(message, Message):
             self._consumer.acknowledge_cumulative(message._message)
+        elif isinstance(message, MessageId):
+            self._consumer.acknowledge_cumulative(message._msg_id)
         else:
             self._consumer.acknowledge_cumulative(message)
 

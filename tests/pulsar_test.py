@@ -22,6 +22,7 @@
 import random
 import threading
 import logging
+from typing import Optional
 from unittest import TestCase, main
 import time
 import os
@@ -478,6 +479,63 @@ class PulsarTest(TestCase):
             reader.read_next(100)
 
         reader.close()
+
+        client.close()
+
+    def test_encryption_failure(self):
+        publicKeyPath = CERTS_DIR + "public-key.client-rsa.pem"
+        privateKeyPath = CERTS_DIR + "private-key.client-rsa.pem"
+        crypto_key_reader = CryptoKeyReader(publicKeyPath, privateKeyPath)
+        client = Client(self.serviceUrl)
+        topic = "my-python-test-end-to-end-encryption-failure-" + str(time.time())
+        producer = client.create_producer(
+            topic=topic, encryption_key="client-rsa.pem", crypto_key_reader=crypto_key_reader
+        )
+        producer.send(b"msg-0")
+
+        def verify_next_message(value: bytes):
+            consumer = client.subscribe(topic, subscription,
+                                        crypto_key_reader=crypto_key_reader)
+            msg = consumer.receive(3000)
+            self.assertEqual(msg.data(), value)
+            consumer.acknowledge(msg)
+            consumer.close()
+
+        subscription = "my-sub"
+        consumer = client.subscribe(topic, subscription,
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.FAIL)
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(3000)
+        consumer.close()
+        producer.send(b"msg-1")
+        verify_next_message(b"msg-0") # msg-0 won't be skipped
+
+        consumer = client.subscribe(topic, subscription,
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.DISCARD)
+        with self.assertRaises(pulsar.Timeout):
+            consumer.receive(3000)
+        consumer.close()
+
+        producer.send(b"msg-2")
+        verify_next_message(b"msg-2") # msg-1 is skipped since the crypto failure action is DISCARD
+
+        # Encrypted messages will be consumed since the crypto failure action is CONSUME
+        consumer = client.subscribe(topic, 'another-sub',
+                                    initial_position=InitialPosition.Earliest,
+                                    crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
+        for i in range(3):
+            msg = consumer.receive(3000)
+            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
+            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+
+        reader = client.create_reader(topic, MessageId.earliest,
+                                      crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
+        for i in range(3):
+            msg = reader.read_next(3000)
+            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
+            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
 
         client.close()
 
@@ -1252,6 +1310,29 @@ class PulsarTest(TestCase):
         s = MessageId.latest.serialize()
         self.assertEqual(MessageId.deserialize(s), MessageId.latest)
 
+        client = Client(self.serviceUrl)
+        topic = f'test-message-id-compare-{str(time.time())}'
+        producer = client.create_producer(topic)
+        consumer = client.subscribe(topic, 'sub')
+
+        sent_ids = []
+        received_ids = []
+        for i in range(5):
+            sent_ids.append(MessageId.wrap(producer.send(b'msg-%d' % i)))
+            msg = consumer.receive(TM)
+            received_ids.append(MessageId.wrap(msg.message_id()))
+            self.assertEqual(sent_ids[i], received_ids[i])
+            consumer.acknowledge(received_ids[i])
+        consumer.acknowledge_cumulative(received_ids[4])
+
+        for i in range(4):
+            self.assertLess(sent_ids[i], sent_ids[i + 1])
+            self.assertLessEqual(sent_ids[i], sent_ids[i + 1])
+            self.assertGreater(sent_ids[i + 1], sent_ids[i])
+            self.assertGreaterEqual(sent_ids[i + 1], sent_ids[i])
+            self.assertNotEqual(sent_ids[i], sent_ids[i + 1])
+        client.close()
+
     def test_get_topics_partitions(self):
         client = Client(self.serviceUrl)
         topic_partitioned = "persistent://public/default/test_get_topics_partitions"
@@ -1511,10 +1592,22 @@ class PulsarTest(TestCase):
         with self.assertRaises(TypeError):
             fun()
 
-    def _test_basic_auth(self, id, auth):
-        client = Client(self.adminUrl, authentication=auth)
+    def _test_basic_auth(self, topic_id: int, auth,
+                         use_tls: bool = False,
+                         tls_private_key_file_path: Optional[str] = None,
+                         tls_certificate_file_path: Optional[str] = None) -> None:
+        if use_tls:
+            service_url = self.serviceUrlTls
+            tls_trust_certs_file_path = CERTS_DIR + 'cacert.pem'
+        else:
+            service_url = self.adminUrl
+            tls_trust_certs_file_path = None
+        client = Client(service_url, authentication=auth,
+                        tls_trust_certs_file_path=tls_trust_certs_file_path,
+                        tls_private_key_file_path=tls_private_key_file_path,
+                        tls_certificate_file_path=tls_certificate_file_path)
 
-        topic = "persistent://private/auth/my-python-topic-basic-auth-" + str(id)
+        topic = "persistent://private/auth/my-python-topic-basic-auth-" + str(topic_id)
         consumer = client.subscribe(topic, "my-sub", consumer_type=ConsumerType.Shared)
         producer = client.create_producer(topic)
         producer.send(b"hello")
@@ -1545,6 +1638,17 @@ class PulsarTest(TestCase):
             self._test_basic_auth(5, AuthenticationBasic(
                 auth_params_string='{{"username": "{}","password": "{}", "method": "unknown"}}'.format(username, password)
             ))
+
+    def test_tls_encryption_with_other_auth(self):
+        self._test_basic_auth(6, AuthenticationBasic('admin', '123456'),
+                              use_tls=True,
+                              tls_private_key_file_path=CERTS_DIR + 'client-key.pem',
+                              tls_certificate_file_path=CERTS_DIR + 'client-cert.pem')
+        with self.assertRaises(pulsar.ConnectError):
+            self._test_basic_auth(7, AuthenticationBasic('admin', '123456'),
+                                  use_tls=True,
+                                  tls_private_key_file_path=CERTS_DIR + 'client-cert.pem',
+                                  tls_certificate_file_path=CERTS_DIR + 'client-key.pem')
 
     def test_invalid_basic_auth(self):
         username = "invalid"

@@ -19,6 +19,7 @@
 #include "utils.h"
 #include <pulsar/CompressionType.h>
 #include <pulsar/ConsumerConfiguration.h>
+#include <pulsar/ConsumerCryptoFailureAction.h>
 #include <pulsar/ProducerConfiguration.h>
 #include <pulsar/KeySharedPolicy.h>
 #include <pybind11/pybind11.h>
@@ -140,4 +141,9 @@ void export_enums(py::module_& m) {
         .value("Info", Logger::LEVEL_INFO)
         .value("Warn", Logger::LEVEL_WARN)
         .value("Error", Logger::LEVEL_ERROR);
+    
+    enum_<ConsumerCryptoFailureAction>(m, "ConsumerCryptoFailureAction")
+        .value("FAIL", ConsumerCryptoFailureAction::FAIL)
+        .value("DISCARD", ConsumerCryptoFailureAction::DISCARD)
+        .value("CONSUME", ConsumerCryptoFailureAction::CONSUME);
 }
