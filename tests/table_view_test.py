@@ -46,8 +46,7 @@ class TableViewTest(TestCase):
         self.assertEqual(table_view.get('key-1'), b'\xba\xd0\xba\xd0')
 
         producer.send('value-1'.encode(), partition_key='key-0')
-        # TODO: Upgrade to C++ client 3.7.1 to include https://github.com/apache/pulsar-client-cpp/pull/487
-        #self._wait_for_assertion(lambda: self.assertEqual(table_view.get('key-0'), b'value-1'))
+        self._wait_for_assertion(lambda: self.assertEqual(table_view.get('key-0'), b'value-1'))
 
         producer.close()
         table_view.close()
