@@ -32,6 +32,7 @@ void export_enums(Module& m);
 void export_authentication(Module& m);
 void export_schema(Module& m);
 void export_exceptions(Module& m);
+void export_table_view(Module& m);
 
 PYBIND11_MODULE(_pulsar, m) {
     export_exceptions(m);
@@ -44,4 +45,5 @@ PYBIND11_MODULE(_pulsar, m) {
     export_enums(m);
     export_authentication(m);
     export_schema(m);
+    export_table_view(m);
 }
