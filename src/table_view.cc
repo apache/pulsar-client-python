@@ -22,6 +22,7 @@
 #include <pulsar/TableViewConfiguration.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
+#include <functional>
 #include <utility>
 #include "utils.h"
 
@@ -51,8 +52,22 @@ void export_table_view(py::module_& m) {
                  }
              })
         .def("size", &TableView::size, py::call_guard<py::gil_scoped_release>())
-        .def("for_each", &TableView::forEach, py::call_guard<py::gil_scoped_release>())
-        .def("for_each_and_listen", &TableView::forEachAndListen, py::call_guard<py::gil_scoped_release>())
+        .def("for_each",
+             [](TableView& view, std::function<void(std::string, py::bytes)> callback) {
+                 py::gil_scoped_release release;
+                 view.forEach([callback](const std::string& key, const std::string& value) {
+                     py::gil_scoped_acquire acquire;
+                     callback(key, py::bytes(value));
+                 });
+             })
+        .def("for_each_and_listen",
+             [](TableView& view, std::function<void(std::string, py::bytes)> callback) {
+                 py::gil_scoped_release release;
+                 view.forEachAndListen([callback](const std::string& key, const std::string& value) {
+                     py::gil_scoped_acquire acquire;
+                     callback(key, py::bytes(value));
+                 });
+             })
         .def("close", [](TableView& view) {
             waitForAsyncResult([&view](ResultCallback callback) { view.closeAsync(callback); });
         });

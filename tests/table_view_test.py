@@ -23,6 +23,7 @@ from unittest import TestCase, main
 import time
 
 from pulsar import Client
+from pulsar.schema.schema import StringSchema
 
 class TableViewTest(TestCase):
 
@@ -38,14 +39,14 @@ class TableViewTest(TestCase):
         self.assertEqual(len(table_view), 0)
 
         producer = self._client.create_producer(topic)
-        producer.send('value-0'.encode(), partition_key='key-0')
+        producer.send(b'value-0', partition_key='key-0')
         producer.send(b'\xba\xd0\xba\xd0', partition_key='key-1') # an invalid UTF-8 bytes
 
         self._wait_for_assertion(lambda: self.assertEqual(len(table_view), 2))
         self.assertEqual(table_view.get('key-0'), b'value-0')
         self.assertEqual(table_view.get('key-1'), b'\xba\xd0\xba\xd0')
 
-        producer.send('value-1'.encode(), partition_key='key-0')
+        producer.send(b'value-1', partition_key='key-0')
         self._wait_for_assertion(lambda: self.assertEqual(table_view.get('key-0'), b'value-1'))
 
         producer.close()
@@ -55,15 +56,15 @@ class TableViewTest(TestCase):
         topic = f'table_view_test_for_each-{time.time()}'
         table_view = self._client.create_table_view(topic)
         producer = self._client.create_producer(topic)
-        producer.send('value-0'.encode(), partition_key='key-0')
-        producer.send('value-1'.encode(), partition_key='key-1')
+        producer.send(b'value-0', partition_key='key-0')
+        producer.send(b'value-1', partition_key='key-1')
         self._wait_for_assertion(lambda: self.assertEqual(len(table_view), 2))
 
         d = dict()
         table_view.for_each(lambda key, value: d.__setitem__(key, value))
         self.assertEqual(d, {
-            'key-0': 'value-0',
-            'key-1': 'value-1'
+            'key-0': b'value-0',
+            'key-1': b'value-1'
         })
 
         def listener(key: str, value: str):
@@ -75,19 +76,39 @@ class TableViewTest(TestCase):
         d.clear()
         table_view.for_each_and_listen(listener)
         self.assertEqual(d, {
-            'key-0': 'value-0',
-            'key-1': 'value-1'
+            'key-0': b'value-0',
+            'key-1': b'value-1'
         })
 
-        producer.send('value-0-new'.encode(), partition_key='key-0')
-        producer.send(''.encode(), partition_key='key-1')
-        producer.send('value-2'.encode(), partition_key='key-2')
+        producer.send(b'value-0-new', partition_key='key-0')
+        producer.send(b'', partition_key='key-1')
+        producer.send(b'value-2', partition_key='key-2')
         def assert_latest_values():
             self.assertEqual(d, {
-                'key-0': 'value-0-new',
-                'key-2': 'value-2'
+                'key-0': b'value-0-new',
+                'key-2': b'value-2'
             })
         self._wait_for_assertion(assert_latest_values)
+
+    def test_schema(self):
+        topic = f'table_view_test_schema-{time.time()}'
+        table_view = self._client.create_table_view(topic, schema=StringSchema())
+        producer = self._client.create_producer(topic, schema=StringSchema())
+        producer.send('value', partition_key='key')
+
+        self._wait_for_assertion(lambda: self.assertEqual(table_view.get('key'), 'value'))
+        self.assertEqual(table_view.get('missed-key'), None)
+
+        entries = dict()
+        table_view.for_each(lambda key, value: entries.__setitem__(key, value))
+        self.assertEqual(entries, {'key': 'value'})
+
+        entries.clear()
+        table_view.for_each_and_listen(lambda key, value: entries.__setitem__(key, value))
+        self.assertEqual(entries, {'key': 'value'})
+
+        producer.send('new-value', partition_key='key')
+        self._wait_for_assertion(lambda: self.assertEqual(table_view.get('key'), 'new-value'))
 
     def _wait_for_assertion(self, assertion: Callable, timeout=5) -> None:
         start_time = time.time()
