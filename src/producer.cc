@@ -38,6 +38,7 @@ void Producer_sendAsync(Producer& producer, const Message& msg, SendCallback cal
     }
 }
 
+// TODO: implement async variant
 void Producer_flush(Producer& producer) {
     waitForAsyncResult([&](ResultCallback callback) { producer.flushAsync(callback); });
 }
