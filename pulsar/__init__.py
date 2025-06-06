@@ -135,6 +135,21 @@ class MessageId:
         """
         Deserialize a message id object from a previously
         serialized bytes sequence.
+
+        Parameters
+        ----------
+        topic: str, optional
+            For multi-topics consumers, the topic name is required to deserialize the message id.
+
+            .. code-block:: python
+
+                msg = consumer.receive()
+                topic = msg.topic_name()
+                msg_id_bytes = msg.message_id().serialize()
+                # Store topic and msg_id_bytes somewhere
+                # Later, deserialize the message id
+                msg_id = MessageId.deserialize(msg_id_bytes, topic=topic)
+
         """
         msg_id = _pulsar.MessageId.deserialize(message_id_bytes)
         if topic is not None:
