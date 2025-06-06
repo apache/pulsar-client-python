@@ -131,12 +131,15 @@ class MessageId:
         return self._msg_id > other._msg_id
 
     @staticmethod
-    def deserialize(message_id_bytes):
+    def deserialize(message_id_bytes, topic: Optional[str] = None) -> _pulsar.MessageId:
         """
         Deserialize a message id object from a previously
         serialized bytes sequence.
         """
-        return _pulsar.MessageId.deserialize(message_id_bytes)
+        msg_id = _pulsar.MessageId.deserialize(message_id_bytes)
+        if topic is not None:
+            msg_id.topic_name(topic)
+        return msg_id
 
     @classmethod
     def wrap(cls, msg_id: _pulsar.MessageId):
