@@ -72,6 +72,10 @@ void export_message(py::module_& m) {
         .def("entry_id", &MessageId::entryId)
         .def("batch_index", &MessageId::batchIndex)
         .def("partition", &MessageId::partition)
+        .def(
+            "topic_name",
+            [](MessageId& msgId, const std::string& topicName) { msgId.setTopicName(topicName); },
+            return_value_policy::copy)
         .def_property_readonly_static("earliest", [](object) { return MessageId::earliest(); })
         .def_property_readonly_static("latest", [](object) { return MessageId::latest(); })
         .def("serialize",

@@ -131,12 +131,30 @@ class MessageId:
         return self._msg_id > other._msg_id
 
     @staticmethod
-    def deserialize(message_id_bytes):
+    def deserialize(message_id_bytes, topic: Optional[str] = None) -> _pulsar.MessageId:
         """
         Deserialize a message id object from a previously
         serialized bytes sequence.
+
+        Parameters
+        ----------
+        topic: str, optional
+            For multi-topics consumers, the topic name is required to deserialize the message id.
+
+            .. code-block:: python
+
+                msg = consumer.receive()
+                topic = msg.topic_name()
+                msg_id_bytes = msg.message_id().serialize()
+                # Store topic and msg_id_bytes somewhere
+                # Later, deserialize the message id
+                msg_id = MessageId.deserialize(msg_id_bytes, topic=topic)
+
         """
-        return _pulsar.MessageId.deserialize(message_id_bytes)
+        msg_id = _pulsar.MessageId.deserialize(message_id_bytes)
+        if topic is not None:
+            msg_id.topic_name(topic)
+        return msg_id
 
     @classmethod
     def wrap(cls, msg_id: _pulsar.MessageId):

@@ -1994,6 +1994,30 @@ class PulsarTest(TestCase):
         self.assertEqual(consumer.consumer_name(), name)
         client.close()
 
+    def test_deserialize_msg_id_with_topic(self):
+        client = Client(self.serviceUrl)
+        topic1 = "deserialize-msg-id-with-topic1-" + str(time.time())
+        topic2 = "deserialize-msg-id-with-topic2-" + str(time.time())
+        consumer = client.subscribe([topic1, topic2], 'sub')
+        producer1 = client.create_producer(topic1)
+        producer2 = client.create_producer(topic2)
+        producer1.send(b"msg-1")
+        producer2.send(b"msg-2")
+
+        serialized_msg_ids = dict()
+        for _ in range(2):
+            msg = consumer.receive(TM)
+            serialized_msg_ids[msg.topic_name()] = msg.message_id().serialize()
+        for topic, serialized_msg_id in serialized_msg_ids.items():
+            deserialized_msg_id = MessageId.deserialize(serialized_msg_id, topic=topic)
+            consumer.acknowledge_cumulative(deserialized_msg_id)
+        consumer.close()
+
+        consumer = client.subscribe([topic1, topic2], 'sub')
+        producer1.send(b'msg-3')
+        msg = consumer.receive(TM)
+        self.assertEqual(msg.value(), b'msg-3')
+        client.close()
 
 if __name__ == "__main__":
     main()
