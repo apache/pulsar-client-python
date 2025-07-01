@@ -175,7 +175,7 @@ jobs:
   windows-wheels:
     name: "Python ${{ matrix.python.version }} Wheel on Windows x64"
     needs: unit-tests
-    runs-on: windows-2019
+    runs-on: windows-2022
     timeout-minutes: 120
 
     env:

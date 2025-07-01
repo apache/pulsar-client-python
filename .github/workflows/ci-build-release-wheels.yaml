@@ -122,7 +122,7 @@ jobs:
 
   windows-wheels:
     name: Wheel Windows - Py ${{matrix.python.version}}
-    runs-on: windows-2019
+    runs-on: windows-2022
     env:
       PULSAR_CPP_DIR: 'C:\\pulsar-cpp'
     timeout-minutes: 300
