@@ -2019,5 +2019,37 @@ class PulsarTest(TestCase):
         self.assertEqual(msg.value(), b'msg-3')
         client.close()
 
+    def test_message_router(self):
+        topic_name = "public/default/test_message_router" + str(time.time())
+        url1 = self.adminUrl + "/admin/v2/persistent/" + topic_name + "/partitions"
+        doHttpPut(url1, "5")
+        client = Client(self.serviceUrl)
+        def router(msg: pulsar.Message, num_partitions: int):
+            s = msg.value().decode('utf-8')
+            if s.startswith("hello-"):
+                return 10 % num_partitions
+            else:
+                return 11 % num_partitions
+        producer = client.create_producer(topic_name, message_router=router)
+        producer.send(b"hello-0")
+        producer.send(b"hello-1")
+        producer.send(b"world-0")
+        producer.send(b"world-1")
+        consumer = client.subscribe(topic_name, 'sub',
+                                    initial_position=InitialPosition.Earliest)
+        partition_to_values = dict()
+        for _ in range(4):
+            msg = consumer.receive(TM)
+            partition = msg.message_id().partition()
+            if partition in partition_to_values:
+                partition_to_values[partition].append(msg.value().decode('utf-8'))
+            else:
+                partition_to_values[partition] = [msg.value().decode('utf-8')]
+        self.assertEqual(partition_to_values[0], ["hello-0", "hello-1"])
+        self.assertEqual(partition_to_values[1], ["world-0", "world-1"])
+
+        client.close()
+
+
 if __name__ == "__main__":
     main()

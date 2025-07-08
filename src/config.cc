@@ -26,6 +26,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <functional>
 #include <memory>
 
 namespace py = pybind11;
@@ -102,6 +103,19 @@ class HIDDEN LoggerWrapperFactory : public LoggerFactory, public CaptivePythonOb
             return new LoggerWrapper(_captive, fallbackLogger, _pyLogger);
         }
     }
+};
+
+using MessageRouterFunc = std::function<int(const Message&, int)>;
+class HIDDEN MessageRouter : public pulsar::MessageRoutingPolicy {
+   public:
+    explicit MessageRouter(MessageRouterFunc func) : func_(std::move(func)) {}
+
+    int getPartition(const Message& msg, const TopicMetadata& topicMetadata) final {
+        return func_(msg, topicMetadata.getNumPartitions());
+    }
+
+   private:
+    MessageRouterFunc func_;
 };
 
 static ClientConfiguration& ClientConfiguration_setLogger(ClientConfiguration& conf, py::object logger) {
@@ -235,7 +249,10 @@ void export_config(py::module_& m) {
         .def("encryption_key", &ProducerConfiguration::addEncryptionKey, return_value_policy::reference)
         .def("crypto_key_reader", &ProducerConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("access_mode", &ProducerConfiguration::setAccessMode, return_value_policy::reference)
-        .def("access_mode", &ProducerConfiguration::getAccessMode, return_value_policy::copy);
+        .def("access_mode", &ProducerConfiguration::getAccessMode, return_value_policy::copy)
+        .def("message_router", [](ProducerConfiguration& config, MessageRouterFunc func) {
+            config.setMessageRouter(std::make_shared<MessageRouter>(std::move(func)));
+        });
 
     class_<BatchReceivePolicy>(m, "BatchReceivePolicy")
         .def(init<int, int, long>())
