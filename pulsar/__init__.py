@@ -43,7 +43,7 @@ Read the instructions on `source code repository
 """
 
 import logging
-from typing import List, Tuple, Optional, Union
+from typing import Callable, List, Tuple, Optional, Union
 
 import _pulsar
 
@@ -54,6 +54,7 @@ from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, Part
 from pulsar.__about__ import __version__
 
 from pulsar.exceptions import *
+from pulsar.schema.schema import BytesSchema
 from pulsar.tableview import TableView
 
 from pulsar.functions.function import Function
@@ -246,6 +247,7 @@ class Message:
     @staticmethod
     def _wrap(_message):
         self = Message()
+        self._schema = BytesSchema()
         self._message = _message
         return self
 
@@ -696,6 +698,7 @@ class Client:
                         encryption_key=None,
                         crypto_key_reader: Union[None, CryptoKeyReader] = None,
                         access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
+                        message_router: Callable[[Message, int], int]=None,
                         ):
         """
         Create a new producer on a given topic.
@@ -811,6 +814,10 @@ class Client:
             * WaitForExclusive: Producer creation is pending until it can acquire exclusive access.
             * ExclusiveWithFencing: Acquire exclusive access for the producer.
                                     Any existing producer will be removed and invalidated immediately.
+        message_router: optional
+            A custom message router function that takes a `Message` and the number of partitions
+            and returns the partition index to which the message should be routed. If not provided,
+            the default routing policy defined by `message_routing_mode` will be used.
         """
         _check_type(str, topic, 'topic')
         _check_type_or_none(str, producer_name, 'producer_name')
@@ -848,6 +855,10 @@ class Client:
         conf.chunking_enabled(chunking_enabled)
         conf.lazy_start_partitioned_producers(lazy_start_partitioned_producers)
         conf.access_mode(access_mode)
+        if message_router is not None:
+            underlying_router = lambda msg, num_partitions: int(message_router(Message._wrap(msg), num_partitions))
+            conf.message_router(underlying_router)
+
         if producer_name:
             conf.producer_name(producer_name)
         if initial_sequence_id:
