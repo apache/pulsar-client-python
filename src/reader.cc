@@ -27,11 +27,9 @@ Message Reader_readNext(Reader& reader) {
 
 Message Reader_readNextTimeout(Reader& reader, int timeoutMs) {
     Message msg;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = reader.readNext(msg, timeoutMs);
-    Py_END_ALLOW_THREADS
+    py::gil_scoped_release release;
+    CHECK_RESULT(reader.readNext(msg, timeoutMs));
 
-        CHECK_RESULT(res);
     return msg;
 }
 
