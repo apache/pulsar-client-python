@@ -76,7 +76,7 @@ _schema = schema
 
 import re
 
-_retype = type(re.compile("x"))
+_retype = type(re.compile('x'))
 
 from datetime import timedelta
 
@@ -95,9 +95,7 @@ class MessageId:
     """
 
     def __init__(self, partition=-1, ledger_id=-1, entry_id=-1, batch_index=-1):
-        self._msg_id: _pulsar.MessageId = _pulsar.MessageId(
-            partition, ledger_id, entry_id, batch_index
-        )
+        self._msg_id: _pulsar.MessageId = _pulsar.MessageId(partition, ledger_id, entry_id, batch_index)
 
     earliest = _pulsar.MessageId.earliest
     latest = _pulsar.MessageId.latest
@@ -179,7 +177,6 @@ class MessageId:
         self = cls()
         self._msg_id = msg_id
         return self
-
 
 class Message:
     """
@@ -268,6 +265,7 @@ class Message:
 
 
 class MessageBatch:
+
     def __init__(self):
         self._msg_batch = _pulsar.MessageBatch()
 
@@ -291,7 +289,6 @@ class Authentication:
     Authentication provider object. Used to load authentication from an external
     shared library.
     """
-
     def __init__(self, dynamicLibPath, authParamsString):
         """
         Create the authentication provider instance.
@@ -304,8 +301,8 @@ class Authentication:
         authParamsString: str
             Comma-separated list of provider-specific configuration params
         """
-        _check_type(str, dynamicLibPath, "dynamicLibPath")
-        _check_type(str, authParamsString, "authParamsString")
+        _check_type(str, dynamicLibPath, 'dynamicLibPath')
+        _check_type(str, authParamsString, 'authParamsString')
         self.auth = _pulsar.Authentication.create(dynamicLibPath, authParamsString)
 
 
@@ -313,7 +310,6 @@ class AuthenticationTLS(Authentication):
     """
     TLS Authentication implementation
     """
-
     def __init__(self, certificate_path, private_key_path):
         """
         Create the TLS authentication provider instance.
@@ -326,8 +322,8 @@ class AuthenticationTLS(Authentication):
         private_key_path: str
             Path to private TLS key
         """
-        _check_type(str, certificate_path, "certificate_path")
-        _check_type(str, private_key_path, "private_key_path")
+        _check_type(str, certificate_path, 'certificate_path')
+        _check_type(str, private_key_path, 'private_key_path')
         self.auth = _pulsar.AuthenticationTLS.create(certificate_path, private_key_path)
 
 
@@ -335,7 +331,6 @@ class AuthenticationToken(Authentication):
     """
     Token based authentication implementation
     """
-
     def __init__(self, token):
         """
         Create the token authentication provider instance.
@@ -347,9 +342,7 @@ class AuthenticationToken(Authentication):
             A string containing the token or a functions that provides a string with the token
         """
         if not (isinstance(token, str) or callable(token)):
-            raise ValueError(
-                "Argument token is expected to be of type 'str' or a function returning 'str'"
-            )
+            raise ValueError("Argument token is expected to be of type 'str' or a function returning 'str'")
         self.auth = _pulsar.AuthenticationToken.create(token)
 
 
@@ -357,7 +350,6 @@ class AuthenticationAthenz(Authentication):
     """
     Athenz Authentication implementation
     """
-
     def __init__(self, auth_params_string):
         """
         Create the Athenz authentication provider instance.
@@ -368,15 +360,13 @@ class AuthenticationAthenz(Authentication):
         auth_params_string: str
             JSON encoded configuration for Athenz client
         """
-        _check_type(str, auth_params_string, "auth_params_string")
+        _check_type(str, auth_params_string, 'auth_params_string')
         self.auth = _pulsar.AuthenticationAthenz.create(auth_params_string)
-
 
 class AuthenticationOauth2(Authentication):
     """
     Oauth2 Authentication implementation
     """
-
     def __init__(self, auth_params_string: str):
         """
         Create the Oauth2 authentication provider instance.
@@ -416,18 +406,14 @@ class AuthenticationOauth2(Authentication):
             JSON encoded configuration for Oauth2 client
 
         """
-        _check_type(str, auth_params_string, "auth_params_string")
+        _check_type(str, auth_params_string, 'auth_params_string')
         self.auth = _pulsar.AuthenticationOauth2.create(auth_params_string)
-
 
 class AuthenticationBasic(Authentication):
     """
     Basic Authentication implementation
     """
-
-    def __init__(
-        self, username=None, password=None, method="basic", auth_params_string=None
-    ):
+    def __init__(self, username=None, password=None, method='basic', auth_params_string=None):
         """
         Create the Basic authentication provider instance.
 
@@ -456,26 +442,22 @@ class AuthenticationBasic(Authentication):
             "basic" by default.
         """
         if auth_params_string is not None:
-            _check_type(str, auth_params_string, "auth_params_string")
+            _check_type(str, auth_params_string, 'auth_params_string')
             self.auth = _pulsar.AuthenticationBasic.create(auth_params_string)
         else:
-            _check_type(str, username, "username")
-            _check_type(str, password, "password")
-            _check_type(str, method, "method")
+            _check_type(str, username, 'username')
+            _check_type(str, password, 'password')
+            _check_type(str, method, 'method')
             self.auth = _pulsar.AuthenticationBasic.create(username, password, method)
-
 
 class ConsumerDeadLetterPolicy:
     """
     Configuration for the "dead letter queue" feature in consumer.
     """
-
-    def __init__(
-        self,
-        max_redeliver_count: int,
-        dead_letter_topic: str = None,
-        initial_subscription_name: str = None,
-    ):
+    def __init__(self,
+                 max_redeliver_count: int,
+                 dead_letter_topic: str = None,
+                 initial_subscription_name: str = None):
         """
         Wrapper DeadLetterPolicy.
 
@@ -527,12 +509,10 @@ class ConsumerDeadLetterPolicy:
         """
         return self._policy
 
-
 class CryptoKeyReader:
     """
     Default crypto key reader implementation
     """
-
     def __init__(self, public_key_path, private_key_path):
         """
         Create crypto key reader.
@@ -545,12 +525,9 @@ class CryptoKeyReader:
         private_key_path: str
             Path to private key
         """
-        _check_type(str, public_key_path, "public_key_path")
-        _check_type(str, private_key_path, "private_key_path")
-        self.cryptoKeyReader = _pulsar.CryptoKeyReader(
-            public_key_path, private_key_path
-        )
-
+        _check_type(str, public_key_path, 'public_key_path')
+        _check_type(str, private_key_path, 'private_key_path')
+        self.cryptoKeyReader = _pulsar.CryptoKeyReader(public_key_path, private_key_path)
 
 class Client:
     """
@@ -561,26 +538,24 @@ class Client:
     producers and consumers.
     """
 
-    def __init__(
-        self,
-        service_url,
-        authentication=None,
-        operation_timeout_seconds=30,
-        io_threads=1,
-        message_listener_threads=1,
-        concurrent_lookup_requests=50000,
-        log_conf_file_path=None,
-        stats_interval_in_seconds=600,
-        use_tls=False,
-        tls_trust_certs_file_path=None,
-        tls_allow_insecure_connection=False,
-        tls_validate_hostname=False,
-        logger=None,
-        connection_timeout_ms=10000,
-        listener_name=None,
-        tls_private_key_file_path: Optional[str] = None,
-        tls_certificate_file_path: Optional[str] = None,
-    ):
+    def __init__(self, service_url,
+                 authentication=None,
+                 operation_timeout_seconds=30,
+                 io_threads=1,
+                 message_listener_threads=1,
+                 concurrent_lookup_requests=50000,
+                 log_conf_file_path=None,
+                 stats_interval_in_seconds=600,
+                 use_tls=False,
+                 tls_trust_certs_file_path=None,
+                 tls_allow_insecure_connection=False,
+                 tls_validate_hostname=False,
+                 logger=None,
+                 connection_timeout_ms=10000,
+                 listener_name=None,
+                 tls_private_key_file_path: Optional[str] = None,
+                 tls_certificate_file_path: Optional[str] = None,
+                 ):
         """
         Create a new Pulsar client instance.
 
@@ -650,24 +625,22 @@ class Client:
         tls_certificate_file_path: str, optional
             The path to the TLS certificate file.
         """
-        _check_type(str, service_url, "service_url")
-        _check_type_or_none(Authentication, authentication, "authentication")
-        _check_type(int, operation_timeout_seconds, "operation_timeout_seconds")
-        _check_type(int, connection_timeout_ms, "connection_timeout_ms")
-        _check_type(int, io_threads, "io_threads")
-        _check_type(int, message_listener_threads, "message_listener_threads")
-        _check_type(int, concurrent_lookup_requests, "concurrent_lookup_requests")
-        _check_type_or_none(str, log_conf_file_path, "log_conf_file_path")
-        _check_type(int, stats_interval_in_seconds, "stats_interval_in_seconds")
-        _check_type(bool, use_tls, "use_tls")
-        _check_type_or_none(str, tls_trust_certs_file_path, "tls_trust_certs_file_path")
-        _check_type(
-            bool, tls_allow_insecure_connection, "tls_allow_insecure_connection"
-        )
-        _check_type(bool, tls_validate_hostname, "tls_validate_hostname")
-        _check_type_or_none(str, listener_name, "listener_name")
-        _check_type_or_none(str, tls_private_key_file_path, "tls_private_key_file_path")
-        _check_type_or_none(str, tls_certificate_file_path, "tls_certificate_file_path")
+        _check_type(str, service_url, 'service_url')
+        _check_type_or_none(Authentication, authentication, 'authentication')
+        _check_type(int, operation_timeout_seconds, 'operation_timeout_seconds')
+        _check_type(int, connection_timeout_ms, 'connection_timeout_ms')
+        _check_type(int, io_threads, 'io_threads')
+        _check_type(int, message_listener_threads, 'message_listener_threads')
+        _check_type(int, concurrent_lookup_requests, 'concurrent_lookup_requests')
+        _check_type_or_none(str, log_conf_file_path, 'log_conf_file_path')
+        _check_type(int, stats_interval_in_seconds, 'stats_interval_in_seconds')
+        _check_type(bool, use_tls, 'use_tls')
+        _check_type_or_none(str, tls_trust_certs_file_path, 'tls_trust_certs_file_path')
+        _check_type(bool, tls_allow_insecure_connection, 'tls_allow_insecure_connection')
+        _check_type(bool, tls_validate_hostname, 'tls_validate_hostname')
+        _check_type_or_none(str, listener_name, 'listener_name')
+        _check_type_or_none(str, tls_private_key_file_path, 'tls_private_key_file_path')
+        _check_type_or_none(str, tls_certificate_file_path, 'tls_certificate_file_path')
 
         conf = _pulsar.ClientConfiguration()
         if authentication:
@@ -686,23 +659,16 @@ class Client:
         elif isinstance(logger, FileLogger):
             conf.set_file_logger(logger.log_level, logger.log_file)
         elif logger is not None:
-            raise ValueError(
-                "Logger is expected to be either None, logger.Logger, pulsar.ConsoleLogger or pulsar.FileLogger"
-            )
+            raise ValueError("Logger is expected to be either None, logger.Logger, pulsar.ConsoleLogger or pulsar.FileLogger")
 
         if listener_name:
             conf.listener_name(listener_name)
-        if (
-            use_tls
-            or service_url.startswith("pulsar+ssl://")
-            or service_url.startswith("https://")
-        ):
+        if use_tls or service_url.startswith('pulsar+ssl://') or service_url.startswith('https://'):
             conf.use_tls(True)
         if tls_trust_certs_file_path:
             conf.tls_trust_certs_file_path(tls_trust_certs_file_path)
         else:
             import certifi
-
             conf.tls_trust_certs_file_path(certifi.where())
         conf.tls_allow_insecure_connection(tls_allow_insecure_connection)
         conf.tls_validate_hostname(tls_validate_hostname)
@@ -716,40 +682,36 @@ class Client:
     @staticmethod
     def _prepare_logger(logger):
         import logging
-
         def log(level, message):
             old_threads = logging.logThreads
             logging.logThreads = False
             logger.log(logging.getLevelName(level), message)
             logging.logThreads = old_threads
-
         return log
 
-    def create_producer(
-        self,
-        topic,
-        producer_name=None,
-        schema=schema.BytesSchema(),
-        initial_sequence_id=None,
-        send_timeout_millis=30000,
-        compression_type: CompressionType = CompressionType.NONE,
-        max_pending_messages=1000,
-        max_pending_messages_across_partitions=50000,
-        block_if_queue_full=False,
-        batching_enabled=False,
-        batching_max_messages=1000,
-        batching_max_allowed_size_in_bytes=128 * 1024,
-        batching_max_publish_delay_ms=10,
-        chunking_enabled=False,
-        message_routing_mode: PartitionsRoutingMode = PartitionsRoutingMode.RoundRobinDistribution,
-        lazy_start_partitioned_producers=False,
-        properties=None,
-        batching_type: BatchingType = BatchingType.Default,
-        encryption_key=None,
-        crypto_key_reader: Union[None, CryptoKeyReader] = None,
-        access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
-        message_router: Callable[[Message, int], int] = None,
-    ):
+    def create_producer(self, topic,
+                        producer_name=None,
+                        schema=schema.BytesSchema(),
+                        initial_sequence_id=None,
+                        send_timeout_millis=30000,
+                        compression_type: CompressionType = CompressionType.NONE,
+                        max_pending_messages=1000,
+                        max_pending_messages_across_partitions=50000,
+                        block_if_queue_full=False,
+                        batching_enabled=False,
+                        batching_max_messages=1000,
+                        batching_max_allowed_size_in_bytes=128*1024,
+                        batching_max_publish_delay_ms=10,
+                        chunking_enabled=False,
+                        message_routing_mode: PartitionsRoutingMode = PartitionsRoutingMode.RoundRobinDistribution,
+                        lazy_start_partitioned_producers=False,
+                        properties=None,
+                        batching_type: BatchingType = BatchingType.Default,
+                        encryption_key=None,
+                        crypto_key_reader: Union[None, CryptoKeyReader] = None,
+                        access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
+                        message_router: Callable[[Message, int], int]=None,
+                        ):
         """
         Create a new producer on a given topic.
 
@@ -869,44 +831,32 @@ class Client:
             and returns the partition index to which the message should be routed. If not provided,
             the default routing policy defined by `message_routing_mode` will be used.
         """
-        _check_type(str, topic, "topic")
-        _check_type_or_none(str, producer_name, "producer_name")
-        _check_type(_schema.Schema, schema, "schema")
-        _check_type_or_none(int, initial_sequence_id, "initial_sequence_id")
-        _check_type(int, send_timeout_millis, "send_timeout_millis")
-        _check_type(CompressionType, compression_type, "compression_type")
-        _check_type(int, max_pending_messages, "max_pending_messages")
-        _check_type(
-            int,
-            max_pending_messages_across_partitions,
-            "max_pending_messages_across_partitions",
-        )
-        _check_type(bool, block_if_queue_full, "block_if_queue_full")
-        _check_type(bool, batching_enabled, "batching_enabled")
-        _check_type(int, batching_max_messages, "batching_max_messages")
-        _check_type(
-            int,
-            batching_max_allowed_size_in_bytes,
-            "batching_max_allowed_size_in_bytes",
-        )
-        _check_type(int, batching_max_publish_delay_ms, "batching_max_publish_delay_ms")
-        _check_type(bool, chunking_enabled, "chunking_enabled")
-        _check_type_or_none(dict, properties, "properties")
-        _check_type(BatchingType, batching_type, "batching_type")
-        _check_type_or_none(str, encryption_key, "encryption_key")
-        _check_type_or_none(CryptoKeyReader, crypto_key_reader, "crypto_key_reader")
-        _check_type(
-            bool, lazy_start_partitioned_producers, "lazy_start_partitioned_producers"
-        )
-        _check_type(ProducerAccessMode, access_mode, "access_mode")
+        _check_type(str, topic, 'topic')
+        _check_type_or_none(str, producer_name, 'producer_name')
+        _check_type(_schema.Schema, schema, 'schema')
+        _check_type_or_none(int, initial_sequence_id, 'initial_sequence_id')
+        _check_type(int, send_timeout_millis, 'send_timeout_millis')
+        _check_type(CompressionType, compression_type, 'compression_type')
+        _check_type(int, max_pending_messages, 'max_pending_messages')
+        _check_type(int, max_pending_messages_across_partitions, 'max_pending_messages_across_partitions')
+        _check_type(bool, block_if_queue_full, 'block_if_queue_full')
+        _check_type(bool, batching_enabled, 'batching_enabled')
+        _check_type(int, batching_max_messages, 'batching_max_messages')
+        _check_type(int, batching_max_allowed_size_in_bytes, 'batching_max_allowed_size_in_bytes')
+        _check_type(int, batching_max_publish_delay_ms, 'batching_max_publish_delay_ms')
+        _check_type(bool, chunking_enabled, 'chunking_enabled')
+        _check_type_or_none(dict, properties, 'properties')
+        _check_type(BatchingType, batching_type, 'batching_type')
+        _check_type_or_none(str, encryption_key, 'encryption_key')
+        _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
+        _check_type(bool, lazy_start_partitioned_producers, 'lazy_start_partitioned_producers')
+        _check_type(ProducerAccessMode, access_mode, 'access_mode')
 
         conf = _pulsar.ProducerConfiguration()
         conf.send_timeout_millis(send_timeout_millis)
         conf.compression_type(compression_type)
         conf.max_pending_messages(max_pending_messages)
-        conf.max_pending_messages_across_partitions(
-            max_pending_messages_across_partitions
-        )
+        conf.max_pending_messages_across_partitions(max_pending_messages_across_partitions)
         conf.block_if_queue_full(block_if_queue_full)
         conf.batching_enabled(batching_enabled)
         conf.batching_max_messages(batching_max_messages)
@@ -918,9 +868,7 @@ class Client:
         conf.lazy_start_partitioned_producers(lazy_start_partitioned_producers)
         conf.access_mode(access_mode)
         if message_router is not None:
-            underlying_router = lambda msg, num_partitions: int(
-                message_router(Message._wrap(msg), num_partitions)
-            )
+            underlying_router = lambda msg, num_partitions: int(message_router(Message._wrap(msg), num_partitions))
             conf.message_router(underlying_router)
 
         if producer_name:
@@ -938,9 +886,7 @@ class Client:
             conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
 
         if batching_enabled and chunking_enabled:
-            raise ValueError(
-                "Batching and chunking of messages can't be enabled together."
-            )
+            raise ValueError("Batching and chunking of messages can't be enabled together.")
 
         p = Producer()
         p._producer = self._client.create_producer(topic, conf)
@@ -948,35 +894,32 @@ class Client:
         p._client = self._client
         return p
 
-    def subscribe(
-        self,
-        topic,
-        subscription_name,
-        consumer_type: ConsumerType = ConsumerType.Exclusive,
-        schema=schema.BytesSchema(),
-        message_listener=None,
-        receiver_queue_size=1000,
-        max_total_receiver_queue_size_across_partitions=50000,
-        consumer_name=None,
-        unacked_messages_timeout_ms=None,
-        broker_consumer_stats_cache_time_ms=30000,
-        negative_ack_redelivery_delay_ms=60000,
-        is_read_compacted=False,
-        properties=None,
-        pattern_auto_discovery_period=60,
-        initial_position: InitialPosition = InitialPosition.Latest,
-        crypto_key_reader: Union[None, CryptoKeyReader] = None,
-        replicate_subscription_state_enabled=False,
-        max_pending_chunked_message=10,
-        auto_ack_oldest_chunked_message_on_queue_full=False,
-        start_message_id_inclusive=False,
-        batch_receive_policy=None,
-        key_shared_policy=None,
-        batch_index_ack_enabled=False,
-        regex_subscription_mode: RegexSubscriptionMode = RegexSubscriptionMode.PersistentOnly,
-        dead_letter_policy: Union[None, ConsumerDeadLetterPolicy] = None,
-        crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
-    ):
+    def subscribe(self, topic, subscription_name,
+                  consumer_type: ConsumerType = ConsumerType.Exclusive,
+                  schema=schema.BytesSchema(),
+                  message_listener=None,
+                  receiver_queue_size=1000,
+                  max_total_receiver_queue_size_across_partitions=50000,
+                  consumer_name=None,
+                  unacked_messages_timeout_ms=None,
+                  broker_consumer_stats_cache_time_ms=30000,
+                  negative_ack_redelivery_delay_ms=60000,
+                  is_read_compacted=False,
+                  properties=None,
+                  pattern_auto_discovery_period=60,
+                  initial_position: InitialPosition = InitialPosition.Latest,
+                  crypto_key_reader: Union[None, CryptoKeyReader] = None,
+                  replicate_subscription_state_enabled=False,
+                  max_pending_chunked_message=10,
+                  auto_ack_oldest_chunked_message_on_queue_full=False,
+                  start_message_id_inclusive=False,
+                  batch_receive_policy=None,
+                  key_shared_policy=None,
+                  batch_index_ack_enabled=False,
+                  regex_subscription_mode: RegexSubscriptionMode = RegexSubscriptionMode.PersistentOnly,
+                  dead_letter_policy: Union[None, ConsumerDeadLetterPolicy] = None,
+                  crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
+                  ):
         """
         Subscribe to the given topic and subscription combination.
 
@@ -1093,52 +1036,29 @@ class Client:
             message contains batch messages, client will not be able to retrieve individual messages
             in the batch.
         """
-        _check_type(str, subscription_name, "subscription_name")
-        _check_type(ConsumerType, consumer_type, "consumer_type")
-        _check_type(_schema.Schema, schema, "schema")
-        _check_type(int, receiver_queue_size, "receiver_queue_size")
-        _check_type(
-            int,
-            max_total_receiver_queue_size_across_partitions,
-            "max_total_receiver_queue_size_across_partitions",
-        )
-        _check_type_or_none(str, consumer_name, "consumer_name")
-        _check_type_or_none(
-            int, unacked_messages_timeout_ms, "unacked_messages_timeout_ms"
-        )
-        _check_type(
-            int,
-            broker_consumer_stats_cache_time_ms,
-            "broker_consumer_stats_cache_time_ms",
-        )
-        _check_type(
-            int, negative_ack_redelivery_delay_ms, "negative_ack_redelivery_delay_ms"
-        )
-        _check_type(int, pattern_auto_discovery_period, "pattern_auto_discovery_period")
-        _check_type(bool, is_read_compacted, "is_read_compacted")
-        _check_type_or_none(dict, properties, "properties")
-        _check_type(InitialPosition, initial_position, "initial_position")
-        _check_type_or_none(CryptoKeyReader, crypto_key_reader, "crypto_key_reader")
-        _check_type(int, max_pending_chunked_message, "max_pending_chunked_message")
-        _check_type(
-            bool,
-            auto_ack_oldest_chunked_message_on_queue_full,
-            "auto_ack_oldest_chunked_message_on_queue_full",
-        )
-        _check_type(bool, start_message_id_inclusive, "start_message_id_inclusive")
-        _check_type_or_none(
-            ConsumerBatchReceivePolicy, batch_receive_policy, "batch_receive_policy"
-        )
-        _check_type_or_none(
-            ConsumerKeySharedPolicy, key_shared_policy, "key_shared_policy"
-        )
-        _check_type(bool, batch_index_ack_enabled, "batch_index_ack_enabled")
-        _check_type(
-            RegexSubscriptionMode, regex_subscription_mode, "regex_subscription_mode"
-        )
-        _check_type(
-            ConsumerCryptoFailureAction, crypto_failure_action, "crypto_failure_action"
-        )
+        _check_type(str, subscription_name, 'subscription_name')
+        _check_type(ConsumerType, consumer_type, 'consumer_type')
+        _check_type(_schema.Schema, schema, 'schema')
+        _check_type(int, receiver_queue_size, 'receiver_queue_size')
+        _check_type(int, max_total_receiver_queue_size_across_partitions,
+                    'max_total_receiver_queue_size_across_partitions')
+        _check_type_or_none(str, consumer_name, 'consumer_name')
+        _check_type_or_none(int, unacked_messages_timeout_ms, 'unacked_messages_timeout_ms')
+        _check_type(int, broker_consumer_stats_cache_time_ms, 'broker_consumer_stats_cache_time_ms')
+        _check_type(int, negative_ack_redelivery_delay_ms, 'negative_ack_redelivery_delay_ms')
+        _check_type(int, pattern_auto_discovery_period, 'pattern_auto_discovery_period')
+        _check_type(bool, is_read_compacted, 'is_read_compacted')
+        _check_type_or_none(dict, properties, 'properties')
+        _check_type(InitialPosition, initial_position, 'initial_position')
+        _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
+        _check_type(int, max_pending_chunked_message, 'max_pending_chunked_message')
+        _check_type(bool, auto_ack_oldest_chunked_message_on_queue_full, 'auto_ack_oldest_chunked_message_on_queue_full')
+        _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
+        _check_type_or_none(ConsumerBatchReceivePolicy, batch_receive_policy, 'batch_receive_policy')
+        _check_type_or_none(ConsumerKeySharedPolicy, key_shared_policy, 'key_shared_policy')
+        _check_type(bool, batch_index_ack_enabled, 'batch_index_ack_enabled')
+        _check_type(RegexSubscriptionMode, regex_subscription_mode, 'regex_subscription_mode')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
@@ -1147,9 +1067,7 @@ class Client:
         if message_listener:
             conf.message_listener(_listener_wrapper(message_listener, schema))
         conf.receiver_queue_size(receiver_queue_size)
-        conf.max_total_receiver_queue_size_across_partitions(
-            max_total_receiver_queue_size_across_partitions
-        )
+        conf.max_total_receiver_queue_size_across_partitions(max_total_receiver_queue_size_across_partitions)
         if consumer_name:
             conf.consumer_name(consumer_name)
         if unacked_messages_timeout_ms:
@@ -1169,9 +1087,7 @@ class Client:
 
         conf.replicate_subscription_state_enabled(replicate_subscription_state_enabled)
         conf.max_pending_chunked_message(max_pending_chunked_message)
-        conf.auto_ack_oldest_chunked_message_on_queue_full(
-            auto_ack_oldest_chunked_message_on_queue_full
-        )
+        conf.auto_ack_oldest_chunked_message_on_queue_full(auto_ack_oldest_chunked_message_on_queue_full)
         conf.start_message_id_inclusive(start_message_id_inclusive)
         if batch_receive_policy:
             conf.batch_receive_policy(batch_receive_policy.policy())
@@ -1192,13 +1108,9 @@ class Client:
             c._consumer = self._client.subscribe_topics(topic, subscription_name, conf)
         elif isinstance(topic, _retype):
             # Regex pattern
-            c._consumer = self._client.subscribe_pattern(
-                topic.pattern, subscription_name, conf
-            )
+            c._consumer = self._client.subscribe_pattern(topic.pattern, subscription_name, conf)
         else:
-            raise ValueError(
-                "Argument 'topic' is expected to be of a type between (str, list, re.pattern)"
-            )
+            raise ValueError("Argument 'topic' is expected to be of a type between (str, list, re.pattern)")
 
         c._client = self
         c._schema = schema
@@ -1206,20 +1118,17 @@ class Client:
         self._consumers.append(c)
         return c
 
-    def create_reader(
-        self,
-        topic,
-        start_message_id,
-        schema=schema.BytesSchema(),
-        reader_listener=None,
-        receiver_queue_size=1000,
-        reader_name=None,
-        subscription_role_prefix=None,
-        is_read_compacted=False,
-        crypto_key_reader: Union[None, CryptoKeyReader] = None,
-        start_message_id_inclusive=False,
-        crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
-    ):
+    def create_reader(self, topic, start_message_id,
+                      schema=schema.BytesSchema(),
+                      reader_listener=None,
+                      receiver_queue_size=1000,
+                      reader_name=None,
+                      subscription_role_prefix=None,
+                      is_read_compacted=False,
+                      crypto_key_reader: Union[None, CryptoKeyReader] = None,
+                      start_message_id_inclusive=False,
+                      crypto_failure_action: ConsumerCryptoFailureAction = ConsumerCryptoFailureAction.FAIL,
+                      ):
         """
         Create a reader on a particular topic
 
@@ -1298,18 +1207,16 @@ class Client:
         if isinstance(start_message_id, MessageId):
             start_message_id = start_message_id._msg_id
 
-        _check_type(str, topic, "topic")
-        _check_type(_pulsar.MessageId, start_message_id, "start_message_id")
-        _check_type(_schema.Schema, schema, "schema")
-        _check_type(int, receiver_queue_size, "receiver_queue_size")
-        _check_type_or_none(str, reader_name, "reader_name")
-        _check_type_or_none(str, subscription_role_prefix, "subscription_role_prefix")
-        _check_type(bool, is_read_compacted, "is_read_compacted")
-        _check_type_or_none(CryptoKeyReader, crypto_key_reader, "crypto_key_reader")
-        _check_type(bool, start_message_id_inclusive, "start_message_id_inclusive")
-        _check_type(
-            ConsumerCryptoFailureAction, crypto_failure_action, "crypto_failure_action"
-        )
+        _check_type(str, topic, 'topic')
+        _check_type(_pulsar.MessageId, start_message_id, 'start_message_id')
+        _check_type(_schema.Schema, schema, 'schema')
+        _check_type(int, receiver_queue_size, 'receiver_queue_size')
+        _check_type_or_none(str, reader_name, 'reader_name')
+        _check_type_or_none(str, subscription_role_prefix, 'subscription_role_prefix')
+        _check_type(bool, is_read_compacted, 'is_read_compacted')
+        _check_type_or_none(CryptoKeyReader, crypto_key_reader, 'crypto_key_reader')
+        _check_type(bool, start_message_id_inclusive, 'start_message_id_inclusive')
+        _check_type(ConsumerCryptoFailureAction, crypto_failure_action, 'crypto_failure_action')
 
         conf = _pulsar.ReaderConfiguration()
         if reader_listener:
@@ -1334,12 +1241,9 @@ class Client:
         self._consumers.append(c)
         return c
 
-    def create_table_view(
-        self,
-        topic: str,
-        subscription_name: Optional[str] = None,
-        schema: schema.Schema = schema.BytesSchema(),
-    ) -> TableView:
+    def create_table_view(self, topic: str,
+                          subscription_name: Optional[str] = None,
+                          schema: schema.Schema = schema.BytesSchema()) -> TableView:
         """
         Create a table view on a particular topic
 
@@ -1361,9 +1265,9 @@ class Client:
         TableView
             A table view instance.
         """
-        _check_type(str, topic, "topic")
-        _check_type_or_none(str, subscription_name, "subscription_name")
-        _check_type(_schema.Schema, schema, "schema")
+        _check_type(str, topic, 'topic')
+        _check_type_or_none(str, subscription_name, 'subscription_name')
+        _check_type(_schema.Schema, schema, 'schema')
 
         tv_conf = _pulsar.TableViewConfiguration()
         if subscription_name is not None:
@@ -1394,7 +1298,7 @@ class Client:
         list
             a list of partition name
         """
-        _check_type(str, topic, "topic")
+        _check_type(str, topic, 'topic')
         return self._client.get_topic_partitions(topic)
 
     def shutdown(self):
@@ -1457,19 +1361,17 @@ class Producer:
         """
         return self._producer.last_sequence_id()
 
-    def send(
-        self,
-        content,
-        properties=None,
-        partition_key=None,
-        ordering_key=None,
-        sequence_id=None,
-        replication_clusters=None,
-        disable_replication=False,
-        event_timestamp=None,
-        deliver_at=None,
-        deliver_after=None,
-    ) -> _pulsar.MessageId:
+    def send(self, content,
+             properties=None,
+             partition_key=None,
+             ordering_key=None,
+             sequence_id=None,
+             replication_clusters=None,
+             disable_replication=False,
+             event_timestamp=None,
+             deliver_at=None,
+             deliver_after=None,
+             ) -> _pulsar.MessageId:
         """
         Publish a message on the topic. Blocks until the message is acknowledged
 
@@ -1507,34 +1409,22 @@ class Producer:
         ----------
         A `_pulsar.MessageId` object that represents where the message is persisted.
         """
-        msg = self._build_msg(
-            content,
-            properties,
-            partition_key,
-            ordering_key,
-            sequence_id,
-            replication_clusters,
-            disable_replication,
-            event_timestamp,
-            deliver_at,
-            deliver_after,
-        )
+        msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
+                              replication_clusters, disable_replication, event_timestamp,
+                              deliver_at, deliver_after)
         return self._producer.send(msg)
 
-    def send_async(
-        self,
-        content,
-        callback,
-        properties=None,
-        partition_key=None,
-        ordering_key=None,
-        sequence_id=None,
-        replication_clusters=None,
-        disable_replication=False,
-        event_timestamp=None,
-        deliver_at=None,
-        deliver_after=None,
-    ):
+    def send_async(self, content, callback,
+                   properties=None,
+                   partition_key=None,
+                   ordering_key=None,
+                   sequence_id=None,
+                   replication_clusters=None,
+                   disable_replication=False,
+                   event_timestamp=None,
+                   deliver_at=None,
+                   deliver_after=None,
+                   ):
         """
         Send a message asynchronously.
 
@@ -1598,19 +1488,11 @@ class Producer:
         deliver_after: optional
             Specify a delay in timedelta for the delivery of the messages.
         """
-        msg = self._build_msg(
-            content,
-            properties,
-            partition_key,
-            ordering_key,
-            sequence_id,
-            replication_clusters,
-            disable_replication,
-            event_timestamp,
-            deliver_at,
-            deliver_after,
-        )
+        msg = self._build_msg(content, properties, partition_key, ordering_key, sequence_id,
+                              replication_clusters, disable_replication, event_timestamp,
+                              deliver_at, deliver_after)
         self._producer.send_async(msg, callback)
+
 
     def flush(self):
         """
@@ -1619,37 +1501,28 @@ class Producer:
         """
         self._producer.flush()
 
+
     def close(self):
         """
         Close the producer.
         """
         self._producer.close()
 
-    def _build_msg(
-        self,
-        content,
-        properties,
-        partition_key,
-        ordering_key,
-        sequence_id,
-        replication_clusters,
-        disable_replication,
-        event_timestamp,
-        deliver_at,
-        deliver_after,
-    ):
+    def _build_msg(self, content, properties, partition_key, ordering_key, sequence_id,
+                   replication_clusters, disable_replication, event_timestamp,
+                   deliver_at, deliver_after):
         data = self._schema.encode(content)
 
-        _check_type(bytes, data, "data")
-        _check_type_or_none(dict, properties, "properties")
-        _check_type_or_none(str, partition_key, "partition_key")
-        _check_type_or_none(str, ordering_key, "ordering_key")
-        _check_type_or_none(int, sequence_id, "sequence_id")
-        _check_type_or_none(list, replication_clusters, "replication_clusters")
-        _check_type(bool, disable_replication, "disable_replication")
-        _check_type_or_none(int, event_timestamp, "event_timestamp")
-        _check_type_or_none(int, deliver_at, "deliver_at")
-        _check_type_or_none(timedelta, deliver_after, "deliver_after")
+        _check_type(bytes, data, 'data')
+        _check_type_or_none(dict, properties, 'properties')
+        _check_type_or_none(str, partition_key, 'partition_key')
+        _check_type_or_none(str, ordering_key, 'ordering_key')
+        _check_type_or_none(int, sequence_id, 'sequence_id')
+        _check_type_or_none(list, replication_clusters, 'replication_clusters')
+        _check_type(bool, disable_replication, 'disable_replication')
+        _check_type_or_none(int, event_timestamp, 'event_timestamp')
+        _check_type_or_none(int, deliver_at, 'deliver_at')
+        _check_type_or_none(timedelta, deliver_after, 'deliver_after')
 
         mb = _pulsar.MessageBuilder()
         mb.content(data)
@@ -1751,7 +1624,7 @@ class Consumer:
         if timeout_millis is None:
             msg = self._consumer.receive()
         else:
-            _check_type(int, timeout_millis, "timeout_millis")
+            _check_type(int, timeout_millis, 'timeout_millis')
             msg = self._consumer.receive(timeout_millis)
 
         m = Message()
@@ -1774,9 +1647,7 @@ class Consumer:
             messages.append(m)
         return messages
 
-    def acknowledge(
-        self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]
-    ):
+    def acknowledge(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of a single message.
 
@@ -1800,9 +1671,7 @@ class Consumer:
         else:
             self._consumer.acknowledge(message)
 
-    def acknowledge_cumulative(
-        self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]
-    ):
+    def acknowledge_cumulative(self, message: Union[Message, MessageId, _pulsar.Message, _pulsar.MessageId]):
         """
         Acknowledge the reception of all the messages in the stream up to (and
         including) the provided message.
@@ -1908,7 +1777,6 @@ class Consumer:
         """
         return self._consumer.get_last_message_id()
 
-
 class ConsumerBatchReceivePolicy:
     """
     Batch receive policy can limit the number and bytes of messages in a single batch,
@@ -1917,7 +1785,6 @@ class ConsumerBatchReceivePolicy:
     A batch receive action is completed as long as any one of the conditions (the batch has enough number
     or size of messages, or the waiting timeout is passed) are met.
     """
-
     def __init__(self, max_num_message, max_num_bytes, timeout_ms):
         """
         Wrapper BatchReceivePolicy.
@@ -1937,17 +1804,15 @@ class ConsumerBatchReceivePolicy:
         """
         return self._policy
 
-
 class ConsumerKeySharedPolicy:
     """
     Consumer key shared policy is used to configure the consumer behaviour when the ConsumerType is KeyShared.
     """
-
     def __init__(
-        self,
-        key_shared_mode: KeySharedMode = KeySharedMode.AutoSplit,
-        allow_out_of_order_delivery: bool = False,
-        sticky_ranges: Optional[List[Tuple[int, int]]] = None,
+            self,
+            key_shared_mode: KeySharedMode = KeySharedMode.AutoSplit,
+            allow_out_of_order_delivery: bool = False,
+            sticky_ranges: Optional[List[Tuple[int, int]]] = None,
     ):
         """
         Wrapper KeySharedPolicy.
@@ -1970,9 +1835,7 @@ class ConsumerKeySharedPolicy:
             Set the ranges used with sticky mode. The integers can be from 0 to 2^16 (0 <= val < 65,536)
         """
         if key_shared_mode == KeySharedMode.Sticky and sticky_ranges is None:
-            raise ValueError(
-                "When using key_shared_mode = KeySharedMode.Sticky you must also provide sticky_ranges"
-            )
+            raise ValueError("When using key_shared_mode = KeySharedMode.Sticky you must also provide sticky_ranges")
 
         self._policy = KeySharedPolicy()
         self._policy.set_key_shared_mode(key_shared_mode)
@@ -2008,7 +1871,6 @@ class ConsumerKeySharedPolicy:
         """
         return self._policy
 
-
 class Reader:
     """
     Pulsar topic reader.
@@ -2036,7 +1898,7 @@ class Reader:
         if timeout_millis is None:
             msg = self._reader.read_next()
         else:
-            _check_type(int, timeout_millis, "timeout_millis")
+            _check_type(int, timeout_millis, 'timeout_millis')
             msg = self._reader.read_next(timeout_millis)
 
         m = Message()
@@ -2048,7 +1910,7 @@ class Reader:
         """
         Check if there is any message available to read from the current position.
         """
-        return self._reader.has_message_available()
+        return self._reader.has_message_available();
 
     def seek(self, messageid: Union[MessageId, _pulsar.MessageId, int]):
         """
@@ -2089,9 +1951,8 @@ class ConsoleLogger:
     log_level:
         The logging level, eg: ``pulsar.LoggerLevel.Info``
     """
-
     def __init__(self, log_level=_pulsar.LoggerLevel.Info):
-        _check_type(_pulsar.LoggerLevel, log_level, "log_level")
+        _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
         self.log_level = log_level
 
 
@@ -2107,28 +1968,23 @@ class FileLogger:
     log_file:
         The file where to write the logs
     """
-
     def __init__(self, log_level, log_file):
-        _check_type(_pulsar.LoggerLevel, log_level, "log_level")
-        _check_type(str, log_file, "log_file")
+        _check_type(_pulsar.LoggerLevel, log_level, 'log_level')
+        _check_type(str, log_file, 'log_file')
         self.log_level = log_level
         self.log_file = log_file
 
 
 def _check_type(var_type, var, name):
     if not isinstance(var, var_type):
-        raise ValueError(
-            "Argument %s is expected to be of type '%s' and not '%s'"
-            % (name, var_type.__name__, type(var).__name__)
-        )
+        raise ValueError("Argument %s is expected to be of type '%s' and not '%s'"
+                         % (name, var_type.__name__, type(var).__name__))
 
 
 def _check_type_or_none(var_type, var, name):
     if var is not None and not isinstance(var, var_type):
-        raise ValueError(
-            "Argument %s is expected to be either None or of type '%s'"
-            % (name, var_type.__name__)
-        )
+        raise ValueError("Argument %s is expected to be either None or of type '%s'"
+                         % (name, var_type.__name__))
 
 
 def _listener_wrapper(listener, schema):
@@ -2139,9 +1995,7 @@ def _listener_wrapper(listener, schema):
         m._message = msg
         m._schema = schema
         listener(c, m)
-
     return wrapper
-
 
 def _seek_arg_convert(seek_arg):
     if isinstance(seek_arg, MessageId):
