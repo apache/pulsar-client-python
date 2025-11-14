@@ -21,7 +21,7 @@
 The Pulsar Python client library is based on the existing C++ client library.
 All the same features are exposed through the Python interface.
 
-Currently, the supported Python versions are 3.9, 3.10, 3.11, 3.12, 3.13, and 3.14.
+Currently, the supported Python versions are 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, and 3.14.
 
 =================
 Install from PyPI
@@ -43,39 +43,27 @@ Read the instructions on `source code repository
 """
 
 import logging
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Tuple, Optional, Union
 
 import _pulsar
-from _pulsar import (
-    BatchingType,
-    BatchReceivePolicy,
-    CompressionType,
-    ConsumerCryptoFailureAction,
-    ConsumerType,
-    DeadLetterPolicyBuilder,  # noqa: F401
-    InitialPosition,
-    KeySharedMode,
-    KeySharedPolicy,
-    LoggerLevel,
-    PartitionsRoutingMode,
-    ProducerAccessMode,
-    RegexSubscriptionMode,
-    Result,
-)
 
-from pulsar import schema
+from _pulsar import Result, CompressionType, ConsumerType, InitialPosition, PartitionsRoutingMode, BatchingType, \
+    LoggerLevel, BatchReceivePolicy, KeySharedPolicy, KeySharedMode, ProducerAccessMode, RegexSubscriptionMode, \
+    DeadLetterPolicyBuilder, ConsumerCryptoFailureAction  # noqa: F401
+
 from pulsar.__about__ import __version__
+
 from pulsar.exceptions import *
-from pulsar.functions.context import Context
-from pulsar.functions.function import Function
-from pulsar.functions.serde import IdentitySerDe, PickleSerDe, SerDe
 from pulsar.schema.schema import BytesSchema
 from pulsar.tableview import TableView
 
+from pulsar.functions.function import Function
+from pulsar.functions.context import Context
+from pulsar.functions.serde import SerDe, IdentitySerDe, PickleSerDe
+from pulsar import schema
 _schema = schema
 
 import re
-
 _retype = type(re.compile('x'))
 
 from datetime import timedelta
