@@ -46,6 +46,7 @@ jobs:
           - {version: '3.11', spec: 'cp311-cp311'}
           - {version: '3.12', spec: 'cp312-cp312'}
           - {version: '3.13', spec: 'cp313-cp313'}
+          - {version: '3.14', spec: 'cp314-cp314'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
           - {arch: 'aarch64', platform: 'arm64'}
@@ -106,6 +107,7 @@ jobs:
           - {version: '3.11', version_long:  '3.11.11'}
           - {version: '3.12', version_long:  '3.12.8'}
           - {version: '3.13', version_long:  '3.13.1'}
+          - {version: '3.14', version_long:  '3.14.0'}
 
     steps:
       - name: checkout
@@ -136,6 +138,7 @@ jobs:
           - {version: '3.11'}
           - {version: '3.12'}
           - {version: '3.13'}
+          - {version: '3.14'}
 
     steps:
       - uses: actions/checkout@v3
