@@ -18,60 +18,60 @@
 # under the License.
 #
 
-import platform
-from distutils.command import build_ext
+from setuptools import setup
 from distutils.core import Extension
 from os import environ, path
+import platform
 
-from setuptools import setup
+from distutils.command import build_ext
 
 
 def get_version():
     root = path.dirname(path.realpath(__file__))
-    version_file = path.join(root, "pulsar", "__about__.py")
+    version_file = path.join(root, 'pulsar', '__about__.py')
     version = {}
     with open(version_file) as fp:
         exec(fp.read(), version)
-    return version["__version__"]
+    return version['__version__']
 
 
 def get_name():
-    postfix = environ.get("NAME_POSTFIX", "")
-    base = "pulsar-client"
+    postfix = environ.get('NAME_POSTFIX', '')
+    base = 'pulsar-client'
     return base + postfix
 
 
 VERSION = get_version()
 NAME = get_name()
 
-print("NAME: %s" % NAME)
-print("VERSION: %s" % VERSION)
+print('NAME: %s' % NAME)
+print('VERSION: %s' % VERSION)
 
 
 # This is a workaround to have setuptools to include
 # the already compiled _pulsar.so library
 class my_build_ext(build_ext.build_ext):
     def build_extension(self, ext):
-        import os.path
         import shutil
+        import os.path
 
         try:
             os.makedirs(os.path.dirname(self.get_ext_fullpath(ext.name)))
         except OSError as e:
             if e.errno != 17:  # already exists
                 raise
-        if "Windows" in platform.platform():
-            shutil.copyfile("_pulsar.pyd", self.get_ext_fullpath(ext.name))
+        if 'Windows' in platform.platform():
+            shutil.copyfile('_pulsar.pyd', self.get_ext_fullpath(ext.name))
         else:
             try:
-                shutil.copyfile("_pulsar.so", self.get_ext_fullpath(ext.name))
+                shutil.copyfile('_pulsar.so', self.get_ext_fullpath(ext.name))
             except FileNotFoundError:
-                shutil.copyfile("lib_pulsar.so", self.get_ext_fullpath(ext.name))
+                shutil.copyfile('lib_pulsar.so', self.get_ext_fullpath(ext.name))
 
 
 # Core Client dependencies
 dependencies = [
-    "certifi",
+    'certifi',
 ]
 
 extras_require = {}
@@ -79,16 +79,20 @@ extras_require = {}
 # functions dependencies
 extras_require["functions"] = sorted(
     {
-        "protobuf>=3.6.1",
-        "grpcio>=1.59.3",
-        "apache-bookkeeper-client>=4.16.1",
-        "prometheus_client",
-        "ratelimit",
+      "protobuf>=3.6.1",
+      "grpcio>=1.59.3",
+      "apache-bookkeeper-client>=4.16.1",
+      "prometheus_client",
+      "ratelimit"
     }
 )
 
 # avro dependencies
-extras_require["avro"] = sorted({"fastavro>=1.9.2"})
+extras_require["avro"] = sorted(
+    {
+      "fastavro>=1.9.2"
+    }
+)
 
 # all dependencies
 extras_require["all"] = sorted(set(sum(extras_require.values(), [])))
@@ -96,9 +100,10 @@ extras_require["all"] = sorted(set(sum(extras_require.values(), [])))
 setup(
     name=NAME,
     version=VERSION,
-    packages=["pulsar", "pulsar.schema", "pulsar.functions"],
-    cmdclass={"build_ext": my_build_ext},
-    ext_modules=[Extension("_pulsar", [])],
+    packages=['pulsar', 'pulsar.schema', 'pulsar.functions'],
+    cmdclass={'build_ext': my_build_ext},
+    ext_modules=[Extension('_pulsar', [])],
+
     author="Pulsar Devs",
     author_email="dev@pulsar.apache.org",
     description="Apache Pulsar Python client library",
