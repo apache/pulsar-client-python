@@ -21,6 +21,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <cmath>
 
 namespace py = pybind11;
 
@@ -41,10 +42,21 @@ Consumer Client_subscribe(Client& client, const std::string& topic, const std::s
         [&](SubscribeCallback callback) { client.subscribeAsync(topic, subscriptionName, conf, callback); });
 }
 
+void Client_subscribeAsync(Client& client, const std::string& topic, const std::string& subscriptionName,
+                          const ConsumerConfiguration& conf, SubscribeCallback callback) {
+    py::gil_scoped_release release;
+    client.subscribeAsync(topic, subscriptionName, conf, callback);
+}
+
 Consumer Client_subscribe_topics(Client& client, const std::vector<std::string>& topics,
                                  const std::string& subscriptionName, const ConsumerConfiguration& conf) {
     return waitForAsyncValue<Consumer>(
         [&](SubscribeCallback callback) { client.subscribeAsync(topics, subscriptionName, conf, callback); });
+}
+
+void Client_subscribe_topicsAsync(Client& client, const std::vector<std::string>& topics, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
+    py::gil_scoped_release release;
+    client.subscribeAsync(topics, subscriptionName, conf, callback);
 }
 
 Consumer Client_subscribe_pattern(Client& client, const std::string& topic_pattern,
@@ -52,6 +64,11 @@ Consumer Client_subscribe_pattern(Client& client, const std::string& topic_patte
     return waitForAsyncValue<Consumer>([&](SubscribeCallback callback) {
         client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
     });
+}
+
+void Client_subscribe_patternAsync(Client& client, const std::string& topic_pattern, const std::string& subscriptionName, const ConsumerConfiguration& conf, SubscribeCallback callback){
+      py::gil_scoped_release release;
+      client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
 }
 
 Reader Client_createReader(Client& client, const std::string& topic, const MessageId& startMessageId,
@@ -86,8 +103,11 @@ void export_client(py::module_& m) {
         .def("create_producer", &Client_createProducer)
         .def("create_producer_async", &Client_createProducerAsync)
         .def("subscribe", &Client_subscribe)
+        .def("subscribe_async", &Client_subscribeAsync)
         .def("subscribe_topics", &Client_subscribe_topics)
+        .def("subscribe_topics_async", &Client_subscribe_topicsAsync)
         .def("subscribe_pattern", &Client_subscribe_pattern)
+        .def("subscribe_pattern_async", &Client_subscribe_patternAsync)
         .def("create_reader", &Client_createReader)
         .def("create_table_view", [](Client& client, const std::string& topic,
                                      const TableViewConfiguration& config) {
