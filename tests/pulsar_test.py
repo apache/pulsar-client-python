@@ -20,8 +20,6 @@
 
 
 import random
-import threading
-import logging
 from typing import Optional
 from unittest import TestCase, main
 import time
