@@ -21,6 +21,7 @@
 from unittest import TestCase, main
 import asyncio
 import logging
+import threading
 from pulsar import Client
 
 class CustomLoggingTest(TestCase):
@@ -48,6 +49,35 @@ class CustomLoggingTest(TestCase):
         self.assertEqual(value, result)
 
         client.close()
+
+    def test_logger_thread_leaks(self):
+        def _do_connect(close):
+            logger = logging.getLogger(str(threading.current_thread().ident))
+            logger.setLevel(logging.INFO)
+            client = Client(
+                service_url="pulsar://localhost:6650",
+                io_threads=4,
+                message_listener_threads=4,
+                operation_timeout_seconds=1,
+                log_conf_file_path=None,
+                authentication=None,
+                logger=logger,
+            )
+            client.get_topic_partitions("persistent://public/default/partitioned_topic_name_test")
+            if close:
+                client.close()
+
+        for should_close in (True, False):
+            self.assertEqual(threading.active_count(), 1, "Explicit close: {}; baseline is 1 thread".format(should_close))
+            _do_connect(should_close)
+            self.assertEqual(threading.active_count(), 1, "Explicit close: {}; synchronous connect doesn't leak threads".format(should_close))
+            threads = []
+            for _ in range(10):
+                threads.append(threading.Thread(target=_do_connect, args=(should_close)))
+                threads[-1].start()
+            for thread in threads:
+                thread.join()
+            assert threading.active_count() == 1, "Explicit close: {}; threaded connect in parallel doesn't leak threads".format(should_close)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
