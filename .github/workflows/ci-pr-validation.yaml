@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['3.9', '3.13']
+        version: ['3.10', '3.14']
 
     steps:
       - name: checkout
@@ -115,7 +115,7 @@ jobs:
           - {name: 'manylinux', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
-          - {version: '3.13', spec: 'cp313-cp313'}
+          - {version: '3.14', spec: 'cp314-cp314'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
 
@@ -162,7 +162,7 @@ jobs:
     strategy:
       matrix:
         py:
-          - {version: '3.13', version_long:  '3.13.1'}
+          - {version: '3.14', version_long:  '3.14.0'}
 
     steps:
       - name: checkout
@@ -184,7 +184,7 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - version: '3.12'
+          - version: '3.14'
 
     steps:
       - uses: actions/checkout@v3
