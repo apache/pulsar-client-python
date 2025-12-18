@@ -238,12 +238,14 @@ class PulsarTest(TestCase):
     def test_producer_consumer(self):
         client = Client(self.serviceUrl)
         consumer = client.subscribe("my-python-topic-producer-consumer", "my-sub", consumer_type=ConsumerType.Shared)
-        producer = client.create_producer("my-python-topic-producer-consumer")
+        producer = client.create_producer("my-python-topic-producer-consumer",
+                                          producer_name="my-producer")
         producer.send(b"hello")
 
         msg = consumer.receive(TM)
         self.assertTrue(msg)
         self.assertEqual(msg.data(), b"hello")
+        self.assertEqual(msg.producer_name(), "my-producer")
 
         with self.assertRaises(pulsar.Timeout):
             consumer.receive(100)

@@ -105,7 +105,8 @@ void export_message(py::module_& m) {
         .def("topic_name", &Message::getTopicName, return_value_policy::copy)
         .def("redelivery_count", &Message::getRedeliveryCount)
         .def("int_schema_version", &Message::getLongSchemaVersion)
-        .def("schema_version", &Message::getSchemaVersion, return_value_policy::copy);
+        .def("schema_version", &Message::getSchemaVersion, return_value_policy::copy)
+        .def("producer_name", &Message::getProducerName, return_value_policy::copy);
 
     MessageBatch& (MessageBatch::*MessageBatchParseFromString)(const std::string& payload,
                                                                uint32_t batchSize) = &MessageBatch::parseFrom;
