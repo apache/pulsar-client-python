@@ -244,6 +244,12 @@ class Message:
         """
         return self._message.schema_version()
 
+    def producer_name(self) -> str:
+        """
+        Get the producer name which produced this message
+        """
+        return self._message.producer_name()
+
     @staticmethod
     def _wrap(_message):
         self = Message()
