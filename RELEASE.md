@@ -132,7 +132,7 @@ stay open for at least 72 hours ***
 Python wheels:
 https://dist.apache.org/repos/dist/dev/pulsar/pulsar-client-python-X.Y.Z-candidate-N/
 
-The supported python versions are 3.9, 3.10, 3.11, 3.12 and 3.13. The
+The supported python versions are 3.10, 3.11, 3.12, 3.13 and 3.14. The
 supported platforms and architectures are:
 - Windows x86_64 (windows/)
 - glibc-based Linux x86_64 (linux-glibc-x86_64/)
