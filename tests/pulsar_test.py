@@ -158,7 +158,7 @@ class PulsarTest(TestCase):
 
     def test_producer_send(self):
         client = Client(self.serviceUrl)
-        topic = f"test_producer_send_{time.time()}"
+        topic = "test_producer_send"
         producer = client.create_producer(topic)
         consumer = client.subscribe(topic, "sub-name")
         msg_id = producer.send(b"hello")
@@ -550,8 +550,7 @@ class PulsarTest(TestCase):
         def verify_undecrypted_message(msg: pulsar.Message, i: int):
             self.assertNotEqual(msg.data(), f"msg-{i}".encode())
             self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
-            batch_size = 2 if i >=3 else -1
-            verify_encryption_context(msg.encryption_context(), True, batch_size)
+            verify_encryption_context(msg.encryption_context(), True, 2 if i >= 3 else -1)
 
         # Encrypted messages will be consumed since the crypto failure action is CONSUME
         consumer = client.subscribe(topic, 'another-sub',
