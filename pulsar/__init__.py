@@ -166,6 +166,122 @@ class MessageId:
         self._msg_id = msg_id
         return self
 
+
+class EncryptionKey:
+    """
+    The key used for encryption.
+    """
+
+    def __init__(self, key: _pulsar.EncryptionKey):
+        """
+        Create EncryptionKey instance.
+
+        Parameters
+        ----------
+        key: _pulsar.EncryptionKey
+            The underlying EncryptionKey instance from the C extension.
+        """
+        self._key = key
+
+    @property
+    def key(self) -> str:
+        """
+        Returns the key, which is usually the key file's name.
+        """
+        return self._key.key
+
+    @property
+    def value(self) -> bytes:
+        """
+        Returns the value, which is usually the key bytes used for encryption.
+        """
+        return self._key.value()
+
+    @property
+    def metadata(self) -> dict:
+        """
+        Returns the metadata associated with the key.
+        """
+        return self._key.metadata
+
+    def __str__(self) -> str:
+        return f"EncryptionKey(key={self.key}, value_len={len(self.value)}, metadata={self.metadata})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+class EncryptionContext:
+    """
+    It contains encryption and compression information in it using which application can decrypt
+    consumed message with encrypted-payload.
+    """
+
+    def __init__(self, context: _pulsar.EncryptionContext):
+        """
+        Create EncryptionContext instance.
+
+        Parameters
+        ----------
+        key: _pulsar.EncryptionContext
+            The underlying EncryptionContext instance from the C extension.
+        """
+        self._context = context
+
+    def keys(self) -> List[EncryptionKey]:
+        """
+        Returns all EncryptionKey instances when performing encryption.
+        """
+        keys = self._context.keys()
+        return [EncryptionKey(key) for key in keys]
+
+    def param(self) -> bytes:
+        """
+        Returns the encryption param bytes.
+        """
+        return self._context.param()
+
+    def algorithm(self) -> str:
+        """
+        Returns the encryption algorithm.
+        """
+        return self._context.algorithm()
+
+    def compression_type(self) -> CompressionType:
+        """
+        Returns the compression type of the message.
+        """
+        return self._context.compression_type()
+
+    def uncompressed_message_size(self) -> int:
+        """
+        Returns the uncompressed message size or 0 if the compression type is NONE.
+        """
+        return self._context.uncompressed_message_size()
+
+    def batch_size(self) -> int:
+        """
+        Returns the number of messages in the batch or -1 if the message is not batched.
+        """
+        return self._context.batch_size()
+
+    def is_decryption_failed(self) -> bool:
+        """
+        Returns whether decryption has failed for this message.
+        """
+        return self._context.is_decryption_failed()
+
+    def __str__(self) -> str:
+        return f"EncryptionContext(algorithm={self.algorithm()}, "  \
+               f"compression_type={self.compression_type().name}, " \
+               f"uncompressed_message_size={self.uncompressed_message_size()}, " \
+               f"is_decryption_failed={self.is_decryption_failed()}, " \
+               f"keys=[{', '.join(str(key) for key in self.keys())}])"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 class Message:
     """
     Message objects are returned by a consumer, either by calling `receive` or
@@ -249,6 +365,15 @@ class Message:
         Get the producer name which produced this message
         """
         return self._message.producer_name()
+
+    def encryption_context(self) -> EncryptionContext:
+        """
+        Get the encryption context for this message or None if it's not encrypted.
+
+        It should be noted that the result should not be accessed after the current Message instance is deleted.
+        """
+        context = self._message.encryption_context()
+        return None if context is None else EncryptionContext(context)
 
     @staticmethod
     def _wrap(_message):

@@ -86,6 +86,20 @@ void export_message(py::module_& m) {
              })
         .def_static("deserialize", &MessageId::deserialize);
 
+    class_<EncryptionKey>(m, "EncryptionKey")
+        .def_readonly("key", &EncryptionKey::key)
+        .def("value", [](const EncryptionKey& key) { return bytes(key.value); })
+        .def_readonly("metadata", &EncryptionKey::metadata);
+
+    class_<EncryptionContext>(m, "EncryptionContext")
+        .def("keys", &EncryptionContext::keys)
+        .def("param", [](const EncryptionContext& context) { return bytes(context.param()); })
+        .def("algorithm", &EncryptionContext::algorithm, return_value_policy::copy)
+        .def("compression_type", &EncryptionContext::compressionType)
+        .def("uncompressed_message_size", &EncryptionContext::uncompressedMessageSize)
+        .def("batch_size", &EncryptionContext::batchSize)
+        .def("is_decryption_failed", &EncryptionContext::isDecryptionFailed);
+
     class_<Message>(m, "Message")
         .def(init<>())
         .def("properties", &Message::getProperties)
@@ -106,7 +120,8 @@ void export_message(py::module_& m) {
         .def("redelivery_count", &Message::getRedeliveryCount)
         .def("int_schema_version", &Message::getLongSchemaVersion)
         .def("schema_version", &Message::getSchemaVersion, return_value_policy::copy)
-        .def("producer_name", &Message::getProducerName, return_value_policy::copy);
+        .def("producer_name", &Message::getProducerName, return_value_policy::copy)
+        .def("encryption_context", &Message::getEncryptionContext, return_value_policy::reference);
 
     MessageBatch& (MessageBatch::*MessageBatchParseFromString)(const std::string& payload,
                                                                uint32_t batchSize) = &MessageBatch::parseFrom;
