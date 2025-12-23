@@ -39,6 +39,12 @@ from pulsar.asyncio import (  # pylint: disable=import-error
     Producer,
     PulsarException,
 )
+from pulsar.schema import (  # pylint: disable=import-error
+    AvroSchema,
+    Integer,
+    Record,
+    String,
+)
 
 SERVICE_URL = 'pulsar://localhost:6650'
 
@@ -253,16 +259,23 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertEqual(msg.data(), b'msg-3')
 
     async def test_schema(self):
+        class ExampleRecord(Record):  # pylint: disable=too-few-public-methods
+            """Example record schema for testing."""
+            str_field = String()
+            int_field = Integer()
+
         topic = f'asyncio-test-schema-{time.time()}'
         producer = await self._client.create_producer(
-                topic, schema=pulsar.schema.StringSchema()
+                topic, schema=AvroSchema(ExampleRecord)
         )
         consumer = await self._client.subscribe(
-            topic, 'sub', schema=pulsar.schema.StringSchema()
+            topic, 'sub', schema=AvroSchema(ExampleRecord)
         )
-        await producer.send('test-message')
+        await producer.send(ExampleRecord(str_field='test', int_field=42))
         msg = await consumer.receive()
-        self.assertEqual(msg.value(), 'test-message')
+        self.assertIsInstance(msg.value(), ExampleRecord)
+        self.assertEqual(msg.value().str_field, 'test')
+        self.assertEqual(msg.value().int_field, 42)
 
 
 if __name__ == '__main__':

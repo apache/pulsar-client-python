@@ -72,7 +72,7 @@ class Producer:
     The Pulsar message producer, used to publish messages on a topic.
     """
 
-    def __init__(self, producer: _pulsar.Producer) -> None:
+    def __init__(self, producer: _pulsar.Producer, schema: pulsar.schema.Schema) -> None:
         """
         Create the producer.
         Users should not call this constructor directly. Instead, create the
@@ -82,8 +82,11 @@ class Producer:
         ----------
         producer: _pulsar.Producer
             The underlying Producer object from the C extension.
+        schema: pulsar.schema.Schema
+            The schema of the data that will be sent by this producer.
         """
-        self._producer: _pulsar.Producer = producer
+        self._producer = producer
+        self._schema = schema
 
     async def send(self, content: Any) -> pulsar.MessageId:
         """
@@ -105,7 +108,7 @@ class Producer:
         PulsarException
         """
         builder = _pulsar.MessageBuilder()
-        builder.content(content)
+        builder.content(self._schema.encode(content))
         future = asyncio.get_running_loop().create_future()
         self._producer.send_async(builder.build(), functools.partial(_set_future, future))
         msg_id = await future
@@ -454,7 +457,8 @@ class Client:
         self._client.create_producer_async(
             topic, conf, functools.partial(_set_future, future)
         )
-        return Producer(await future)
+        schema.attach_client(self._client)
+        return Producer(await future, schema)
 
     # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-positional-arguments
     async def subscribe(self, topic: Union[str, List[str]],
@@ -632,11 +636,9 @@ class Client:
                 functools.partial(_set_future, future)
             )
         else:
-            raise ValueError(
-                "Argument 'topic' is expected to be of a type between "
-                "(str, list)"
-            )
+            raise ValueError( "Argument 'topic' is expected to be of type 'str' or 'list'")
 
+        schema.attach_client(self._client)
         return Consumer(await future, schema)
 
     async def close(self) -> None:
