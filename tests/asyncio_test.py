@@ -252,6 +252,18 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'msg-3')
 
+    async def test_schema(self):
+        topic = f'asyncio-test-schema-{time.time()}'
+        producer = await self._client.create_producer(
+                topic, schema=pulsar.schema.StringSchema()
+        )
+        consumer = await self._client.subscribe(
+            topic, 'sub', schema=pulsar.schema.StringSchema()
+        )
+        await producer.send('test-message')
+        msg = await consumer.receive()
+        self.assertEqual(msg.value(), 'test-message')
+
 
 if __name__ == '__main__':
     main()

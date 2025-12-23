@@ -85,14 +85,15 @@ class Producer:
         """
         self._producer: _pulsar.Producer = producer
 
-    async def send(self, content: bytes) -> pulsar.MessageId:
+    async def send(self, content: Any) -> pulsar.MessageId:
         """
         Send a message asynchronously.
 
         parameters
         ----------
-        content: bytes
-            The message payload
+        content: Any
+            The message payload, whose type should respect the schema defined in
+            `Client.create_producer`.
 
         Returns
         -------
@@ -132,7 +133,7 @@ class Consumer:
     The Pulsar message consumer, used to subscribe to messages from a topic.
     """
 
-    def __init__(self, consumer: _pulsar.Consumer) -> None:
+    def __init__(self, consumer: _pulsar.Consumer, schema: pulsar.schema.Schema) -> None:
         """
         Create the consumer.
         Users should not call this constructor directly. Instead, create the
@@ -142,8 +143,11 @@ class Consumer:
         ----------
         consumer: _pulsar.Consumer
             The underlying Consumer object from the C extension.
+        schema: pulsar.schema.Schema
+            The schema of the data that will be received by this consumer.
         """
-        self._consumer: _pulsar.Consumer = consumer
+        self._consumer = consumer
+        self._schema = schema
 
     async def receive(self) -> pulsar.Message:
         """
@@ -163,7 +167,7 @@ class Consumer:
         msg = await future
         m = pulsar.Message()
         m._message = msg
-        m._schema = pulsar.schema.BytesSchema()
+        m._schema = self._schema
         return m
 
     async def acknowledge(
@@ -633,7 +637,7 @@ class Client:
                 "(str, list)"
             )
 
-        return Consumer(await future)
+        return Consumer(await future, schema)
 
     async def close(self) -> None:
         """
