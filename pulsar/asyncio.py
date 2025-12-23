@@ -17,16 +17,26 @@
 # under the License.
 #
 
+# pylint: disable=no-name-in-module,c-extension-no-member,protected-access
+
 """
 The Pulsar Python client APIs that work with the asyncio module.
 """
 
 import asyncio
 import functools
-from typing import Any, List, Union
+from typing import Any, Callable, List, Union
 
 import _pulsar
-from _pulsar import InitialPosition
+from _pulsar import (
+    InitialPosition,
+    CompressionType,
+    PartitionsRoutingMode,
+    BatchingType,
+    ProducerAccessMode,
+    RegexSubscriptionMode,
+    ConsumerCryptoFailureAction,
+)
 import pulsar
 
 class PulsarException(BaseException):
@@ -156,7 +166,11 @@ class Consumer:
         m._schema = pulsar.schema.BytesSchema()
         return m
 
-    async def acknowledge(self, message: Union[pulsar.Message, pulsar.MessageId, _pulsar.Message, _pulsar.MessageId]) -> None:
+    async def acknowledge(
+        self,
+        message: Union[pulsar.Message, pulsar.MessageId,
+                       _pulsar.Message, _pulsar.MessageId]
+    ) -> None:
         """
         Acknowledge the reception of a single message asynchronously.
 
@@ -179,7 +193,11 @@ class Consumer:
         self._consumer.acknowledge_async(msg, functools.partial(_set_future, future, value=None))
         await future
 
-    async def acknowledge_cumulative(self, message: Union[pulsar.Message, pulsar.MessageId, _pulsar.Message, _pulsar.MessageId]) -> None:
+    async def acknowledge_cumulative(
+        self,
+        message: Union[pulsar.Message, pulsar.MessageId,
+                       _pulsar.Message, _pulsar.MessageId]
+    ) -> None:
         """
         Acknowledge the reception of all the messages in the stream up to (and
         including) the provided message asynchronously.
@@ -200,7 +218,9 @@ class Consumer:
             msg = message._msg_id
         else:
             msg = message
-        self._consumer.acknowledge_cumulative_async(msg, functools.partial(_set_future, future, value=None))
+        self._consumer.acknowledge_cumulative_async(
+            msg, functools.partial(_set_future, future, value=None)
+        )
         await future
 
     async def unsubscribe(self) -> None:
@@ -256,7 +276,31 @@ class Client:
         """
         self._client: _pulsar.Client = pulsar.Client(service_url, **kwargs)._client
 
-    async def create_producer(self, topic: str) -> Producer:
+    # pylint: disable=too-many-arguments,too-many-locals
+    async def create_producer(self, topic: str,
+                              producer_name: str = None,
+                              schema: pulsar.schema.Schema = None,
+                              initial_sequence_id: int = None,
+                              send_timeout_millis: int = 30000,
+                              compression_type: CompressionType = CompressionType.NONE,
+                              max_pending_messages: int = 1000,
+                              max_pending_messages_across_partitions: int = 50000,
+                              block_if_queue_full: bool = False,
+                              batching_enabled: bool = False,
+                              batching_max_messages: int = 1000,
+                              batching_max_allowed_size_in_bytes: int = 128*1024,
+                              batching_max_publish_delay_ms: int = 10,
+                              chunking_enabled: bool = False,
+                              message_routing_mode: PartitionsRoutingMode =
+                              PartitionsRoutingMode.RoundRobinDistribution,
+                              lazy_start_partitioned_producers: bool = False,
+                              properties: dict = None,
+                              batching_type: BatchingType = BatchingType.Default,
+                              encryption_key: str = None,
+                              crypto_key_reader: pulsar.CryptoKeyReader = None,
+                              access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
+                              message_router: Callable[[pulsar.Message, int], int] = None,
+                              ) -> Producer:
         """
         Create a new producer on a given topic
 
@@ -264,6 +308,59 @@ class Client:
         ----------
         topic: str
             The topic name
+        producer_name: str, optional
+            Specify a name for the producer. If not assigned, the system will
+            generate a globally unique name which can be accessed with
+            `Producer.producer_name()`. When specifying a name, it is app to
+            the user to ensure that, for a given topic, the producer name is
+            unique across all Pulsar's clusters.
+        schema: pulsar.schema.Schema, optional
+            Define the schema of the data that will be published by this producer.
+        initial_sequence_id: int, optional
+            Set the baseline for the sequence ids for messages published by
+            the producer.
+        send_timeout_millis: int, default=30000
+            If a message is not acknowledged by the server before the
+            send_timeout expires, an error will be reported.
+        compression_type: CompressionType, default=CompressionType.NONE
+            Set the compression type for the producer.
+        max_pending_messages: int, default=1000
+            Set the max size of the queue holding the messages pending to
+            receive an acknowledgment from the broker.
+        max_pending_messages_across_partitions: int, default=50000
+            Set the max size of the queue holding the messages pending to
+            receive an acknowledgment across partitions.
+        block_if_queue_full: bool, default=False
+            Set whether send operations should block when the outgoing
+            message queue is full.
+        batching_enabled: bool, default=False
+            Enable automatic message batching.
+        batching_max_messages: int, default=1000
+            Maximum number of messages in a batch.
+        batching_max_allowed_size_in_bytes: int, default=128*1024
+            Maximum size in bytes of a batch.
+        batching_max_publish_delay_ms: int, default=10
+            The batch interval in milliseconds.
+        chunking_enabled: bool, default=False
+            Enable chunking of large messages.
+        message_routing_mode: PartitionsRoutingMode,
+            default=PartitionsRoutingMode.RoundRobinDistribution
+            Set the message routing mode for the partitioned producer.
+        lazy_start_partitioned_producers: bool, default=False
+            Start partitioned producers lazily on demand.
+        properties: dict, optional
+            Sets the properties for the producer.
+        batching_type: BatchingType, default=BatchingType.Default
+            Sets the batching type for the producer.
+        encryption_key: str, optional
+            The key used for symmetric encryption.
+        crypto_key_reader: CryptoKeyReader, optional
+            Symmetric encryption class implementation.
+        access_mode: ProducerAccessMode, default=ProducerAccessMode.Shared
+            Set the type of access mode that the producer requires on the topic.
+        message_router: optional
+            A custom message router function that takes a Message and the
+            number of partitions and returns the partition index.
 
         Returns
         -------
@@ -274,16 +371,90 @@ class Client:
         ------
         PulsarException
         """
+        if schema is None:
+            schema = pulsar.schema.BytesSchema()
+
         future = asyncio.get_running_loop().create_future()
         conf = _pulsar.ProducerConfiguration()
-        # TODO: add more configs
-        self._client.create_producer_async(topic, conf, functools.partial(_set_future, future))
+        conf.send_timeout_millis(send_timeout_millis)
+        conf.compression_type(compression_type)
+        conf.max_pending_messages(max_pending_messages)
+        conf.max_pending_messages_across_partitions(max_pending_messages_across_partitions)
+        conf.block_if_queue_full(block_if_queue_full)
+        conf.batching_enabled(batching_enabled)
+        conf.batching_max_messages(batching_max_messages)
+        conf.batching_max_allowed_size_in_bytes(batching_max_allowed_size_in_bytes)
+        conf.batching_max_publish_delay_ms(batching_max_publish_delay_ms)
+        conf.partitions_routing_mode(message_routing_mode)
+        conf.batching_type(batching_type)
+        conf.chunking_enabled(chunking_enabled)
+        conf.lazy_start_partitioned_producers(lazy_start_partitioned_producers)
+        conf.access_mode(access_mode)
+        if message_router is not None:
+            def underlying_router(msg, num_partitions):
+                return int(message_router(pulsar.Message._wrap(msg),
+                                          num_partitions))
+            conf.message_router(underlying_router)
+
+        if producer_name:
+            conf.producer_name(producer_name)
+        if initial_sequence_id is not None:
+            conf.initial_sequence_id(initial_sequence_id)
+        if properties:
+            for k, v in properties.items():
+                conf.property(k, v)
+
+        conf.schema(schema.schema_info())
+        if encryption_key:
+            conf.encryption_key(encryption_key)
+        if crypto_key_reader:
+            conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
+
+        if batching_enabled and chunking_enabled:
+            raise ValueError(
+                "Batching and chunking of messages can't be enabled together."
+            )
+
+        self._client.create_producer_async(
+            topic, conf, functools.partial(_set_future, future)
+        )
         return Producer(await future)
 
-    async def subscribe(self, topic: Union[str, List[str]], subscription_name: str,
-                        is_pattern_topic: bool = False,
-                        consumer_type: pulsar.ConsumerType = pulsar.ConsumerType.Exclusive,
-                        initial_position: InitialPosition = InitialPosition.Latest) -> Consumer:
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+    async def subscribe(self, topic: Union[str, List[str]],
+                        subscription_name: str,
+                        consumer_type: pulsar.ConsumerType =
+                        pulsar.ConsumerType.Exclusive,
+                        schema: pulsar.schema.Schema = None,
+                        message_listener = None,
+                        receiver_queue_size: int = 1000,
+                        max_total_receiver_queue_size_across_partitions: int =
+                        50000,
+                        consumer_name: str = None,
+                        unacked_messages_timeout_ms: int = None,
+                        broker_consumer_stats_cache_time_ms: int = 30000,
+                        negative_ack_redelivery_delay_ms: int = 60000,
+                        is_read_compacted: bool = False,
+                        properties: dict = None,
+                        pattern_auto_discovery_period: int = 60,  # pylint: disable=unused-argument
+                        initial_position: InitialPosition = InitialPosition.Latest,
+                        crypto_key_reader: pulsar.CryptoKeyReader = None,
+                        replicate_subscription_state_enabled: bool = False,
+                        max_pending_chunked_message: int = 10,
+                        auto_ack_oldest_chunked_message_on_queue_full: bool = False,
+                        start_message_id_inclusive: bool = False,
+                        batch_receive_policy: pulsar.ConsumerBatchReceivePolicy =
+                        None,
+                        key_shared_policy: pulsar.ConsumerKeySharedPolicy =
+                        None,
+                        batch_index_ack_enabled: bool = False,
+                        regex_subscription_mode: RegexSubscriptionMode =
+                        RegexSubscriptionMode.PersistentOnly,
+                        dead_letter_policy: pulsar.ConsumerDeadLetterPolicy =
+                        None,
+                        crypto_failure_action: ConsumerCryptoFailureAction =
+                        ConsumerCryptoFailureAction.FAIL,
+                        is_pattern_topic: bool = False) -> Consumer:
         """
         Subscribe to the given topic and subscription combination.
 
@@ -293,13 +464,65 @@ class Client:
             The name of the topic, list of topics or regex pattern.
         subscription_name: str
             The name of the subscription.
-        is_pattern_topic: bool, default=False
-            Whether `topic` is a regex pattern. This option takes no effect when `topic` is a list of topics.
         consumer_type: pulsar.ConsumerType, default=pulsar.ConsumerType.Exclusive
             Select the subscription type to be used when subscribing to the topic.
+        schema: pulsar.schema.Schema, optional
+            Define the schema of the data that will be received by this consumer.
+        message_listener: optional
+            Sets a message listener for the consumer.
+        receiver_queue_size: int, default=1000
+            Sets the size of the consumer receive queue.
+        max_total_receiver_queue_size_across_partitions: int, default=50000
+            Set the max total receiver queue size across partitions.
+        consumer_name: str, optional
+            Sets the consumer name.
+        unacked_messages_timeout_ms: int, optional
+            Sets the timeout in milliseconds for unacknowledged messages.
+        broker_consumer_stats_cache_time_ms: int, default=30000
+            Sets the time duration for which the broker-side consumer stats
+            will be cached in the client.
+        negative_ack_redelivery_delay_ms: int, default=60000
+            The delay after which to redeliver the messages that failed to be
+            processed.
+        is_read_compacted: bool, default=False
+            Selects whether to read the compacted version of the topic.
+        properties: dict, optional
+            Sets the properties for the consumer.
+        pattern_auto_discovery_period: int, default=60
+            Periods of seconds for consumer to auto discover match topics.
         initial_position: InitialPosition, default=InitialPosition.Latest
             Set the initial position of a consumer when subscribing to the topic.
-            It could be either: ``InitialPosition.Earliest`` or ``InitialPosition.Latest``.
+        crypto_key_reader: CryptoKeyReader, optional
+            Symmetric encryption class implementation.
+        replicate_subscription_state_enabled: bool, default=False
+            Set whether the subscription status should be replicated.
+        max_pending_chunked_message: int, default=10
+            Consumer buffers chunk messages into memory until it receives all the chunks.
+        auto_ack_oldest_chunked_message_on_queue_full: bool, default=False
+            Automatically acknowledge oldest chunked messages on queue
+            full.
+        start_message_id_inclusive: bool, default=False
+            Set the consumer to include the given position of any reset
+            operation.
+        batch_receive_policy: ConsumerBatchReceivePolicy, optional
+            Set the batch collection policy for batch receiving.
+        key_shared_policy: ConsumerKeySharedPolicy, optional
+            Set the key shared policy for use when the ConsumerType is
+            KeyShared.
+        batch_index_ack_enabled: bool, default=False
+            Enable the batch index acknowledgement.
+        regex_subscription_mode: RegexSubscriptionMode,
+            default=RegexSubscriptionMode.PersistentOnly
+            Set the regex subscription mode for use when the topic is a regex
+            pattern.
+        dead_letter_policy: ConsumerDeadLetterPolicy, optional
+            Set dead letter policy for consumer.
+        crypto_failure_action: ConsumerCryptoFailureAction,
+            default=ConsumerCryptoFailureAction.FAIL
+            Set the behavior when the decryption fails.
+        is_pattern_topic: bool, default=False
+            Whether `topic` is a regex pattern. This option takes no effect
+            when `topic` is a list of topics.
 
         Returns
         -------
@@ -310,20 +533,74 @@ class Client:
         ------
         PulsarException
         """
+        if schema is None:
+            schema = pulsar.schema.BytesSchema()
+
         future = asyncio.get_running_loop().create_future()
         conf = _pulsar.ConsumerConfiguration()
         conf.consumer_type(consumer_type)
+        conf.regex_subscription_mode(regex_subscription_mode)
+        conf.read_compacted(is_read_compacted)
+        if message_listener:
+            conf.message_listener(_listener_wrapper(message_listener, schema))
+        conf.receiver_queue_size(receiver_queue_size)
+        conf.max_total_receiver_queue_size_across_partitions(
+            max_total_receiver_queue_size_across_partitions
+        )
+        if consumer_name:
+            conf.consumer_name(consumer_name)
+        if unacked_messages_timeout_ms:
+            conf.unacked_messages_timeout_ms(unacked_messages_timeout_ms)
+
+        conf.negative_ack_redelivery_delay_ms(negative_ack_redelivery_delay_ms)
+        conf.broker_consumer_stats_cache_time_ms(broker_consumer_stats_cache_time_ms)
+        if properties:
+            for k, v in properties.items():
+                conf.property(k, v)
         conf.subscription_initial_position(initial_position)
+
+        conf.schema(schema.schema_info())
+
+        if crypto_key_reader:
+            conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
+
+        conf.replicate_subscription_state_enabled(replicate_subscription_state_enabled)
+        conf.max_pending_chunked_message(max_pending_chunked_message)
+        conf.auto_ack_oldest_chunked_message_on_queue_full(
+            auto_ack_oldest_chunked_message_on_queue_full
+        )
+        conf.start_message_id_inclusive(start_message_id_inclusive)
+        if batch_receive_policy:
+            conf.batch_receive_policy(batch_receive_policy.policy())
+
+        if key_shared_policy:
+            conf.key_shared_policy(key_shared_policy.policy())
+        conf.batch_index_ack_enabled(batch_index_ack_enabled)
+        if dead_letter_policy:
+            conf.dead_letter_policy(dead_letter_policy.policy())
+        conf.crypto_failure_action(crypto_failure_action)
 
         if isinstance(topic, str):
             if is_pattern_topic:
-                self._client.subscribe_async_pattern(topic, subscription_name, conf, functools.partial(_set_future, future))
+                self._client.subscribe_async_pattern(
+                    topic, subscription_name, conf,
+                    functools.partial(_set_future, future)
+                )
             else:
-                self._client.subscribe_async(topic, subscription_name, conf, functools.partial(_set_future, future))
+                self._client.subscribe_async(
+                    topic, subscription_name, conf,
+                    functools.partial(_set_future, future)
+                )
         elif isinstance(topic, list):
-            self._client.subscribe_async_topics(topic, subscription_name, conf, functools.partial(_set_future, future))
+            self._client.subscribe_async_topics(
+                topic, subscription_name, conf,
+                functools.partial(_set_future, future)
+            )
         else:
-            raise ValueError("Argument 'topic' is expected to be of a type between (str, list)")
+            raise ValueError(
+                "Argument 'topic' is expected to be of a type between "
+                "(str, list)"
+            )
 
         return Consumer(await future)
 
@@ -336,7 +613,9 @@ class Client:
         PulsarException
         """
         future = asyncio.get_running_loop().create_future()
-        self._client.close_async(functools.partial(_set_future, future, value=None))
+        self._client.close_async(
+            functools.partial(_set_future, future, value=None)
+        )
         await future
 
 def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
@@ -346,3 +625,12 @@ def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
         else:
             future.set_exception(PulsarException(result))
     future.get_loop().call_soon_threadsafe(complete)
+
+def _listener_wrapper(listener, schema):
+    def wrapper(consumer, msg):
+        c = Consumer(consumer)
+        m = pulsar.Message()
+        m._message = msg
+        m._schema = schema
+        listener(c, m)
+    return wrapper
