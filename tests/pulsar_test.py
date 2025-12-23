@@ -167,6 +167,7 @@ class PulsarTest(TestCase):
         consumer.acknowledge(msg)
         print("receive from {}".format(msg.message_id()))
         self.assertEqual(msg_id, msg.message_id())
+        self.assertIsNone(msg.encryption_context())
         client.close()
 
     def test_producer_access_mode_exclusive(self):
@@ -489,15 +490,36 @@ class PulsarTest(TestCase):
         client = Client(self.serviceUrl)
         topic = "my-python-test-end-to-end-encryption-failure-" + str(time.time())
         producer = client.create_producer(
-            topic=topic, encryption_key="client-rsa.pem", crypto_key_reader=crypto_key_reader
+            topic=topic, encryption_key="client-rsa.pem", crypto_key_reader=crypto_key_reader,
+            compression_type=CompressionType.LZ4
         )
         producer.send(b"msg-0")
+
+        def verify_encryption_context(context: pulsar.EncryptionContext | None, failed: bool, batch_size: int):
+            if context is None:
+                self.fail("Encryption context is None")
+            keys = context.keys()
+            self.assertEqual(len(keys), 1)
+            key = keys[0]
+            self.assertEqual(key.key, "client-rsa.pem")
+            self.assertGreater(len(key.value), 0)
+            self.assertEqual(key.metadata, {})
+            self.assertGreater(len(context.param()), 0)
+            self.assertEqual(context.algorithm(), "")
+            self.assertEqual(context.compression_type(), CompressionType.LZ4)
+            if batch_size == -1:
+                self.assertEqual(context.uncompressed_message_size(), len(b"msg-0"))
+            else:
+                self.assertGreater(context.uncompressed_message_size(), len(b"msg-0"))
+            self.assertEqual(context.batch_size(), batch_size)
+            self.assertEqual(context.is_decryption_failed(), failed)
 
         def verify_next_message(value: bytes):
             consumer = client.subscribe(topic, subscription,
                                         crypto_key_reader=crypto_key_reader)
             msg = consumer.receive(3000)
             self.assertEqual(msg.data(), value)
+            verify_encryption_context(msg.encryption_context(), False, -1)
             consumer.acknowledge(msg)
             consumer.close()
 
@@ -520,22 +542,40 @@ class PulsarTest(TestCase):
 
         producer.send(b"msg-2")
         verify_next_message(b"msg-2") # msg-1 is skipped since the crypto failure action is DISCARD
+        producer.close()
+
+        # send batched messages
+        producer = client.create_producer(
+            topic=topic,
+            encryption_key="client-rsa.pem",
+            crypto_key_reader=crypto_key_reader,
+            compression_type=CompressionType.LZ4,
+            batching_enabled=True,
+        )
+        producer.send_async(b"msg-3", None)
+        producer.send_async(b"msg-4", None)
+        producer.flush()
+
+        def verify_undecrypted_message(msg: pulsar.Message, i: int):
+            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
+            self.assertGreater(len(msg.data()), 5, f"msg.data() is {msg.data()}")
+            verify_encryption_context(msg.encryption_context(), True, 2 if i >= 3 else -1)
 
         # Encrypted messages will be consumed since the crypto failure action is CONSUME
+        # Only 4 messages can be received because msg-3 and msg-4 are sent in batch and they are delivered
+        # as a single message when decryption fails.
         consumer = client.subscribe(topic, 'another-sub',
                                     initial_position=InitialPosition.Earliest,
                                     crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
-        for i in range(3):
+        for i in range(4):
             msg = consumer.receive(3000)
-            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
-            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+            verify_undecrypted_message(msg, i)
 
         reader = client.create_reader(topic, MessageId.earliest,
                                       crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
-        for i in range(3):
+        for i in range(4):
             msg = reader.read_next(3000)
-            self.assertNotEqual(msg.data(), f"msg-{i}".encode())
-            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+            verify_undecrypted_message(msg, i)
 
         client.close()
 
