@@ -341,7 +341,7 @@ class Client:
         producer_name: str | None, default=None
             Specify a name for the producer. If not assigned, the system will
             generate a globally unique name which can be accessed with
-            `Producer.producer_name()`. When specifying a name, it is app to
+            `Producer.producer_name()`. When specifying a name, it is up to
             the user to ensure that, for a given topic, the producer name is
             unique across all Pulsar's clusters.
         schema: pulsar.schema.Schema | None, default=None
@@ -458,8 +458,6 @@ class Client:
                         consumer_type: pulsar.ConsumerType =
                         pulsar.ConsumerType.Exclusive,
                         schema: pulsar.schema.Schema | None = None,
-                        message_listener: Callable[['Consumer', pulsar.Message],
-                                                    None] | None = None,
                         receiver_queue_size: int = 1000,
                         max_total_receiver_queue_size_across_partitions: int =
                         50000,
@@ -501,8 +499,6 @@ class Client:
             Select the subscription type to be used when subscribing to the topic.
         schema: pulsar.schema.Schema | None, default=None
             Define the schema of the data that will be received by this consumer.
-        message_listener: Callable[[Consumer, pulsar.Message], None] | None, default=None
-            Sets a message listener for the consumer.
         receiver_queue_size: int, default=1000
             Sets the size of the consumer receive queue.
         max_total_receiver_queue_size_across_partitions: int, default=50000
@@ -572,8 +568,6 @@ class Client:
         conf.consumer_type(consumer_type)
         conf.regex_subscription_mode(regex_subscription_mode)
         conf.read_compacted(is_read_compacted)
-        if message_listener:
-            conf.message_listener(_listener_wrapper(message_listener, schema))
         conf.receiver_queue_size(receiver_queue_size)
         conf.max_total_receiver_queue_size_across_partitions(
             max_total_receiver_queue_size_across_partitions
@@ -656,12 +650,3 @@ def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
         else:
             future.set_exception(PulsarException(result))
     future.get_loop().call_soon_threadsafe(complete)
-
-def _listener_wrapper(listener, schema):
-    def wrapper(consumer, msg):
-        c = Consumer(consumer)
-        m = pulsar.Message()
-        m._message = msg
-        m._schema = schema
-        listener(c, m)
-    return wrapper
