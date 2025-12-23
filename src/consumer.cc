@@ -19,6 +19,7 @@
 #include "utils.h"
 
 #include <pulsar/Consumer.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -89,6 +90,14 @@ void Consumer_seek(Consumer& consumer, const MessageId& msgId) {
     waitForAsyncResult([msgId, &consumer](ResultCallback callback) { consumer.seekAsync(msgId, callback); });
 }
 
+MessageId Consumer_get_last_message_id(Consumer& consumer) {
+    MessageId msgId;
+    Result res;
+    Py_BEGIN_ALLOW_THREADS res = consumer.getLastMessageId(msgId);
+    Py_END_ALLOW_THREADS CHECK_RESULT(res);
+    return msgId;
+}
+
 void Consumer_seek_timestamp(Consumer& consumer, uint64_t timestamp) {
     waitForAsyncResult(
         [timestamp, &consumer](ResultCallback callback) { consumer.seekAsync(timestamp, callback); });
@@ -96,14 +105,41 @@ void Consumer_seek_timestamp(Consumer& consumer, uint64_t timestamp) {
 
 bool Consumer_is_connected(Consumer& consumer) { return consumer.isConnected(); }
 
-MessageId Consumer_get_last_message_id(Consumer& consumer) {
-    MessageId msgId;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = consumer.getLastMessageId(msgId);
-    Py_END_ALLOW_THREADS
+void Consumer_receiveAsync(Consumer& consumer, ReceiveCallback callback) {
+    py::gil_scoped_release release;
+    consumer.receiveAsync(callback);
+}
 
-        CHECK_RESULT(res);
-    return msgId;
+void Consumer_acknowledgeAsync(Consumer& consumer, const Message& msg, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.acknowledgeAsync(msg, callback);
+}
+
+void Consumer_acknowledgeAsync_message_id(Consumer& consumer, const MessageId& msgId,
+                                          ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.acknowledgeAsync(msgId, callback);
+}
+
+void Consumer_acknowledgeCumulativeAsync(Consumer& consumer, const Message& msg, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.acknowledgeCumulativeAsync(msg, callback);
+}
+
+void Consumer_acknowledgeCumulativeAsync_message_id(Consumer& consumer, const MessageId& msgId,
+                                                    ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.acknowledgeCumulativeAsync(msgId, callback);
+}
+
+void Consumer_closeAsync(Consumer& consumer, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.closeAsync(callback);
+}
+
+void Consumer_unsubscribeAsync(Consumer& consumer, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.unsubscribeAsync(callback);
 }
 
 void export_consumer(py::module_& m) {
@@ -130,5 +166,12 @@ void export_consumer(py::module_& m) {
         .def("seek", &Consumer_seek)
         .def("seek", &Consumer_seek_timestamp)
         .def("is_connected", &Consumer_is_connected)
-        .def("get_last_message_id", &Consumer_get_last_message_id);
+        .def("get_last_message_id", &Consumer_get_last_message_id)
+        .def("receive_async", &Consumer_receiveAsync)
+        .def("acknowledge_async", &Consumer_acknowledgeAsync)
+        .def("acknowledge_async", &Consumer_acknowledgeAsync_message_id)
+        .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync)
+        .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync_message_id)
+        .def("close_async", &Consumer_closeAsync)
+        .def("unsubscribe_async", &Consumer_unsubscribeAsync);
 }

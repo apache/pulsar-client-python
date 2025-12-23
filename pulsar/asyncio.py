@@ -23,9 +23,10 @@ The Pulsar Python client APIs that work with the asyncio module.
 
 import asyncio
 import functools
-from typing import Any
+from typing import Any, List, Union
 
 import _pulsar
+from _pulsar import InitialPosition
 import pulsar
 
 class PulsarException(BaseException):
@@ -116,6 +117,134 @@ class Producer:
         self._producer.close_async(functools.partial(_set_future, future, value=None))
         await future
 
+class Consumer:
+    """
+    The Pulsar message consumer, used to subscribe to messages from a topic.
+    """
+
+    def __init__(self, consumer: _pulsar.Consumer) -> None:
+        """
+        Create the consumer.
+        Users should not call this constructor directly. Instead, create the
+        consumer via `Client.subscribe`.
+
+        Parameters
+        ----------
+        consumer: _pulsar.Consumer
+            The underlying Consumer object from the C extension.
+        """
+        self._consumer: _pulsar.Consumer = consumer
+
+    async def receive(self) -> pulsar.Message:
+        """
+        Receive a single message asynchronously.
+
+        Returns
+        -------
+        pulsar.Message
+            The message received.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._consumer.receive_async(functools.partial(_set_future, future))
+        msg = await future
+        m = pulsar.Message()
+        m._message = msg
+        m._schema = pulsar.schema.BytesSchema()
+        return m
+
+    async def acknowledge(self, message: Union[pulsar.Message, pulsar.MessageId, _pulsar.Message, _pulsar.MessageId]) -> None:
+        """
+        Acknowledge the reception of a single message asynchronously.
+
+        Parameters
+        ----------
+        message : Message, MessageId, _pulsar.Message, _pulsar.MessageId
+            The received message or message id.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        if isinstance(message, pulsar.Message):
+            msg = message._message
+        elif isinstance(message, pulsar.MessageId):
+            msg = message._msg_id
+        else:
+            msg = message
+        self._consumer.acknowledge_async(msg, functools.partial(_set_future, future, value=None))
+        await future
+
+    async def acknowledge_cumulative(self, message: Union[pulsar.Message, pulsar.MessageId, _pulsar.Message, _pulsar.MessageId]) -> None:
+        """
+        Acknowledge the reception of all the messages in the stream up to (and
+        including) the provided message asynchronously.
+
+        Parameters
+        ----------
+        message : Message, MessageId, _pulsar.Message, _pulsar.MessageId
+            The received message or message id.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        if isinstance(message, pulsar.Message):
+            msg = message._message
+        elif isinstance(message, pulsar.MessageId):
+            msg = message._msg_id
+        else:
+            msg = message
+        self._consumer.acknowledge_cumulative_async(msg, functools.partial(_set_future, future, value=None))
+        await future
+
+    async def unsubscribe(self) -> None:
+        """
+        Unsubscribe the current consumer from the topic asynchronously.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._consumer.unsubscribe_async(functools.partial(_set_future, future, value=None))
+        await future
+
+    async def close(self) -> None:
+        """
+        Close the consumer asynchronously.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._consumer.close_async(functools.partial(_set_future, future, value=None))
+        await future
+
+    def topic(self) -> str:
+        """
+        Return the topic this consumer is subscribed to.
+        """
+        return self._consumer.topic()
+
+    def subscription_name(self) -> str:
+        """
+        Return the subscription name.
+        """
+        return self._consumer.subscription_name()
+
+    def consumer_name(self) -> str:
+        """
+        Return the consumer name.
+        """
+        return self._consumer.consumer_name()
+
 class Client:
     """
     The asynchronous version of `pulsar.Client`.
@@ -150,6 +279,53 @@ class Client:
         # TODO: add more configs
         self._client.create_producer_async(topic, conf, functools.partial(_set_future, future))
         return Producer(await future)
+
+    async def subscribe(self, topic: Union[str, List[str]], subscription_name: str,
+                        is_pattern_topic: bool = False,
+                        consumer_type: pulsar.ConsumerType = pulsar.ConsumerType.Exclusive,
+                        initial_position: InitialPosition = InitialPosition.Latest) -> Consumer:
+        """
+        Subscribe to the given topic and subscription combination.
+
+        Parameters
+        ----------
+        topic: str, List[str], or regex pattern
+            The name of the topic, list of topics or regex pattern.
+        subscription_name: str
+            The name of the subscription.
+        is_pattern_topic: bool, default=False
+            Whether `topic` is a regex pattern. This option takes no effect when `topic` is a list of topics.
+        consumer_type: pulsar.ConsumerType, default=pulsar.ConsumerType.Exclusive
+            Select the subscription type to be used when subscribing to the topic.
+        initial_position: InitialPosition, default=InitialPosition.Latest
+            Set the initial position of a consumer when subscribing to the topic.
+            It could be either: ``InitialPosition.Earliest`` or ``InitialPosition.Latest``.
+
+        Returns
+        -------
+        Consumer
+            The consumer created
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        conf = _pulsar.ConsumerConfiguration()
+        conf.consumer_type(consumer_type)
+        conf.subscription_initial_position(initial_position)
+
+        if isinstance(topic, str):
+            if is_pattern_topic:
+                self._client.subscribe_async_pattern(topic, subscription_name, conf, functools.partial(_set_future, future))
+            else:
+                self._client.subscribe_async(topic, subscription_name, conf, functools.partial(_set_future, future))
+        elif isinstance(topic, list):
+            self._client.subscribe_async_topics(topic, subscription_name, conf, functools.partial(_set_future, future))
+        else:
+            raise ValueError("Argument 'topic' is expected to be of a type between (str, list)")
+
+        return Consumer(await future)
 
     async def close(self) -> None:
         """

@@ -80,6 +80,26 @@ void Client_closeAsync(Client& client, ResultCallback callback) {
     client.closeAsync(callback);
 }
 
+void Client_subscribeAsync(Client& client, const std::string& topic, const std::string& subscriptionName,
+                           ConsumerConfiguration conf, SubscribeCallback callback) {
+    py::gil_scoped_release release;
+    client.subscribeAsync(topic, subscriptionName, conf, callback);
+}
+
+void Client_subscribeAsync_topics(Client& client, const std::vector<std::string>& topics,
+                                  const std::string& subscriptionName, ConsumerConfiguration conf,
+                                  SubscribeCallback callback) {
+    py::gil_scoped_release release;
+    client.subscribeAsync(topics, subscriptionName, conf, callback);
+}
+
+void Client_subscribeAsync_pattern(Client& client, const std::string& topic_pattern,
+                                   const std::string& subscriptionName, ConsumerConfiguration conf,
+                                   SubscribeCallback callback) {
+    py::gil_scoped_release release;
+    client.subscribeWithRegexAsync(topic_pattern, subscriptionName, conf, callback);
+}
+
 void export_client(py::module_& m) {
     py::class_<Client, std::shared_ptr<Client>>(m, "Client")
         .def(py::init<const std::string&, const ClientConfiguration&>())
@@ -99,5 +119,8 @@ void export_client(py::module_& m) {
         .def("get_schema_info", &Client_getSchemaInfo)
         .def("close", &Client_close)
         .def("close_async", &Client_closeAsync)
+        .def("subscribe_async", &Client_subscribeAsync)
+        .def("subscribe_async_topics", &Client_subscribeAsync_topics)
+        .def("subscribe_async_pattern", &Client_subscribeAsync_pattern)
         .def("shutdown", &Client::shutdown);
 }
