@@ -235,6 +235,36 @@ class Consumer:
         self._consumer.unsubscribe_async(functools.partial(_set_future, future, value=None))
         await future
 
+    async def seek(self, messageid: Union[pulsar.MessageId, int]) -> None:
+        """
+        Reset the subscription associated with this consumer to a specific
+        message id or publish timestamp asynchronously.
+
+        The message id can either be a specific message or represent the first
+        or last messages in the topic.
+
+        Parameters
+        ----------
+        messageid : MessageId or int
+            The message id for seek, OR an integer event time (timestamp) to
+            seek to
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        if isinstance(messageid, pulsar.MessageId):
+            msg_id = messageid._msg_id
+        elif isinstance(messageid, int):
+            msg_id = messageid
+        else:
+            raise ValueError(f"invalid messageid type {type(messageid)}")
+        self._consumer.seek_async(
+            msg_id, functools.partial(_set_future, future, value=None)
+        )
+        await future
+
     async def close(self) -> None:
         """
         Close the consumer asynchronously.
@@ -286,7 +316,7 @@ class Client:
                               max_pending_messages: int = 1000,
                               max_pending_messages_across_partitions: int = 50000,
                               block_if_queue_full: bool = False,
-                              batching_enabled: bool = False,
+                              batching_enabled: bool = True,
                               batching_max_messages: int = 1000,
                               batching_max_allowed_size_in_bytes: int = 128*1024,
                               batching_max_publish_delay_ms: int = 10,

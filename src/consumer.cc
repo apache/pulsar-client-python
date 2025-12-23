@@ -142,6 +142,16 @@ void Consumer_unsubscribeAsync(Consumer& consumer, ResultCallback callback) {
     consumer.unsubscribeAsync(callback);
 }
 
+void Consumer_seekAsync(Consumer& consumer, const MessageId& msgId, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.seekAsync(msgId, callback);
+}
+
+void Consumer_seekAsync_timestamp(Consumer& consumer, uint64_t timestamp, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.seekAsync(timestamp, callback);
+}
+
 void export_consumer(py::module_& m) {
     py::class_<Consumer>(m, "Consumer")
         .def(py::init<>())
@@ -173,5 +183,7 @@ void export_consumer(py::module_& m) {
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync)
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync_message_id)
         .def("close_async", &Consumer_closeAsync)
-        .def("unsubscribe_async", &Consumer_unsubscribeAsync);
+        .def("unsubscribe_async", &Consumer_unsubscribeAsync)
+        .def("seek_async", &Consumer_seekAsync)
+        .def("seek_async", &Consumer_seekAsync_timestamp);
 }

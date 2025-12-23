@@ -19,6 +19,7 @@
 #
 
 import asyncio
+from typing import List
 import pulsar
 import time
 from pulsar.asyncio import (
@@ -99,9 +100,12 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         except PulsarException as e:
             self.assertEqual(e.error(), pulsar.Result.AlreadyClosed)
 
-    async def _prepare_messages(self, producer: Producer):
+    async def _prepare_messages(self, producer: Producer) -> List[pulsar.MessageId]:
+        msg_ids = []
         for i in range(5):
-            await producer.send(f'msg-{i}'.encode())
+            msg_id = await producer.send(f'msg-{i}'.encode())
+            msg_ids.append(msg_id)
+        return msg_ids
 
     async def test_consumer_cumulative_acknowledge(self):
         topic = f'asyncio-test-consumer-cumulative-ack-{time.time()}'
@@ -184,6 +188,55 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         consumer = await self._client.subscribe(topic, sub)
         await consumer.unsubscribe()
         consumer = await self._client.subscribe(topic, sub)
+
+    async def test_seek_message_id(self):
+        topic = f'asyncio-test-seek-message-id-{time.time()}'
+        sub = 'sub'
+        consumer = await self._client.subscribe(
+            topic, sub, initial_position=pulsar.InitialPosition.Earliest
+        )
+
+        producer = await self._client.create_producer(topic)
+        msg_ids = await self._prepare_messages(producer)
+
+        for i in range(5):
+            msg = await consumer.receive()
+            self.assertEqual(msg.data(), f'msg-{i}'.encode())
+
+        await consumer.seek(msg_ids[2])
+
+        msg = await consumer.receive()
+        self.assertEqual(msg.data(), b'msg-3')
+
+    async def test_seek_timestamp(self):
+        topic = f'asyncio-test-seek-timestamp-{time.time()}'
+        sub = 'sub'
+        consumer = await self._client.subscribe(
+            topic, sub, initial_position=pulsar.InitialPosition.Earliest
+        )
+
+        producer = await self._client.create_producer(topic)
+
+        # Send first 3 messages
+        for i in range(3):
+            await producer.send(f'msg-{i}'.encode())
+
+        seek_time = int(time.time() * 1000)
+
+        # Send 2 more messages
+        for i in range(3, 5):
+            await producer.send(f'msg-{i}'.encode())
+
+        # Consume all messages first
+        for i in range(5):
+            msg = await consumer.receive()
+            self.assertEqual(msg.data(), f'msg-{i}'.encode())
+
+        # Seek to the timestamp (should start from msg-3)
+        await consumer.seek(seek_time)
+
+        msg = await consumer.receive()
+        self.assertEqual(msg.data(), b'msg-3')
 
 
 if __name__ == '__main__':
