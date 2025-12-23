@@ -495,23 +495,20 @@ class PulsarTest(TestCase):
         )
         producer.send(b"msg-0")
 
-        enc_key = None
         def verify_encryption_context(context: pulsar.EncryptionContext, failed: bool, batch_size: int):
-            nonlocal enc_key
             keys = context.keys()
             self.assertEqual(len(keys), 1)
             key = keys[0]
             self.assertEqual(key.key, "client-rsa.pem")
             self.assertTrue(len(key.value) > 0)
-            if enc_key is None:
-                enc_key = key.value
-            else:
-                self.assertEqual(key.value, enc_key)
             self.assertEqual(key.metadata, {})
             self.assertTrue(len(context.param()) > 0)
             self.assertEqual(context.algorithm(), "")
             self.assertEqual(context.compression_type(), CompressionType.LZ4)
-            self.assertEqual(context.uncompressed_message_size(), len(b"msg-0"))
+            if batch_size == 1:
+                self.assertEqual(context.uncompressed_message_size(), len(b"msg-0"))
+            else:
+                self.assertGreater(context.uncompressed_message_size(), len(b"msg-0"))
             self.assertEqual(context.batch_size(), batch_size)
             self.assertEqual(context.is_decryption_failed(), failed)
 
@@ -543,6 +540,16 @@ class PulsarTest(TestCase):
 
         producer.send(b"msg-2")
         verify_next_message(b"msg-2") # msg-1 is skipped since the crypto failure action is DISCARD
+        producer.close()
+
+        # send batched messages
+        producer = client.create_producer(
+            topic=topic,
+            encryption_key="client-rsa.pem",
+            crypto_key_reader=crypto_key_reader,
+            compression_type=CompressionType.LZ4,
+            batching_enabled=True,
+        )
         producer.send_async(b"msg-3", None)
         producer.send_async(b"msg-4", None)
         producer.flush()
@@ -553,16 +560,18 @@ class PulsarTest(TestCase):
             verify_encryption_context(msg.encryption_context(), True, 2 if i >= 3 else -1)
 
         # Encrypted messages will be consumed since the crypto failure action is CONSUME
+        # Only 4 messages can be received because msg-3 and msg-4 are sent in batch and they are delivered
+        # as a single message when decryption fails.
         consumer = client.subscribe(topic, 'another-sub',
                                     initial_position=InitialPosition.Earliest,
                                     crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
-        for i in range(3):
+        for i in range(4):
             msg = consumer.receive(3000)
             verify_undecrypted_message(msg, i)
 
         reader = client.create_reader(topic, MessageId.earliest,
                                       crypto_failure_action=pulsar.ConsumerCryptoFailureAction.CONSUME)
-        for i in range(3):
+        for i in range(4):
             msg = reader.read_next(3000)
             verify_undecrypted_message(msg, i)
 
