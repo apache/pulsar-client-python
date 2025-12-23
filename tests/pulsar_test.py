@@ -495,7 +495,9 @@ class PulsarTest(TestCase):
         )
         producer.send(b"msg-0")
 
-        def verify_encryption_context(context: pulsar.EncryptionContext, failed: bool, batch_size: int):
+        def verify_encryption_context(context: pulsar.EncryptionContext | None, failed: bool, batch_size: int):
+            if context is None:
+                self.fail("Encryption context is None")
             keys = context.keys()
             self.assertEqual(len(keys), 1)
             key = keys[0]
@@ -505,7 +507,7 @@ class PulsarTest(TestCase):
             self.assertTrue(len(context.param()) > 0)
             self.assertEqual(context.algorithm(), "")
             self.assertEqual(context.compression_type(), CompressionType.LZ4)
-            if batch_size == 1:
+            if batch_size == -1:
                 self.assertEqual(context.uncompressed_message_size(), len(b"msg-0"))
             else:
                 self.assertGreater(context.uncompressed_message_size(), len(b"msg-0"))
