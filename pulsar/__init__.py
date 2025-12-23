@@ -223,7 +223,7 @@ class EncryptionContext:
 
         Parameters
         ----------
-        key: _pulsar.EncryptionContext
+        context: _pulsar.EncryptionContext
             The underlying EncryptionContext instance from the C extension.
         """
         self._context = context
@@ -366,7 +366,7 @@ class Message:
         """
         return self._message.producer_name()
 
-    def encryption_context(self) -> EncryptionContext:
+    def encryption_context(self) -> EncryptionContext | None:
         """
         Get the encryption context for this message or None if it's not encrypted.
 
