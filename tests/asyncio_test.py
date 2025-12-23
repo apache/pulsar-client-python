@@ -187,7 +187,9 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         sub = 'sub'
         consumer = await self._client.subscribe(topic, sub)
         await consumer.unsubscribe()
+        # Verify the consumer can be created successfully with the same subscription name
         consumer = await self._client.subscribe(topic, sub)
+        await consumer.close()
 
     async def test_seek_message_id(self):
         topic = f'asyncio-test-seek-message-id-{time.time()}'

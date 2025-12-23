@@ -90,20 +90,21 @@ void Consumer_seek(Consumer& consumer, const MessageId& msgId) {
     waitForAsyncResult([msgId, &consumer](ResultCallback callback) { consumer.seekAsync(msgId, callback); });
 }
 
-MessageId Consumer_get_last_message_id(Consumer& consumer) {
-    MessageId msgId;
-    Result res;
-    Py_BEGIN_ALLOW_THREADS res = consumer.getLastMessageId(msgId);
-    Py_END_ALLOW_THREADS CHECK_RESULT(res);
-    return msgId;
-}
-
 void Consumer_seek_timestamp(Consumer& consumer, uint64_t timestamp) {
     waitForAsyncResult(
         [timestamp, &consumer](ResultCallback callback) { consumer.seekAsync(timestamp, callback); });
 }
 
 bool Consumer_is_connected(Consumer& consumer) { return consumer.isConnected(); }
+
+MessageId Consumer_get_last_message_id(Consumer& consumer) {
+    MessageId msgId;
+    Result res;
+    Py_BEGIN_ALLOW_THREADS res = consumer.getLastMessageId(msgId);
+    Py_END_ALLOW_THREADS;
+    CHECK_RESULT(res);
+    return msgId;
+}
 
 void Consumer_receiveAsync(Consumer& consumer, ReceiveCallback callback) {
     py::gil_scoped_release release;

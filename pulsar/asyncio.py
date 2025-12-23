@@ -308,9 +308,9 @@ class Client:
 
     # pylint: disable=too-many-arguments,too-many-locals
     async def create_producer(self, topic: str,
-                              producer_name: str = None,
-                              schema: pulsar.schema.Schema = None,
-                              initial_sequence_id: int = None,
+                              producer_name: str | None = None,
+                              schema: pulsar.schema.Schema | None = None,
+                              initial_sequence_id: int | None = None,
                               send_timeout_millis: int = 30000,
                               compression_type: CompressionType = CompressionType.NONE,
                               max_pending_messages: int = 1000,
@@ -324,12 +324,12 @@ class Client:
                               message_routing_mode: PartitionsRoutingMode =
                               PartitionsRoutingMode.RoundRobinDistribution,
                               lazy_start_partitioned_producers: bool = False,
-                              properties: dict = None,
+                              properties: dict | None = None,
                               batching_type: BatchingType = BatchingType.Default,
-                              encryption_key: str = None,
-                              crypto_key_reader: pulsar.CryptoKeyReader = None,
+                              encryption_key: str | None = None,
+                              crypto_key_reader: pulsar.CryptoKeyReader | None = None,
                               access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
-                              message_router: Callable[[pulsar.Message, int], int] = None,
+                              message_router: Callable[[pulsar.Message, int], int] | None = None,
                               ) -> Producer:
         """
         Create a new producer on a given topic
@@ -338,15 +338,15 @@ class Client:
         ----------
         topic: str
             The topic name
-        producer_name: str, optional
+        producer_name: str | None, default=None
             Specify a name for the producer. If not assigned, the system will
             generate a globally unique name which can be accessed with
             `Producer.producer_name()`. When specifying a name, it is app to
             the user to ensure that, for a given topic, the producer name is
             unique across all Pulsar's clusters.
-        schema: pulsar.schema.Schema, optional
+        schema: pulsar.schema.Schema | None, default=None
             Define the schema of the data that will be published by this producer.
-        initial_sequence_id: int, optional
+        initial_sequence_id: int | None, default=None
             Set the baseline for the sequence ids for messages published by
             the producer.
         send_timeout_millis: int, default=30000
@@ -364,7 +364,9 @@ class Client:
             Set whether send operations should block when the outgoing
             message queue is full.
         batching_enabled: bool, default=False
-            Enable automatic message batching.
+            Enable automatic message batching. Note that, unlike the synchronous
+            producer API in ``pulsar.__init__``, batching is enabled by default
+            for the asyncio producer.
         batching_max_messages: int, default=1000
             Maximum number of messages in a batch.
         batching_max_allowed_size_in_bytes: int, default=128*1024
@@ -378,17 +380,17 @@ class Client:
             Set the message routing mode for the partitioned producer.
         lazy_start_partitioned_producers: bool, default=False
             Start partitioned producers lazily on demand.
-        properties: dict, optional
+        properties: dict | None, default=None
             Sets the properties for the producer.
         batching_type: BatchingType, default=BatchingType.Default
             Sets the batching type for the producer.
-        encryption_key: str, optional
+        encryption_key: str | None, default=None
             The key used for symmetric encryption.
-        crypto_key_reader: CryptoKeyReader, optional
+        crypto_key_reader: pulsar.CryptoKeyReader | None, default=None
             Symmetric encryption class implementation.
         access_mode: ProducerAccessMode, default=ProducerAccessMode.Shared
             Set the type of access mode that the producer requires on the topic.
-        message_router: optional
+        message_router: Callable[[pulsar.Message, int], int] | None, default=None
             A custom message router function that takes a Message and the
             number of partitions and returns the partition index.
 
@@ -455,32 +457,31 @@ class Client:
                         subscription_name: str,
                         consumer_type: pulsar.ConsumerType =
                         pulsar.ConsumerType.Exclusive,
-                        schema: pulsar.schema.Schema = None,
-                        message_listener = None,
+                        schema: pulsar.schema.Schema | None = None,
+                        message_listener: Callable[['Consumer', pulsar.Message], None] | None = None,
                         receiver_queue_size: int = 1000,
                         max_total_receiver_queue_size_across_partitions: int =
                         50000,
-                        consumer_name: str = None,
-                        unacked_messages_timeout_ms: int = None,
+                        consumer_name: str | None = None,
+                        unacked_messages_timeout_ms: int | None = None,
                         broker_consumer_stats_cache_time_ms: int = 30000,
                         negative_ack_redelivery_delay_ms: int = 60000,
                         is_read_compacted: bool = False,
-                        properties: dict = None,
-                        pattern_auto_discovery_period: int = 60,  # pylint: disable=unused-argument
+                        properties: dict | None = None,
                         initial_position: InitialPosition = InitialPosition.Latest,
-                        crypto_key_reader: pulsar.CryptoKeyReader = None,
+                        crypto_key_reader: pulsar.CryptoKeyReader | None = None,
                         replicate_subscription_state_enabled: bool = False,
                         max_pending_chunked_message: int = 10,
                         auto_ack_oldest_chunked_message_on_queue_full: bool = False,
                         start_message_id_inclusive: bool = False,
-                        batch_receive_policy: pulsar.ConsumerBatchReceivePolicy =
+                        batch_receive_policy: pulsar.ConsumerBatchReceivePolicy | None =
                         None,
-                        key_shared_policy: pulsar.ConsumerKeySharedPolicy =
+                        key_shared_policy: pulsar.ConsumerKeySharedPolicy | None =
                         None,
                         batch_index_ack_enabled: bool = False,
                         regex_subscription_mode: RegexSubscriptionMode =
                         RegexSubscriptionMode.PersistentOnly,
-                        dead_letter_policy: pulsar.ConsumerDeadLetterPolicy =
+                        dead_letter_policy: pulsar.ConsumerDeadLetterPolicy | None =
                         None,
                         crypto_failure_action: ConsumerCryptoFailureAction =
                         ConsumerCryptoFailureAction.FAIL,
@@ -497,17 +498,17 @@ class Client:
             The name of the subscription.
         consumer_type: pulsar.ConsumerType, default=pulsar.ConsumerType.Exclusive
             Select the subscription type to be used when subscribing to the topic.
-        schema: pulsar.schema.Schema, optional
+        schema: pulsar.schema.Schema | None, default=None
             Define the schema of the data that will be received by this consumer.
-        message_listener: optional
+        message_listener: Callable[[Consumer, pulsar.Message], None] | None, default=None
             Sets a message listener for the consumer.
         receiver_queue_size: int, default=1000
             Sets the size of the consumer receive queue.
         max_total_receiver_queue_size_across_partitions: int, default=50000
             Set the max total receiver queue size across partitions.
-        consumer_name: str, optional
+        consumer_name: str | None, default=None
             Sets the consumer name.
-        unacked_messages_timeout_ms: int, optional
+        unacked_messages_timeout_ms: int | None, default=None
             Sets the timeout in milliseconds for unacknowledged messages.
         broker_consumer_stats_cache_time_ms: int, default=30000
             Sets the time duration for which the broker-side consumer stats
@@ -517,13 +518,11 @@ class Client:
             processed.
         is_read_compacted: bool, default=False
             Selects whether to read the compacted version of the topic.
-        properties: dict, optional
+        properties: dict | None, default=None
             Sets the properties for the consumer.
-        pattern_auto_discovery_period: int, default=60
-            Periods of seconds for consumer to auto discover match topics.
         initial_position: InitialPosition, default=InitialPosition.Latest
             Set the initial position of a consumer when subscribing to the topic.
-        crypto_key_reader: CryptoKeyReader, optional
+        crypto_key_reader: pulsar.CryptoKeyReader | None, default=None
             Symmetric encryption class implementation.
         replicate_subscription_state_enabled: bool, default=False
             Set whether the subscription status should be replicated.
@@ -535,9 +534,9 @@ class Client:
         start_message_id_inclusive: bool, default=False
             Set the consumer to include the given position of any reset
             operation.
-        batch_receive_policy: ConsumerBatchReceivePolicy, optional
+        batch_receive_policy: pulsar.ConsumerBatchReceivePolicy | None, default=None
             Set the batch collection policy for batch receiving.
-        key_shared_policy: ConsumerKeySharedPolicy, optional
+        key_shared_policy: pulsar.ConsumerKeySharedPolicy | None, default=None
             Set the key shared policy for use when the ConsumerType is
             KeyShared.
         batch_index_ack_enabled: bool, default=False
@@ -546,7 +545,7 @@ class Client:
             default=RegexSubscriptionMode.PersistentOnly
             Set the regex subscription mode for use when the topic is a regex
             pattern.
-        dead_letter_policy: ConsumerDeadLetterPolicy, optional
+        dead_letter_policy: pulsar.ConsumerDeadLetterPolicy | None, default=None
             Set dead letter policy for consumer.
         crypto_failure_action: ConsumerCryptoFailureAction,
             default=ConsumerCryptoFailureAction.FAIL
