@@ -502,9 +502,9 @@ class PulsarTest(TestCase):
             self.assertEqual(len(keys), 1)
             key = keys[0]
             self.assertEqual(key.key, "client-rsa.pem")
-            self.assertTrue(len(key.value) > 0)
+            self.assertGreater(len(key.value), 0)
             self.assertEqual(key.metadata, {})
-            self.assertTrue(len(context.param()) > 0)
+            self.assertGreater(len(context.param()), 0)
             self.assertEqual(context.algorithm(), "")
             self.assertEqual(context.compression_type(), CompressionType.LZ4)
             if batch_size == -1:
@@ -558,7 +558,7 @@ class PulsarTest(TestCase):
 
         def verify_undecrypted_message(msg: pulsar.Message, i: int):
             self.assertNotEqual(msg.data(), f"msg-{i}".encode())
-            self.assertTrue(len(msg.data()) > 5, f"msg.data() is {msg.data()}")
+            self.assertGreater(len(msg.data()), 5, f"msg.data() is {msg.data()}")
             verify_encryption_context(msg.encryption_context(), True, 2 if i >= 3 else -1)
 
         # Encrypted messages will be consumed since the crypto failure action is CONSUME
