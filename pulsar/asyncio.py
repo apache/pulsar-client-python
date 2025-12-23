@@ -363,7 +363,7 @@ class Client:
         block_if_queue_full: bool, default=False
             Set whether send operations should block when the outgoing
             message queue is full.
-        batching_enabled: bool, default=False
+        batching_enabled: bool, default=True
             Enable automatic message batching. Note that, unlike the synchronous
             producer API in ``pulsar.__init__``, batching is enabled by default
             for the asyncio producer.
