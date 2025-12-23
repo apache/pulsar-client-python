@@ -492,6 +492,7 @@ class Client:
         ----------
         topic: str, List[str], or regex pattern
             The name of the topic, list of topics or regex pattern.
+            When `is_pattern_topic` is True, `topic` is treated as a regex.
         subscription_name: str
             The name of the subscription.
         consumer_type: pulsar.ConsumerType, default=pulsar.ConsumerType.Exclusive
