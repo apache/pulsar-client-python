@@ -548,8 +548,8 @@ class Client:
             default=ConsumerCryptoFailureAction.FAIL
             Set the behavior when the decryption fails.
         is_pattern_topic: bool, default=False
-            Whether `topic` is a regex pattern. This option takes no effect
-            when `topic` is a list of topics.
+            Whether `topic` is a regex pattern. If it's True when `topic` is a list, a ValueError
+            will be raised.
 
         Returns
         -------
@@ -617,6 +617,12 @@ class Client:
                     functools.partial(_set_future, future)
                 )
         elif isinstance(topic, list):
+            if is_pattern_topic:
+                raise ValueError(
+                    "Argument 'topic' must be a string when "
+                    "'is_pattern_topic' is True; lists of topics do not "
+                    "support pattern subscriptions"
+                )
             self._client.subscribe_async_topics(
                 topic, subscription_name, conf,
                 functools.partial(_set_future, future)
