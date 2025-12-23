@@ -306,7 +306,7 @@ class Client:
         """
         self._client: _pulsar.Client = pulsar.Client(service_url, **kwargs)._client
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-positional-arguments
     async def create_producer(self, topic: str,
                               producer_name: str | None = None,
                               schema: pulsar.schema.Schema | None = None,
@@ -452,13 +452,14 @@ class Client:
         )
         return Producer(await future)
 
-    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-positional-arguments
     async def subscribe(self, topic: Union[str, List[str]],
                         subscription_name: str,
                         consumer_type: pulsar.ConsumerType =
                         pulsar.ConsumerType.Exclusive,
                         schema: pulsar.schema.Schema | None = None,
-                        message_listener: Callable[['Consumer', pulsar.Message], None] | None = None,
+                        message_listener: Callable[['Consumer', pulsar.Message],
+                                                    None] | None = None,
                         receiver_queue_size: int = 1000,
                         max_total_receiver_queue_size_across_partitions: int =
                         50000,

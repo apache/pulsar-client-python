@@ -18,27 +18,35 @@
 # under the License.
 #
 
+"""
+Unit tests for asyncio Pulsar client API.
+"""
+
+# pylint: disable=missing-function-docstring
+
 import asyncio
-from typing import List
-import pulsar
 import time
-from pulsar.asyncio import (
-    Client,
-    Consumer,
-    Producer,
-    PulsarException,
-)
+from typing import List
 from unittest import (
     main,
     IsolatedAsyncioTestCase,
 )
 
-service_url = 'pulsar://localhost:6650'
+import pulsar  # pylint: disable=import-error
+from pulsar.asyncio import (  # pylint: disable=import-error
+    Client,
+    Consumer,
+    Producer,
+    PulsarException,
+)
+
+SERVICE_URL = 'pulsar://localhost:6650'
 
 class AsyncioTest(IsolatedAsyncioTestCase):
+    """Test cases for asyncio Pulsar client."""
 
     async def asyncSetUp(self) -> None:
-        self._client = Client(service_url,
+        self._client = Client(SERVICE_URL,
                               operation_timeout_seconds=5)
 
     async def asyncTearDown(self) -> None:
@@ -103,8 +111,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
     async def _prepare_messages(self, producer: Producer) -> List[pulsar.MessageId]:
         msg_ids = []
         for i in range(5):
-            msg_id = await producer.send(f'msg-{i}'.encode())
-            msg_ids.append(msg_id)
+            msg_ids.append(await producer.send(f'msg-{i}'.encode()))
         return msg_ids
 
     async def test_consumer_cumulative_acknowledge(self):
@@ -127,7 +134,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
     async def test_consumer_individual_acknowledge(self):
         topic = f'asyncio-test-consumer-individual-ack-{time.time()}'
         sub = 'sub'
-        consumer = await self._client.subscribe(topic, sub, 
+        consumer = await self._client.subscribe(topic, sub,
                                                 consumer_type=pulsar.ConsumerType.Shared)
         producer = await self._client.create_producer(topic)
         await self._prepare_messages(producer)
@@ -141,7 +148,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         await consumer.acknowledge(msgs[4])
         await consumer.close()
 
-        consumer = await self._client.subscribe(topic, sub, 
+        consumer = await self._client.subscribe(topic, sub,
                                                 consumer_type=pulsar.ConsumerType.Shared)
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'msg-1')
@@ -194,21 +201,26 @@ class AsyncioTest(IsolatedAsyncioTestCase):
     async def test_seek_message_id(self):
         topic = f'asyncio-test-seek-message-id-{time.time()}'
         sub = 'sub'
-        consumer = await self._client.subscribe(
-            topic, sub, initial_position=pulsar.InitialPosition.Earliest
-        )
 
         producer = await self._client.create_producer(topic)
         msg_ids = await self._prepare_messages(producer)
 
-        for i in range(5):
-            msg = await consumer.receive()
-            self.assertEqual(msg.data(), f'msg-{i}'.encode())
-
+        consumer = await self._client.subscribe(
+            topic, sub, initial_position=pulsar.InitialPosition.Earliest
+        )
         await consumer.seek(msg_ids[2])
-
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'msg-3')
+        await consumer.close()
+
+        consumer = await self._client.subscribe(
+            topic, sub, initial_position=pulsar.InitialPosition.Earliest,
+            start_message_id_inclusive=True
+        )
+        await consumer.seek(msg_ids[2])
+        msg = await consumer.receive()
+        self.assertEqual(msg.data(), b'msg-2')
+        await consumer.close()
 
     async def test_seek_timestamp(self):
         topic = f'asyncio-test-seek-timestamp-{time.time()}'
