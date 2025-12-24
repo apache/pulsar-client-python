@@ -60,12 +60,18 @@ class AsyncioTest(IsolatedAsyncioTestCase):
 
     async def test_batch_end_to_end(self):
         topic = f'asyncio-test-batch-e2e-{time.time()}'
-        producer = await self._client.create_producer(topic)
+        producer = await self._client.create_producer(topic,
+                                                      producer_name="my-producer")
+        self.assertEqual(producer.topic(), f'persistent://public/default/{topic}')
+        self.assertEqual(producer.producer_name(), "my-producer")
         tasks = []
         for i in range(5):
             tasks.append(asyncio.create_task(producer.send(f'msg-{i}'.encode())))
         msg_ids = await asyncio.gather(*tasks)
         self.assertEqual(len(msg_ids), 5)
+        # pylint: disable=fixme
+        # TODO: the result is wrong due to https://github.com/apache/pulsar-client-cpp/issues/531
+        self.assertEqual(producer.last_sequence_id(), 8)
         ledger_id = msg_ids[0].ledger_id()
         entry_id = msg_ids[0].entry_id()
         # These messages should be in the same entry
@@ -89,6 +95,42 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         await producer.send(b'final-message')
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'final-message')
+
+    async def test_send_keyed_message(self):
+        topic = f'asyncio-test-send-keyed-message-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        consumer = await self._client.subscribe(topic, 'sub')
+        await producer.send(b'msg', partition_key='key0',
+                                     ordering_key="key1", properties={'my-prop': 'my-value'})
+
+        msg = await consumer.receive()
+        self.assertEqual(msg.data(), b'msg')
+        self.assertEqual(msg.partition_key(), 'key0')
+        self.assertEqual(msg.ordering_key(), 'key1')
+        self.assertEqual(msg.properties(), {'my-prop': 'my-value'})
+
+    async def test_flush(self):
+        topic = f'asyncio-test-flush-{time.time()}'
+        producer = await self._client.create_producer(topic, batching_max_messages=3,
+                                                      batching_max_publish_delay_ms=60000)
+        tasks = []
+        tasks.append(asyncio.create_task(producer.send(b'msg-0')))
+        tasks.append(asyncio.create_task(producer.send(b'msg-1')))
+
+        done, pending = await asyncio.wait(tasks, timeout=1, return_when=asyncio.FIRST_COMPLETED)
+        self.assertEqual(len(done), 0)
+        self.assertEqual(len(pending), 2)
+
+        # flush will trigger sending the batched messages
+        await producer.flush()
+        for task in pending:
+            self.assertTrue(task.done())
+        msg_id0 = tasks[0].result()
+        msg_id1 = tasks[1].result()
+        self.assertEqual(msg_id0.ledger_id(), msg_id1.ledger_id())
+        self.assertEqual(msg_id0.entry_id(), msg_id1.entry_id())
+        self.assertEqual(msg_id0.batch_index(), 0)
+        self.assertEqual(msg_id1.batch_index(), 1)
 
     async def test_create_producer_failure(self):
         try:
