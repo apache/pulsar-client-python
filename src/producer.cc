@@ -82,5 +82,6 @@ void export_producer(py::module_& m) {
              "successfully persisted\n")
         .def("close", &Producer_close)
         .def("close_async", &Producer_closeAsync)
-        .def("is_connected", &Producer::isConnected);
+        .def("is_connected", &Producer::isConnected)
+        .def("flush_async", &Producer::flushAsync);
 }
