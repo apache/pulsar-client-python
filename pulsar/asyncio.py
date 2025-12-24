@@ -315,28 +315,7 @@ class Client:
 
     # pylint: disable=too-many-arguments,too-many-locals,too-many-positional-arguments
     async def create_producer(self, topic: str,
-                              producer_name: str | None = None,
                               schema: pulsar.schema.Schema | None = None,
-                              initial_sequence_id: int | None = None,
-                              send_timeout_millis: int = 30000,
-                              compression_type: CompressionType = CompressionType.NONE,
-                              max_pending_messages: int = 1000,
-                              max_pending_messages_across_partitions: int = 50000,
-                              block_if_queue_full: bool = False,
-                              batching_enabled: bool = True,
-                              batching_max_messages: int = 1000,
-                              batching_max_allowed_size_in_bytes: int = 128*1024,
-                              batching_max_publish_delay_ms: int = 10,
-                              chunking_enabled: bool = False,
-                              message_routing_mode: PartitionsRoutingMode =
-                              PartitionsRoutingMode.RoundRobinDistribution,
-                              lazy_start_partitioned_producers: bool = False,
-                              properties: dict | None = None,
-                              batching_type: BatchingType = BatchingType.Default,
-                              encryption_key: str | None = None,
-                              crypto_key_reader: pulsar.CryptoKeyReader | None = None,
-                              access_mode: ProducerAccessMode = ProducerAccessMode.Shared,
-                              message_router: Callable[[pulsar.Message, int], int] | None = None,
                               ) -> Producer:
         """
         Create a new producer on a given topic
@@ -345,61 +324,8 @@ class Client:
         ----------
         topic: str
             The topic name
-        producer_name: str | None, default=None
-            Specify a name for the producer. If not assigned, the system will
-            generate a globally unique name which can be accessed with
-            `Producer.producer_name()`. When specifying a name, it is up to
-            the user to ensure that, for a given topic, the producer name is
-            unique across all Pulsar's clusters.
         schema: pulsar.schema.Schema | None, default=None
             Define the schema of the data that will be published by this producer.
-        initial_sequence_id: int | None, default=None
-            Set the baseline for the sequence ids for messages published by
-            the producer.
-        send_timeout_millis: int, default=30000
-            If a message is not acknowledged by the server before the
-            send_timeout expires, an error will be reported.
-        compression_type: CompressionType, default=CompressionType.NONE
-            Set the compression type for the producer.
-        max_pending_messages: int, default=1000
-            Set the max size of the queue holding the messages pending to
-            receive an acknowledgment from the broker.
-        max_pending_messages_across_partitions: int, default=50000
-            Set the max size of the queue holding the messages pending to
-            receive an acknowledgment across partitions.
-        block_if_queue_full: bool, default=False
-            Set whether send operations should block when the outgoing
-            message queue is full.
-        batching_enabled: bool, default=True
-            Enable automatic message batching. Note that, unlike the synchronous
-            producer API in ``pulsar.__init__``, batching is enabled by default
-            for the asyncio producer.
-        batching_max_messages: int, default=1000
-            Maximum number of messages in a batch.
-        batching_max_allowed_size_in_bytes: int, default=128*1024
-            Maximum size in bytes of a batch.
-        batching_max_publish_delay_ms: int, default=10
-            The batch interval in milliseconds.
-        chunking_enabled: bool, default=False
-            Enable chunking of large messages.
-        message_routing_mode: PartitionsRoutingMode,
-            default=PartitionsRoutingMode.RoundRobinDistribution
-            Set the message routing mode for the partitioned producer.
-        lazy_start_partitioned_producers: bool, default=False
-            Start partitioned producers lazily on demand.
-        properties: dict | None, default=None
-            Sets the properties for the producer.
-        batching_type: BatchingType, default=BatchingType.Default
-            Sets the batching type for the producer.
-        encryption_key: str | None, default=None
-            The key used for symmetric encryption.
-        crypto_key_reader: pulsar.CryptoKeyReader | None, default=None
-            Symmetric encryption class implementation.
-        access_mode: ProducerAccessMode, default=ProducerAccessMode.Shared
-            Set the type of access mode that the producer requires on the topic.
-        message_router: Callable[[pulsar.Message, int], int] | None, default=None
-            A custom message router function that takes a Message and the
-            number of partitions and returns the partition index.
 
         Returns
         -------
@@ -412,52 +338,15 @@ class Client:
         """
         if schema is None:
             schema = pulsar.schema.BytesSchema()
+        schema.attach_client(self._client)
 
         future = asyncio.get_running_loop().create_future()
         conf = _pulsar.ProducerConfiguration()
-        conf.send_timeout_millis(send_timeout_millis)
-        conf.compression_type(compression_type)
-        conf.max_pending_messages(max_pending_messages)
-        conf.max_pending_messages_across_partitions(max_pending_messages_across_partitions)
-        conf.block_if_queue_full(block_if_queue_full)
-        conf.batching_enabled(batching_enabled)
-        conf.batching_max_messages(batching_max_messages)
-        conf.batching_max_allowed_size_in_bytes(batching_max_allowed_size_in_bytes)
-        conf.batching_max_publish_delay_ms(batching_max_publish_delay_ms)
-        conf.partitions_routing_mode(message_routing_mode)
-        conf.batching_type(batching_type)
-        conf.chunking_enabled(chunking_enabled)
-        conf.lazy_start_partitioned_producers(lazy_start_partitioned_producers)
-        conf.access_mode(access_mode)
-        if message_router is not None:
-            def underlying_router(msg, num_partitions):
-                return int(message_router(pulsar.Message._wrap(msg),
-                                          num_partitions))
-            conf.message_router(underlying_router)
-
-        if producer_name:
-            conf.producer_name(producer_name)
-        if initial_sequence_id is not None:
-            conf.initial_sequence_id(initial_sequence_id)
-        if properties:
-            for k, v in properties.items():
-                conf.property(k, v)
-
         conf.schema(schema.schema_info())
-        if encryption_key:
-            conf.encryption_key(encryption_key)
-        if crypto_key_reader:
-            conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
-
-        if batching_enabled and chunking_enabled:
-            raise ValueError(
-                "Batching and chunking of messages can't be enabled together."
-            )
 
         self._client.create_producer_async(
             topic, conf, functools.partial(_set_future, future)
         )
-        schema.attach_client(self._client)
         return Producer(await future, schema)
 
     # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-positional-arguments
