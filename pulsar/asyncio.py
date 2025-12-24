@@ -25,15 +25,11 @@ The Pulsar Python client APIs that work with the asyncio module.
 
 import asyncio
 import functools
-from typing import Any, Callable, List, Union
+from typing import Any, List, Union
 
 import _pulsar
 from _pulsar import (
     InitialPosition,
-    CompressionType,
-    PartitionsRoutingMode,
-    BatchingType,
-    ProducerAccessMode,
     RegexSubscriptionMode,
     ConsumerCryptoFailureAction,
 )
