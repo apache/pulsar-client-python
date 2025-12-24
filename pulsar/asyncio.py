@@ -25,6 +25,7 @@ The Pulsar Python client APIs that work with the asyncio module.
 
 import asyncio
 import functools
+from datetime import timedelta
 from typing import Any, Callable, List, Union
 
 import _pulsar
@@ -98,7 +99,7 @@ class Producer:
                    disable_replication: bool | None = None,
                    event_timestamp: int | None = None,
                    deliver_at: int | None = None,
-                   deliver_after: int | None = None) -> pulsar.MessageId:
+                   deliver_after: timedelta | None = None) -> pulsar.MessageId:
         """
         Send a message asynchronously.
 
@@ -108,7 +109,7 @@ class Producer:
             The message payload, whose type should respect the schema defined in
             `Client.create_producer`.
         properties: dict | None
-            A dict of application0-defined string properties.
+            A dict of application-defined string properties.
         partition_key: str | None
             Sets the partition key for the message routing. A hash of this key is
             used to determine the message's topic partition.
@@ -127,7 +128,7 @@ class Producer:
             Timestamp in millis of the timestamp of event creation
         deliver_at: int | None
             Specify the message should not be delivered earlier than the specified timestamp.
-        deliver_after: int | None
+        deliver_after: timedelta | None
             Specify a delay in timedelta for the delivery of the messages.
 
         Returns
@@ -211,7 +212,12 @@ class Producer:
 
     def last_sequence_id(self):
         """
-        Return the last sequence id that was published by this producer.
+        Return the last sequence id that was published and acknowledged by this producer.
+
+        The sequence id can be either automatically assigned or custom set on the message.
+        After recreating a producer with the same name, this will return the sequence id
+        of the last message that was published in the previous session, or -1 if no
+        message was ever published.
         """
         return self._producer.last_sequence_id()
 
@@ -529,9 +535,9 @@ class Client:
             conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
         conf.access_mode(access_mode)
         if message_router is not None:
-            def default_router(msg: _pulsar.Message, num_partitions: int) -> int:
-                return int(msg.partition_key()) % num_partitions
-            conf.message_router(default_router)
+            def underlying_router(msg: _pulsar.Message, num_partitions: int) -> int:
+                return message_router(pulsar.Message._wrap(msg), num_partitions)
+            conf.message_router(underlying_router)
 
         self._client.create_producer_async(
             topic, conf, functools.partial(_set_future, future)
