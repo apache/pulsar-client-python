@@ -133,6 +133,16 @@ void Consumer_acknowledgeCumulativeAsync_message_id(Consumer& consumer, const Me
     consumer.acknowledgeCumulativeAsync(msgId, callback);
 }
 
+void Consumer_negative_acknowledgeAsync(Consumer& consumer, const Message& msg, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.negativeAcknowledgeAsync(msg, callback);
+}
+
+void Consumer_negative_acknowledgeAsync_message_id(Consumer& consumer, const MessageId& msgId, ResultCallback callback) {
+    py::gil_scoped_release release;
+    consumer.negativeAcknowledgeAsync(msg, callback);
+}
+
 void Consumer_closeAsync(Consumer& consumer, ResultCallback callback) {
     py::gil_scoped_release release;
     consumer.closeAsync(callback);
@@ -183,6 +193,8 @@ void export_consumer(py::module_& m) {
         .def("acknowledge_async", &Consumer_acknowledgeAsync_message_id)
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync)
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync_message_id)
+        .def("negative_acknowledge_async", &Consumer_negative_acknowledgeAsync)
+        .def("negative_acknowledge_async", &Consumer_negative_acknowledgeAsync_message_id) 
         .def("close_async", &Consumer_closeAsync)
         .def("unsubscribe_async", &Consumer_unsubscribeAsync)
         .def("seek_async", &Consumer_seekAsync)

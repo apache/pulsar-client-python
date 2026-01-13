@@ -320,6 +320,34 @@ class Consumer:
         )
         await future
 
+    async def negative_acknowledge(
+        self,
+        message: Union[pulsar.Message, pulsar.MessageId,
+                       _pulsar.Message, _pulsar.MessageId]
+    ) -> None:
+        """
+        Acknowledge the failure to process a single message asynchronously.
+
+        When a message is "negatively acked" it will be marked for redelivery after
+        some fixed delay. The delay is configurable when constructing the consumer
+        with {@link ConsumerConfiguration#setNegativeAckRedeliveryDelayMs}.
+
+        This call is not blocking.
+
+        Parameters
+        ----------
+
+        message:
+            The received message or message id.
+        """
+        future = asyncio.get_running_loop().create_future()
+        if isinstance(message, pulsar.Message):
+            msg = message._message
+        else:
+            msg = message
+        self._consumer.negative_acknowledge_async(msg, functools.partial(_set_future, future, value=None))
+        await future
+
     async def unsubscribe(self) -> None:
         """
         Unsubscribe the current consumer from the topic asynchronously.
