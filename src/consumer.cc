@@ -135,12 +135,12 @@ void Consumer_acknowledgeCumulativeAsync_message_id(Consumer& consumer, const Me
 
 void Consumer_negative_acknowledgeAsync(Consumer& consumer, const Message& msg, ResultCallback callback) {
     py::gil_scoped_release release;
-    consumer.negativeAcknowledgeAsync(msg, callback);
+    consumer.negativeAcknowledge(msg);
 }
 
 void Consumer_negative_acknowledgeAsync_message_id(Consumer& consumer, const MessageId& msgId, ResultCallback callback) {
     py::gil_scoped_release release;
-    consumer.negativeAcknowledgeAsync(msg, callback);
+    consumer.negativeAcknowledge(msgId);
 }
 
 void Consumer_closeAsync(Consumer& consumer, ResultCallback callback) {
