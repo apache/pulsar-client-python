@@ -203,6 +203,36 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'msg-3')
 
+    async def test_consumer_negative_acknowledge(self):
+        topic = f'asyncio-test-consumer-negative-ack-{time.time()}'
+        sub = 'sub'
+        consumer = await self._client.subscribe(topic, sub,
+                                                consumer_type=pulsar.ConsumerType.Shared,
+                                                negative_ack_redelivery_delay_ms=100)
+        
+        producer = await self._client.create_producer(topic)
+        await self._prepare_messages(producer)
+        msgs = []
+        for _ in range(5):
+            msg = await consumer.receive()
+            msgs.append(msg)
+
+        await consumer.acknowledge(msgs[1])
+        await consumer.acknowledge(msgs[3])
+        
+        await consumer.negative_acknowledge(msgs[0])
+        await consumer.negative_acknowledge(msgs[2])
+        await consumer.negative_acknowledge(msgs[4])
+        await asyncio.sleep(0.2)
+        
+        received = []
+        for _ in range(3):
+            msg = await consumer.receive()
+            received.append(msg.data())
+        
+        self.assertEqual(sorted(received), [b'msg-0', b'msg-2', b'msg-4'])
+        await consumer.close()
+
     async def test_multi_topic_consumer(self):
         topics = ['asyncio-test-multi-topic-1', 'asyncio-test-multi-topic-2']
         producers = []
