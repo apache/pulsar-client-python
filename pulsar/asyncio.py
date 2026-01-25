@@ -220,6 +220,12 @@ class Producer:
         message was ever published.
         """
         return self._producer.last_sequence_id()
+    
+    def is_connected(self) -> bool:
+        """
+        Check if the producer is connected or not.
+        """
+        return self._producer.is_connected()
 
 class Consumer:
     """
