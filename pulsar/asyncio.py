@@ -407,7 +407,18 @@ class Consumer:
         self._consumer.get_last_message_id_async(functools.partial(_set_future, future))
         id = await future
         return id
-    
+
+    def redeliver_unacknowledged_messages(self):
+        """
+        Redelivers all the unacknowledged messages. In failover mode, the
+        request is ignored if the consumer is not active for the given topic. In
+        shared mode, the consumer's messages to be redelivered are distributed
+        across all the connected consumers. This is a non-blocking call and
+        doesn't throw an exception. In case the connection breaks, the messages
+        are redelivered after reconnect.
+        """
+        self._consumer.redeliver_unacknowledged_messages()
+
     def topic(self) -> str:
         """
         Return the topic this consumer is subscribed to.

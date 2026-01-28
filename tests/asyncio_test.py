@@ -283,6 +283,44 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             await consumer.acknowledge(last_msg_id)
         await consumer.close()
 
+    async def test_async_dead_letter_policy(self):
+        topic = f'asyncio-test-dlq-{time.time()}'
+        dlq_topic = 'dlq-' + topic
+        max_redeliver_count = 5
+
+        dlq_consumer = await self._client.subscribe(dlq_topic, "my-sub", consumer_type=pulsar.ConsumerType.Shared)
+        consumer = await self._client.subscribe(topic, "my-sub", consumer_type=pulsar.ConsumerType.Shared,
+                                    dead_letter_policy=pulsar.ConsumerDeadLetterPolicy(max_redeliver_count, dlq_topic, 'init-sub'))
+        producer = await self._client.create_producer(topic)
+
+        # Sen num msgs.
+        num = 10
+        for i in range(num):
+            await producer.send(b"hello-%d" % i)
+        await producer.flush()
+
+        # Redelivery all messages maxRedeliverCountNum time.
+        for i in range(1, num * max_redeliver_count + num + 1):
+            msg = await consumer.receive()
+            if i % num == 0:
+                consumer.redeliver_unacknowledged_messages()
+                print(f"Start redeliver msgs '{i}'")
+
+        with self.assertRaises(asyncio.TimeoutError):
+            await asyncio.wait_for(consumer.receive(), 0.1)
+
+        for i in range(num):
+            msg = await dlq_consumer.receive()
+            self.assertTrue(msg)
+            self.assertEqual(msg.data(), b"hello-%d" % i)
+            dlq_consumer.acknowledge(msg)
+
+        with self.assertRaises(asyncio.TimeoutError):
+            await asyncio.wait_for(dlq_consumer.receive(), 0.1)
+            
+        await consumer.close()
+        await dlq_consumer.close()
+
     async def test_unsubscribe(self):
         topic = f'asyncio-test-unsubscribe-{time.time()}'
         sub = 'sub'
