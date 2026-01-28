@@ -157,6 +157,13 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         except PulsarException as e:
             self.assertEqual(e.error(), pulsar.Result.AlreadyClosed)
 
+    async def test_producer_is_connected(self):
+        topic = f'asyncio-test-producer-is-connected-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        self.assertTrue(producer.is_connected())
+        await producer.close()
+        self.assertFalse(producer.is_connected())
+
     async def _prepare_messages(self, producer: Producer) -> List[pulsar.MessageId]:
         msg_ids = []
         for i in range(5):
