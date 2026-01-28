@@ -399,6 +399,15 @@ class Consumer:
         self._consumer.close_async(functools.partial(_set_future, future, value=None))
         await future
 
+    async def get_last_message_id(self) -> _pulsar.MessageId:
+        """
+        Asynchronously get the last message id.
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._consumer.get_last_message_id_async(functools.partial(_set_future, future))
+        id = await future
+        return id
+
     def redeliver_unacknowledged_messages(self):
         """
         Redelivers all the unacknowledged messages. In failover mode, the

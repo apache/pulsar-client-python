@@ -106,6 +106,11 @@ MessageId Consumer_get_last_message_id(Consumer& consumer) {
     return msgId;
 }
 
+void Consumer_get_last_message_id_async(Consumer& consumer, GetLastMessageIdCallback callback) {
+    py::gil_scoped_release release;
+    consumer.getLastMessageIdAsync(callback);
+}
+
 void Consumer_receiveAsync(Consumer& consumer, ReceiveCallback callback) {
     py::gil_scoped_release release;
     consumer.receiveAsync(callback);
@@ -194,7 +199,8 @@ void export_consumer(py::module_& m) {
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync)
         .def("acknowledge_cumulative_async", &Consumer_acknowledgeCumulativeAsync_message_id)
         .def("negative_acknowledge_async", &Consumer_negative_acknowledgeAsync)
-        .def("negative_acknowledge_async", &Consumer_negative_acknowledgeAsync_message_id) 
+        .def("negative_acknowledge_async", &Consumer_negative_acknowledgeAsync_message_id)
+        .def("get_last_message_id_async", &Consumer_get_last_message_id_async)
         .def("close_async", &Consumer_closeAsync)
         .def("unsubscribe_async", &Consumer_unsubscribeAsync)
         .def("seek_async", &Consumer_seekAsync)

@@ -33,6 +33,7 @@ from unittest import (
 )
 
 import pulsar  # pylint: disable=import-error
+import _pulsar # pylint: disable=import-error
 from pulsar.asyncio import (  # pylint: disable=import-error
     Client,
     Consumer,
@@ -265,6 +266,21 @@ class AsyncioTest(IsolatedAsyncioTestCase):
                                                 is_pattern_topic=True,
                                                 initial_position=pulsar.InitialPosition.Earliest)
         await verify_receive(consumer)
+        await consumer.close()
+
+    async def test_consumer_get_last_message_id(self):
+        topic = f'asyncio-test-get-last-message-id-{time.time()}'
+        sub = 'sub'
+        consumer = await self._client.subscribe(topic, sub,
+                                                consumer_type=pulsar.ConsumerType.Shared)
+        producer = await self._client.create_producer(topic)
+        for i in range(5):
+            msg = f'msg-{i}'.encode()
+            await producer.send(msg)
+            last_msg_id = await consumer.get_last_message_id()
+            assert isinstance(last_msg_id, _pulsar.MessageId)
+            assert last_msg_id.entry_id() == i
+            await consumer.acknowledge(last_msg_id)
         await consumer.close()
 
     async def test_async_dead_letter_policy(self):
