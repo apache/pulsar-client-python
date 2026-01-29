@@ -775,6 +775,16 @@ class Client:
 
         schema.attach_client(self._client)
         return Consumer(await future, schema)
+    
+    def shutdown(self) -> None:
+        """
+        Shutdown the client and all the associated producers and consumers
+
+        Raises
+        ------
+        PulsarException
+        """
+        self._client.shutdown()
 
     async def close(self) -> None:
         """
