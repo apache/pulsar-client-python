@@ -47,7 +47,29 @@ from pulsar.schema import (  # pylint: disable=import-error
     String,
 )
 
+from urllib.request import urlopen, Request
+
 SERVICE_URL = 'pulsar://localhost:6650'
+ADMIN_URL = "http://localhost:8080"
+TIMEOUT_MS = 10000  # Do not wait forever in tests
+
+def doHttpPost(url, data):
+    req = Request(url, data.encode())
+    req.add_header("Content-Type", "application/json")
+    urlopen(req)
+
+def doHttpPut(url, data):
+    try:
+        req = Request(url, data.encode())
+        req.add_header("Content-Type", "application/json")
+        req.get_method = lambda: "PUT"
+        urlopen(req)
+    except Exception as ex:
+        # ignore conflicts exception to have test idempotency
+        if "409" in str(ex):
+            pass
+        else:
+            raise ex
 
 class AsyncioTest(IsolatedAsyncioTestCase):
     """Test cases for asyncio Pulsar client."""
@@ -132,6 +154,48 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertEqual(msg_id0.entry_id(), msg_id1.entry_id())
         self.assertEqual(msg_id0.batch_index(), 0)
         self.assertEqual(msg_id1.batch_index(), 1)
+
+    async def test_get_topics_partitions(self):
+        topic_partitioned = "persistent://public/default/test_get_topics_partitions_async"
+        topic_non_partitioned = "persistent://public/default/test_get_topics_async_not-partitioned"
+
+        url1 = ADMIN_URL + "/admin/v2/persistent/public/default/test_get_topics_partitions_async/partitions"
+        doHttpPut(url1, "3")
+
+        self.assertEqual(
+            await self._client.get_topic_partitions(topic_partitioned),
+            [
+                "persistent://public/default/test_get_topics_partitions_async-partition-0",
+                "persistent://public/default/test_get_topics_partitions_async-partition-1",
+                "persistent://public/default/test_get_topics_partitions_async-partition-2",
+            ],
+        )
+        self.assertEqual(await self._client.get_topic_partitions(topic_non_partitioned), [topic_non_partitioned])
+
+    async def test_get_partitioned_topic_name(self):
+        url1 = ADMIN_URL + "/admin/v2/persistent/public/default/partitioned_topic_name_test/partitions"
+        doHttpPut(url1, "3")
+
+        partitions = [
+            "persistent://public/default/partitioned_topic_name_test-partition-0",
+            "persistent://public/default/partitioned_topic_name_test-partition-1",
+            "persistent://public/default/partitioned_topic_name_test-partition-2",
+        ]
+        self.assertEqual(
+            await self._client.get_topic_partitions("persistent://public/default/partitioned_topic_name_test"), partitions
+        )
+
+        consumer = await self._client.subscribe(
+            "persistent://public/default/partitioned_topic_name_test",
+            "partitioned_topic_name_test_sub",
+            consumer_type=pulsar.ConsumerType.Shared,
+        )
+        producer = await self._client.create_producer("persistent://public/default/partitioned_topic_name_test")
+        await producer.send(b"hello")
+
+        async with asyncio.timeout(TIMEOUT_MS / 1000):
+            msg = await consumer.receive()
+        self.assertTrue(msg.topic_name() in partitions)
 
     async def test_create_producer_failure(self):
         try:
