@@ -39,6 +39,7 @@ from _pulsar import (
     ConsumerCryptoFailureAction,
 )
 import pulsar
+from pulsar import _check_type
 
 class PulsarException(BaseException):
     """
@@ -775,6 +776,31 @@ class Client:
 
         schema.attach_client(self._client)
         return Consumer(await future, schema)
+    
+    async def get_topic_partitions(self, topic: str) -> List[str]:
+        """
+        Get the list of partitions for a given topic in asynchronous mode.
+
+        If the topic is partitioned, this will return a list of partition names. If the topic is not partitioned, the returned list will contain the topic name itself.
+
+        This can be used to discover the partitions and create Reader, Consumer or Producer instances directly on a particular partition.
+
+        Parameters
+        ----------
+
+        topic: str
+            the topic name to lookup
+
+        Returns
+        -------
+        list
+            a list of partition names
+        """
+        _check_type(str, topic, 'topic')
+        future = asyncio.get_running_loop().create_future()
+        self._client.get_topic_partitions_async(topic, functools.partial(_set_future, future))
+        id = await future
+        return id
 
     async def close(self) -> None:
         """
