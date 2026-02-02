@@ -171,7 +171,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
 
         try:
             await producer.send(b"hello")
-            self.assertTrue(False)
+            self.fail("Expected PulsarException after client shutdown")
         except PulsarException:
             # Expected
             pass
