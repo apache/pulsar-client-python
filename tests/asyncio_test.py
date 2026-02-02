@@ -193,8 +193,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         producer = await self._client.create_producer("persistent://public/default/partitioned_topic_name_test")
         await producer.send(b"hello")
 
-        async with asyncio.timeout(TIMEOUT_MS / 1000):
-            msg = await consumer.receive()
+        msg = await asyncio.wait_for(consumer.receive(), TIMEOUT_MS / 1000)
         self.assertTrue(msg.topic_name() in partitions)
 
     async def test_create_producer_failure(self):
