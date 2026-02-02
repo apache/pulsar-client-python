@@ -171,10 +171,9 @@ class AsyncioTest(IsolatedAsyncioTestCase):
 
         try:
             await producer.send(b"hello")
-            self.fail("Expected PulsarException after client shutdown")
-        except PulsarException:
-            # Expected
-            pass
+            self.fail("Expected AlreadyClosed exception after client shutdown")
+        except PulsarException as e:
+            self.assertEqual(e.error(), pulsar.Result.AlreadyClosed)
 
     async def _prepare_messages(self, producer: Producer) -> List[pulsar.MessageId]:
         msg_ids = []
