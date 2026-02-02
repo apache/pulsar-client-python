@@ -227,6 +227,17 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         await producer.close()
         self.assertFalse(producer.is_connected())
 
+    async def test_shutdown_client(self):
+        producer = await self._client.create_producer("persistent://public/default/partitioned_topic_name_test")
+        await producer.send(b"hello")
+        self._client.shutdown()
+
+        try:
+            await producer.send(b"hello")
+            self.fail("Expected AlreadyClosed exception after client shutdown")
+        except PulsarException as e:
+            self.assertEqual(e.error(), pulsar.Result.AlreadyClosed)
+
     async def _prepare_messages(self, producer: Producer) -> List[pulsar.MessageId]:
         msg_ids = []
         for i in range(5):
