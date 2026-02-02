@@ -65,6 +65,11 @@ std::vector<std::string> Client_getTopicPartitions(Client& client, const std::st
         [&](GetPartitionsCallback callback) { client.getPartitionsForTopicAsync(topic, callback); });
 }
 
+void Client_getTopicPartitionsAsync(Client &client, const std::string& topic, GetPartitionsCallback callback) {
+    py::gil_scoped_release release;
+    client.getPartitionsForTopicAsync(topic, callback);
+}
+
 SchemaInfo Client_getSchemaInfo(Client& client, const std::string& topic, int64_t version) {
     return waitForAsyncValue<SchemaInfo>([&](std::function<void(Result, const SchemaInfo&)> callback) {
         client.getSchemaInfoAsync(topic, version, callback);
@@ -119,6 +124,7 @@ void export_client(py::module_& m) {
         .def("get_schema_info", &Client_getSchemaInfo)
         .def("close", &Client_close)
         .def("close_async", &Client_closeAsync)
+        .def("get_topic_partitions_async", &Client_getTopicPartitionsAsync)
         .def("subscribe_async", &Client_subscribeAsync)
         .def("subscribe_async_topics", &Client_subscribeAsync_topics)
         .def("subscribe_async_pattern", &Client_subscribeAsync_pattern)

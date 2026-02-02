@@ -17,7 +17,7 @@
 # under the License.
 #
 
-pulsar-cpp: 4.0.0
+pulsar-cpp: 4.0.1
 pybind11: 3.0.1
 # The OpenSSL dependency is only used when building Python from source
 openssl: 1.1.1q
