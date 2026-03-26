@@ -174,10 +174,6 @@ void export_config(py::module_& m) {
         .def("stats_interval_in_seconds", &ClientConfiguration::getStatsIntervalInSeconds)
         .def("stats_interval_in_seconds", &ClientConfiguration::setStatsIntervalInSeconds,
              return_value_policy::reference)
-        .def("use_tls", &ClientConfiguration::isUseTls)
-        .def("use_tls", &ClientConfiguration::setUseTls, return_value_policy::reference)
-        .def("tls_trust_certs_file_path", &ClientConfiguration::getTlsTrustCertsFilePath,
-             return_value_policy::copy)
         .def("tls_trust_certs_file_path", &ClientConfiguration::setTlsTrustCertsFilePath,
              return_value_policy::reference)
         .def("tls_private_key_file_path", &ClientConfiguration::getTlsPrivateKeyFilePath,

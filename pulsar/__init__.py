@@ -709,8 +709,7 @@ class Client:
             Set the interval between each stats information update. Stats are printed and/or
             passed to the statistics listener at this interval. Set to 0 to disable stats collection.
         use_tls: bool, default=False
-            Configure whether to use TLS encryption on the connection. This setting is deprecated.
-            TLS will be automatically enabled if the ``serviceUrl`` is set to ``pulsar+ssl://`` or ``https://``
+            it's a deprecated config that never works, whether TLS is enabled is determined by ``service_url``.
         tls_trust_certs_file_path: str, optional
             Set the path to the trusted TLS certificate file. If empty defaults to certifi.
         tls_allow_insecure_connection: bool, default=False
@@ -782,8 +781,6 @@ class Client:
 
         if listener_name:
             conf.listener_name(listener_name)
-        if use_tls or service_url.startswith('pulsar+ssl://') or service_url.startswith('https://'):
-            conf.use_tls(True)
         if tls_trust_certs_file_path:
             conf.tls_trust_certs_file_path(tls_trust_certs_file_path)
         else:
