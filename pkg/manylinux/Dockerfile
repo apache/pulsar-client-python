@@ -33,4 +33,4 @@ ENV ARCH=${ARCH}
 
 RUN pip3 install setuptools
 # Dependencies for vcpkg on arm64 architecture
-RUN yum install -y curl zip unzip tar perl-IPC-Cmd
+RUN yum install -y curl zip unzip tar perl-IPC-Cmd perl-Time-Piece
