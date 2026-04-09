@@ -93,8 +93,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         msg_ids = await asyncio.gather(*tasks)
         self.assertEqual(len(msg_ids), 5)
         # pylint: disable=fixme
-        # TODO: the result is wrong due to https://github.com/apache/pulsar-client-cpp/issues/531
-        self.assertEqual(producer.last_sequence_id(), 8)
+        self.assertEqual(producer.last_sequence_id(), 4)
         ledger_id = msg_ids[0].ledger_id()
         entry_id = msg_ids[0].entry_id()
         # These messages should be in the same entry
