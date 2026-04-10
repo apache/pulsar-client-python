@@ -23,6 +23,7 @@
 #include <pulsar/ProducerConfiguration.h>
 #include <pulsar/KeySharedPolicy.h>
 #include <pulsar/DeadLetterPolicyBuilder.h>
+#include <pulsar/ServiceInfo.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -135,16 +136,36 @@ static ClientConfiguration& ClientConfiguration_setFileLogger(ClientConfiguratio
     return conf;
 }
 
+static ServiceInfo ServiceInfo_init(const std::string& serviceUrl, AuthenticationPtr authentication,
+                                    std::optional<std::string> tlsTrustCertsFilePath) {
+    return ServiceInfo(serviceUrl, authentication ? std::move(authentication) : AuthFactory::Disabled(),
+                       std::move(tlsTrustCertsFilePath));
+}
+
 void export_config(py::module_& m) {
     using namespace py;
+
+    class_<ServiceInfo>(m, "ServiceInfo")
+        .def(init(&ServiceInfo_init), arg("service_url"), arg("authentication") = nullptr,
+             arg("tls_trust_certs_file_path") = py::none())
+        .def_property_readonly("service_url",
+                               [](const ServiceInfo& serviceInfo) { return serviceInfo.serviceUrl(); })
+        .def_property_readonly("use_tls", &ServiceInfo::useTls)
+        .def_property_readonly("tls_trust_certs_file_path", [](const ServiceInfo& serviceInfo) {
+            return serviceInfo.tlsTrustCertsFilePath();
+        });
 
     class_<KeySharedPolicy, std::shared_ptr<KeySharedPolicy>>(m, "KeySharedPolicy")
         .def(init<>())
         .def("set_key_shared_mode", &KeySharedPolicy::setKeySharedMode, return_value_policy::reference)
         .def("get_key_shared_mode", &KeySharedPolicy::getKeySharedMode)
-        .def("set_allow_out_of_order_delivery", &KeySharedPolicy::setAllowOutOfOrderDelivery, return_value_policy::reference)
+        .def("set_allow_out_of_order_delivery", &KeySharedPolicy::setAllowOutOfOrderDelivery,
+             return_value_policy::reference)
         .def("is_allow_out_of_order_delivery", &KeySharedPolicy::isAllowOutOfOrderDelivery)
-        .def("set_sticky_ranges", static_cast<KeySharedPolicy& (KeySharedPolicy::*)(const StickyRanges&)>(&KeySharedPolicy::setStickyRanges), return_value_policy::reference)
+        .def("set_sticky_ranges",
+             static_cast<KeySharedPolicy& (KeySharedPolicy::*)(const StickyRanges&)>(
+                 &KeySharedPolicy::setStickyRanges),
+             return_value_policy::reference)
         .def("get_sticky_ranges", &KeySharedPolicy::getStickyRanges);
 
     class_<CryptoKeyReader, std::shared_ptr<CryptoKeyReader>>(m, "AbstractCryptoKeyReader")
@@ -266,7 +287,8 @@ void export_config(py::module_& m) {
         .def(init<>())
         .def("deadLetterTopic", &DeadLetterPolicyBuilder::deadLetterTopic, return_value_policy::reference)
         .def("maxRedeliverCount", &DeadLetterPolicyBuilder::maxRedeliverCount, return_value_policy::reference)
-        .def("initialSubscriptionName", &DeadLetterPolicyBuilder::initialSubscriptionName, return_value_policy::reference)
+        .def("initialSubscriptionName", &DeadLetterPolicyBuilder::initialSubscriptionName,
+             return_value_policy::reference)
         .def("build", &DeadLetterPolicyBuilder::build, return_value_policy::reference)
         .def("build", &DeadLetterPolicyBuilder::build, return_value_policy::reference);
 
@@ -305,7 +327,8 @@ void export_config(py::module_& m) {
         .def("subscription_initial_position", &ConsumerConfiguration::getSubscriptionInitialPosition)
         .def("subscription_initial_position", &ConsumerConfiguration::setSubscriptionInitialPosition)
         .def("regex_subscription_mode", &ConsumerConfiguration::setRegexSubscriptionMode)
-        .def("regex_subscription_mode", &ConsumerConfiguration::getRegexSubscriptionMode, return_value_policy::reference)
+        .def("regex_subscription_mode", &ConsumerConfiguration::getRegexSubscriptionMode,
+             return_value_policy::reference)
         .def("crypto_key_reader", &ConsumerConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("replicate_subscription_state_enabled",
              &ConsumerConfiguration::setReplicateSubscriptionStateEnabled)
@@ -328,9 +351,9 @@ void export_config(py::module_& m) {
         .def("dead_letter_policy", &ConsumerConfiguration::setDeadLetterPolicy)
         .def("dead_letter_policy", &ConsumerConfiguration::getDeadLetterPolicy, return_value_policy::copy)
         .def("crypto_failure_action", &ConsumerConfiguration::getCryptoFailureAction,
-            return_value_policy::copy)
+             return_value_policy::copy)
         .def("crypto_failure_action", &ConsumerConfiguration::setCryptoFailureAction,
-            return_value_policy::reference);
+             return_value_policy::reference);
 
     class_<ReaderConfiguration, std::shared_ptr<ReaderConfiguration>>(m, "ReaderConfiguration")
         .def(init<>())
@@ -348,9 +371,9 @@ void export_config(py::module_& m) {
         .def("read_compacted", &ReaderConfiguration::setReadCompacted)
         .def("crypto_key_reader", &ReaderConfiguration::setCryptoKeyReader, return_value_policy::reference)
         .def("start_message_id_inclusive", &ReaderConfiguration::isStartMessageIdInclusive)
-        .def("start_message_id_inclusive", &ReaderConfiguration::setStartMessageIdInclusive, return_value_policy::reference)
-        .def("crypto_failure_action", &ReaderConfiguration::getCryptoFailureAction,
-            return_value_policy::copy)
+        .def("start_message_id_inclusive", &ReaderConfiguration::setStartMessageIdInclusive,
+             return_value_policy::reference)
+        .def("crypto_failure_action", &ReaderConfiguration::getCryptoFailureAction, return_value_policy::copy)
         .def("crypto_failure_action", &ReaderConfiguration::setCryptoFailureAction,
-            return_value_policy::reference);
+             return_value_policy::reference);
 }

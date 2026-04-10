@@ -45,6 +45,9 @@ from pulsar import (
     ConsumerBatchReceivePolicy,
     ProducerAccessMode,
     ConsumerDeadLetterPolicy,
+    ServiceInfoProvider,
+    ServiceInfo,
+    AutoClusterFailover,
 )
 from pulsar.schema import JsonSchema, Record, Integer
 
@@ -94,6 +97,30 @@ class PulsarTest(TestCase):
     adminUrl = "http://localhost:8080"
 
     serviceUrlTls = "pulsar+ssl://localhost:6651"
+
+    class StaticServiceInfoProvider(ServiceInfoProvider):
+
+        def __init__(self, initial_service_info):
+            self.initial = initial_service_info
+            self.callback = None
+            self.closed = False
+
+        def initial_service_info(self):
+            return self.initial
+
+        def initialize(self, on_service_info_update):
+            self.callback = on_service_info_update
+
+        def close(self):
+            self.closed = True
+
+    class InvalidServiceInfoProvider(ServiceInfoProvider):
+
+        def initial_service_info(self):
+            return "invalid"
+
+        def initialize(self, on_service_info_update):
+            pass
 
     def test_producer_config(self):
         conf = ProducerConfiguration()
@@ -933,6 +960,53 @@ class PulsarTest(TestCase):
         self._check_value_error(lambda: Client(self.serviceUrl, use_tls="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_trust_certs_file_path=5))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_allow_insecure_connection="test"))
+
+    def test_service_info_argument_errors(self):
+        self._check_value_error(lambda: ServiceInfo(None))
+        self._check_value_error(lambda: ServiceInfo(self.serviceUrl, authentication="test"))
+        self._check_value_error(lambda: ServiceInfo(self.serviceUrl, tls_trust_certs_file_path=5))
+
+    def test_auto_cluster_failover_argument_errors(self):
+        primary = ServiceInfo(self.serviceUrl)
+        secondary = [ServiceInfo("pulsar://192.0.2.1:6650")]
+
+        self._check_value_error(lambda: AutoClusterFailover("test", secondary))
+        self._check_value_error(lambda: AutoClusterFailover(primary, "test"))
+        self._check_value_error(lambda: AutoClusterFailover(primary, []))
+        self._check_value_error(lambda: AutoClusterFailover(primary, ["test"]))
+        self._check_value_error(lambda: AutoClusterFailover(primary, secondary, check_interval_ms=0))
+        self._check_value_error(lambda: AutoClusterFailover(primary, secondary, failover_threshold=0))
+        self._check_value_error(lambda: AutoClusterFailover(primary, secondary, switch_back_threshold=0))
+        self._check_value_error(lambda: Client(AutoClusterFailover(primary, secondary),
+                                               authentication=AuthenticationToken("token")))
+        self._check_value_error(lambda: Client(AutoClusterFailover(primary, secondary),
+                                               tls_trust_certs_file_path=CERTS_DIR + "cacert.pem"))
+        self._check_value_error(lambda: Client(self.StaticServiceInfoProvider(primary),
+                                               authentication=AuthenticationToken("token")))
+        self._check_value_error(lambda: Client(self.StaticServiceInfoProvider(primary),
+                                               tls_trust_certs_file_path=CERTS_DIR + "cacert.pem"))
+        self._check_value_error(lambda: Client(self.InvalidServiceInfoProvider()))
+
+    def test_auto_cluster_failover_client(self):
+        primary = ServiceInfo(self.serviceUrl)
+        secondary = [ServiceInfo("pulsar://192.0.2.1:6650")]
+        client = Client(AutoClusterFailover(primary, secondary, check_interval_ms=100))
+        self.assertEqual(client.get_service_info().service_url, self.serviceUrl)
+        client.close()
+
+    def test_service_info_provider_client(self):
+        primary = ServiceInfo(self.serviceUrl)
+        secondary = ServiceInfo("pulsar://192.0.2.1:6650")
+        provider = self.StaticServiceInfoProvider(primary)
+
+        client = Client(provider)
+        self.assertEqual(client.get_service_info().service_url, self.serviceUrl)
+
+        provider.callback(secondary)
+        self.assertEqual(client.get_service_info().service_url, secondary.service_url)
+
+        client.close()
+        self.assertTrue(provider.closed)
 
     def test_producer_argument_errors(self):
         client = Client(self.serviceUrl)

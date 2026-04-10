@@ -569,6 +569,159 @@ class AuthenticationBasic(Authentication):
             _check_type(str, method, 'method')
             self.auth = _pulsar.AuthenticationBasic.create(username, password, method)
 
+
+class ServiceInfoProvider:
+    """
+    Base class for Python-defined service discovery and failover providers.
+
+    Subclasses must return the initial :class:`ServiceInfo` and may keep the
+    provided update callback to push later service changes into the client.
+    """
+
+    def initial_service_info(self) -> "ServiceInfo":
+        raise NotImplementedError
+
+    def initialize(self, on_service_info_update: Callable[["ServiceInfo"], None]) -> None:
+        raise NotImplementedError
+
+    def close(self) -> None:
+        """
+        Stop background work and release resources.
+
+        This is invoked when the underlying C++ client destroys the provider,
+        typically during :meth:`Client.close`.
+        """
+        return None
+
+
+class ServiceInfo:
+    """
+    Connection information for one Pulsar cluster endpoint.
+
+    This is primarily used with :class:`AutoClusterFailover`.
+    """
+
+    def __init__(self,
+                 service_url: str,
+                 authentication: Optional[Authentication] = None,
+                 tls_trust_certs_file_path: Optional[str] = None):
+        """
+        Create a service info entry.
+
+        Parameters
+        ----------
+        service_url: str
+            The Pulsar service URL for this cluster.
+        authentication: Authentication, optional
+            Authentication to use when connecting to this cluster.
+        tls_trust_certs_file_path: str, optional
+            Trust store path for TLS connections to this cluster.
+        """
+        _check_type(str, service_url, 'service_url')
+        _check_type_or_none(Authentication, authentication, 'authentication')
+        _check_type_or_none(str, tls_trust_certs_file_path, 'tls_trust_certs_file_path')
+
+        self._authentication = authentication
+        self._service_info = _pulsar.ServiceInfo(
+            service_url,
+            authentication.auth if authentication else None,
+            tls_trust_certs_file_path,
+        )
+
+    @property
+    def service_url(self) -> str:
+        return self._service_info.service_url
+
+    @property
+    def use_tls(self) -> bool:
+        return self._service_info.use_tls
+
+    @property
+    def tls_trust_certs_file_path(self) -> Optional[str]:
+        return self._service_info.tls_trust_certs_file_path
+
+    def __repr__(self) -> str:
+        return (
+            "ServiceInfo("
+            f"service_url={self.service_url!r}, "
+            f"use_tls={self.use_tls!r}, "
+            f"tls_trust_certs_file_path={self.tls_trust_certs_file_path!r})"
+        )
+
+    @classmethod
+    def wrap(cls, service_info: _pulsar.ServiceInfo):
+        self = cls.__new__(cls)
+        self._authentication = None
+        self._service_info = service_info
+        return self
+
+
+class AutoClusterFailover:
+    """
+    Cluster-level automatic failover configuration for :class:`Client`.
+    """
+
+    def __init__(self,
+                 primary: ServiceInfo,
+                 secondary: List[ServiceInfo],
+                 check_interval_ms: int = 5000,
+                 failover_threshold: int = 1,
+                 switch_back_threshold: int = 1):
+        """
+        Create an automatic failover configuration.
+
+        Parameters
+        ----------
+        primary: ServiceInfo
+            The preferred cluster to use.
+        secondary: list[ServiceInfo]
+            Ordered fallback clusters to probe when the primary becomes unavailable.
+        check_interval_ms: int, default=5000
+            Probe interval in milliseconds.
+        failover_threshold: int, default=1
+            Number of consecutive probe failures required before failover.
+        switch_back_threshold: int, default=1
+            Number of consecutive successful primary probes required before switching back.
+        """
+        _check_type(ServiceInfo, primary, 'primary')
+        _check_type(list, secondary, 'secondary')
+        _check_type(int, check_interval_ms, 'check_interval_ms')
+        _check_type(int, failover_threshold, 'failover_threshold')
+        _check_type(int, switch_back_threshold, 'switch_back_threshold')
+
+        if not secondary:
+            raise ValueError("Argument secondary is expected to contain at least one ServiceInfo")
+
+        for index, service_info in enumerate(secondary):
+            if not isinstance(service_info, ServiceInfo):
+                raise ValueError(
+                    "Argument secondary[%d] is expected to be of type 'ServiceInfo' and not '%s'"
+                    % (index, type(service_info).__name__)
+                )
+
+        if check_interval_ms <= 0:
+            raise ValueError("Argument check_interval_ms is expected to be greater than 0")
+        if failover_threshold <= 0:
+            raise ValueError("Argument failover_threshold is expected to be greater than 0")
+        if switch_back_threshold <= 0:
+            raise ValueError("Argument switch_back_threshold is expected to be greater than 0")
+
+        self.primary = primary
+        self.secondary = list(secondary)
+        self.check_interval_ms = check_interval_ms
+        self.failover_threshold = failover_threshold
+        self.switch_back_threshold = switch_back_threshold
+
+    def __repr__(self) -> str:
+        return (
+            "AutoClusterFailover("
+            f"primary={self.primary!r}, "
+            f"secondary={self.secondary!r}, "
+            f"check_interval_ms={self.check_interval_ms!r}, "
+            f"failover_threshold={self.failover_threshold!r}, "
+            f"switch_back_threshold={self.switch_back_threshold!r})"
+        )
+
 class ConsumerDeadLetterPolicy:
     """
     Configuration for the "dead letter queue" feature in consumer.
@@ -681,8 +834,9 @@ class Client:
         Parameters
         ----------
 
-        service_url: str
-            The Pulsar service url eg: pulsar://my-broker.com:6650/
+        service_url: str or AutoClusterFailover or ServiceInfoProvider
+            The Pulsar service URL, for example ``pulsar://my-broker.com:6650/``, or an
+            :class:`AutoClusterFailover` or :class:`ServiceInfoProvider` configuration.
         authentication: Authentication, optional
             Set the authentication provider to be used with the broker. Supported methods:
 
@@ -743,7 +897,26 @@ class Client:
         tls_certificate_file_path: str, optional
             The path to the TLS certificate file.
         """
-        _check_type(str, service_url, 'service_url')
+        if not isinstance(service_url, (str, AutoClusterFailover, ServiceInfoProvider)):
+            raise ValueError(
+                "Argument service_url is expected to be of type 'str', 'AutoClusterFailover' or "
+                "'ServiceInfoProvider'"
+            )
+
+        if isinstance(service_url, (AutoClusterFailover, ServiceInfoProvider)) and authentication is not None:
+            raise ValueError(
+                "Argument authentication is not supported when service_url is an AutoClusterFailover or "
+                "ServiceInfoProvider; set authentication on each ServiceInfo instead"
+            )
+
+        if isinstance(service_url, (AutoClusterFailover, ServiceInfoProvider)) and \
+                tls_trust_certs_file_path is not None:
+            raise ValueError(
+                "Argument tls_trust_certs_file_path is not supported when service_url is an "
+                "AutoClusterFailover or ServiceInfoProvider; set tls_trust_certs_file_path on each "
+                "ServiceInfo instead"
+            )
+
         _check_type_or_none(Authentication, authentication, 'authentication')
         _check_type(int, operation_timeout_seconds, 'operation_timeout_seconds')
         _check_type(int, connection_timeout_ms, 'connection_timeout_ms')
@@ -792,7 +965,24 @@ class Client:
             conf.tls_private_key_file_path(tls_private_key_file_path)
         if tls_certificate_file_path is not None:
             conf.tls_certificate_file_path(tls_certificate_file_path)
-        self._client = _pulsar.Client(service_url, conf)
+        if isinstance(service_url, AutoClusterFailover):
+            self._client = _pulsar.Client.create_auto_cluster_failover(
+                service_url.primary._service_info,
+                [service_info._service_info for service_info in service_url.secondary],
+                service_url.check_interval_ms,
+                service_url.failover_threshold,
+                service_url.switch_back_threshold,
+                conf,
+            )
+        elif isinstance(service_url, ServiceInfoProvider):
+            try:
+                self._client = _pulsar.Client.create_service_info_provider(service_url, conf)
+            except RuntimeError as e:
+                if str(e) == "Expected a pulsar.ServiceInfo or _pulsar.ServiceInfo instance":
+                    raise ValueError(str(e))
+                raise
+        else:
+            self._client = _pulsar.Client(service_url, conf)
         self._consumers = []
 
     @staticmethod
@@ -1416,6 +1606,12 @@ class Client:
         """
         _check_type(str, topic, 'topic')
         return self._client.get_topic_partitions(topic)
+
+    def get_service_info(self) -> ServiceInfo:
+        """
+        Get the current service info used by this client.
+        """
+        return ServiceInfo.wrap(self._client.get_service_info())
 
     def shutdown(self):
         """
