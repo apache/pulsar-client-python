@@ -23,9 +23,12 @@ set -e -x
 ROOT_DIR=$(git rev-parse --show-toplevel)
 cd $ROOT_DIR/tests
 
+python3 -m pip install testcontainers
+
 python3 custom_logger_test.py
 python3 debug_logger_test.py
 python3 interrupted_test.py
+python3 auto_cluster_failover_test.py
 python3 pulsar_test.py
 python3 schema_test.py
 python3 table_view_test.py
