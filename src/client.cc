@@ -18,11 +18,69 @@
  */
 #include "utils.h"
 
+#include <pulsar/AutoClusterFailover.h>
+#include <pulsar/ServiceInfoProvider.h>
+#include <chrono>
+#include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+
+static ServiceInfo unwrapPythonServiceInfo(const py::handle& object) {
+    auto serviceInfoObject = py::reinterpret_borrow<py::object>(object);
+
+    try {
+        return serviceInfoObject.cast<ServiceInfo>();
+    } catch (const py::cast_error&) {
+    }
+
+    if (py::hasattr(serviceInfoObject, "_service_info")) {
+        try {
+            return serviceInfoObject.attr("_service_info").cast<ServiceInfo>();
+        } catch (const py::cast_error&) {
+        }
+    }
+
+    throw py::value_error("Expected a pulsar.ServiceInfo or _pulsar.ServiceInfo instance");
+}
+
+class PythonServiceInfoProvider : public ServiceInfoProvider {
+   public:
+    explicit PythonServiceInfoProvider(py::object provider) : provider_(std::move(provider)) {}
+
+    ~PythonServiceInfoProvider() override {
+        if (!Py_IsInitialized()) {
+            return;
+        }
+
+        py::gil_scoped_acquire acquire;
+        try {
+            if (py::hasattr(provider_, "close")) {
+                provider_.attr("close")();
+            }
+        } catch (const py::error_already_set&) {
+            PyErr_Print();
+        }
+    }
+
+    ServiceInfo initialServiceInfo() override {
+        py::gil_scoped_acquire acquire;
+        return unwrapPythonServiceInfo(provider_.attr("initial_service_info")());
+    }
+
+    void initialize(std::function<void(ServiceInfo)> onServiceInfoUpdate) override {
+        py::gil_scoped_acquire acquire;
+        provider_.attr("initialize")(py::cpp_function(
+            [onServiceInfoUpdate = std::move(onServiceInfoUpdate)](py::object serviceInfo) mutable {
+                onServiceInfoUpdate(unwrapPythonServiceInfo(serviceInfo));
+            }));
+    }
+
+   private:
+    py::object provider_;
+};
 
 Producer Client_createProducer(Client& client, const std::string& topic, const ProducerConfiguration& conf) {
     return waitForAsyncValue<Producer>(
@@ -65,7 +123,8 @@ std::vector<std::string> Client_getTopicPartitions(Client& client, const std::st
         [&](GetPartitionsCallback callback) { client.getPartitionsForTopicAsync(topic, callback); });
 }
 
-void Client_getTopicPartitionsAsync(Client &client, const std::string& topic, GetPartitionsCallback callback) {
+void Client_getTopicPartitionsAsync(Client& client, const std::string& topic,
+                                    GetPartitionsCallback callback) {
     py::gil_scoped_release release;
     client.getPartitionsForTopicAsync(topic, callback);
 }
@@ -74,6 +133,25 @@ SchemaInfo Client_getSchemaInfo(Client& client, const std::string& topic, int64_
     return waitForAsyncValue<SchemaInfo>([&](std::function<void(Result, const SchemaInfo&)> callback) {
         client.getSchemaInfoAsync(topic, version, callback);
     });
+}
+
+std::shared_ptr<Client> Client_createAutoClusterFailover(ServiceInfo primary,
+                                                         std::vector<ServiceInfo> secondary,
+                                                         int64_t checkIntervalMs, uint32_t failoverThreshold,
+                                                         uint32_t switchBackThreshold,
+                                                         const ClientConfiguration& conf) {
+    AutoClusterFailover::Config autoClusterFailoverConfig(std::move(primary), std::move(secondary));
+    autoClusterFailoverConfig.checkInterval = std::chrono::milliseconds(checkIntervalMs);
+    autoClusterFailoverConfig.failoverThreshold = failoverThreshold;
+    autoClusterFailoverConfig.switchBackThreshold = switchBackThreshold;
+    return std::make_shared<Client>(
+        Client::create(std::make_unique<AutoClusterFailover>(std::move(autoClusterFailoverConfig)), conf));
+}
+
+std::shared_ptr<Client> Client_createServiceInfoProvider(py::object provider,
+                                                         const ClientConfiguration& conf) {
+    return std::make_shared<Client>(
+        Client::create(std::make_unique<PythonServiceInfoProvider>(std::move(provider)), conf));
 }
 
 void Client_close(Client& client) {
@@ -108,19 +186,25 @@ void Client_subscribeAsync_pattern(Client& client, const std::string& topic_patt
 void export_client(py::module_& m) {
     py::class_<Client, std::shared_ptr<Client>>(m, "Client")
         .def(py::init<const std::string&, const ClientConfiguration&>())
+        .def_static("create_auto_cluster_failover", &Client_createAutoClusterFailover, py::arg("primary"),
+                    py::arg("secondary"), py::arg("check_interval_ms"), py::arg("failover_threshold"),
+                    py::arg("switch_back_threshold"), py::arg("client_configuration"))
+        .def_static("create_service_info_provider", &Client_createServiceInfoProvider, py::arg("provider"),
+                    py::arg("client_configuration"))
         .def("create_producer", &Client_createProducer)
         .def("create_producer_async", &Client_createProducerAsync)
         .def("subscribe", &Client_subscribe)
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
         .def("create_reader", &Client_createReader)
-        .def("create_table_view", [](Client& client, const std::string& topic,
-                                     const TableViewConfiguration& config) {
-            return waitForAsyncValue<TableView>([&](TableViewCallback callback) {
-                client.createTableViewAsync(topic, config, callback);
-            });
-        })
+        .def("create_table_view",
+             [](Client& client, const std::string& topic, const TableViewConfiguration& config) {
+                 return waitForAsyncValue<TableView>([&](TableViewCallback callback) {
+                     client.createTableViewAsync(topic, config, callback);
+                 });
+             })
         .def("get_topic_partitions", &Client_getTopicPartitions)
+        .def("get_service_info", &Client::getServiceInfo)
         .def("get_schema_info", &Client_getSchemaInfo)
         .def("close", &Client_close)
         .def("close_async", &Client_closeAsync)
