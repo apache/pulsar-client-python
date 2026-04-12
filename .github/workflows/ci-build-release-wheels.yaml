@@ -32,7 +32,7 @@ jobs:
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 360
 
     strategy:
       fail-fast: false
