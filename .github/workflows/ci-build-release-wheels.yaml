@@ -23,6 +23,9 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -183,3 +186,28 @@ jobs:
         with:
           name: wheel-windows-py${{matrix.python.version}}
           path: dist/*.whl
+
+  publish-github-release:
+    name: Publish wheels to GitHub Release
+    needs:
+      - linux-wheel
+      - mac-wheels
+      - windows-wheels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List wheels
+        run: find dist -name '*.whl' | sort
+
+      - name: Create GitHub Release with wheel assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*.whl
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
