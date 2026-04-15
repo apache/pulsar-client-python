@@ -828,6 +828,8 @@ class Client:
 
 def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
     def complete():
+        if future.done():
+            return
         if result == _pulsar.Result.Ok:
             future.set_result(value)
         else:
