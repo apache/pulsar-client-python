@@ -39,6 +39,7 @@ from pulsar.asyncio import (  # pylint: disable=import-error
     Consumer,
     Producer,
     PulsarException,
+    _set_future,
 )
 from pulsar.schema import (  # pylint: disable=import-error
     AvroSchema,
@@ -482,6 +483,26 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertIsInstance(msg.value(), ExampleRecord)
         self.assertEqual(msg.value().str_field, 'test')
         self.assertEqual(msg.value().int_field, 42)
+
+
+class AsyncioSetFutureTest(IsolatedAsyncioTestCase):
+    """Tests for asyncio bridge helpers (no live Pulsar broker)."""
+
+    async def test_set_future_noop_when_future_cancelled(self):
+        loop = asyncio.get_running_loop()
+        fut = loop.create_future()
+        fut.cancel()
+        _set_future(fut, _pulsar.Result.Ok, None)
+        await asyncio.sleep(0)
+        self.assertTrue(fut.cancelled())
+
+    async def test_set_future_noop_when_future_already_resolved(self):
+        loop = asyncio.get_running_loop()
+        fut = loop.create_future()
+        fut.set_result("first")
+        _set_future(fut, _pulsar.Result.Ok, "late")
+        await asyncio.sleep(0)
+        self.assertEqual(fut.result(), "first")
 
 
 if __name__ == '__main__':
