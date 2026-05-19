@@ -46,6 +46,7 @@ void export_message(py::module_& m) {
         .def("event_timestamp", &MessageBuilder::setEventTimestamp, return_value_policy::reference)
         .def("replication_clusters", &MessageBuilder::setReplicationClusters, return_value_policy::reference)
         .def("disable_replication", &MessageBuilder::disableReplication, return_value_policy::reference)
+        .def("set_null_value", &MessageBuilder::setNullValue, return_value_policy::reference)
         .def("build", &MessageBuilder::build);
 
     class_<MessageId>(m, "MessageId")
@@ -121,6 +122,7 @@ void export_message(py::module_& m) {
         .def("int_schema_version", &Message::getLongSchemaVersion)
         .def("schema_version", &Message::getSchemaVersion, return_value_policy::copy)
         .def("producer_name", &Message::getProducerName, return_value_policy::copy)
+        .def("has_null_value", &Message::hasNullValue)
         .def("encryption_context", &Message::getEncryptionContext, return_value_policy::reference);
 
     MessageBatch& (MessageBatch::*MessageBatchParseFromString)(const std::string& payload,
