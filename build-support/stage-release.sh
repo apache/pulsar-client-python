@@ -22,6 +22,7 @@ set -e
 
 if [[ $# -lt 2 ]]; then
     echo "Usage: $0 \$VERSION \$WORKFLOW_ID"
+    echo "Example: $0 3.12.0-candidate-0 25781230226"
     exit 1
 fi
 if [[ ! $GITHUB_TOKEN ]]; then
@@ -34,20 +35,45 @@ TAG=v$VERSION
 WORKFLOW_ID=$2
 
 # Download the source tar
-curl -O -L https://github.com/apache/pulsar-client-python/archive/refs/tags/$TAG.tar.gz
+curl --fail --location --remote-name \
+    https://github.com/apache/pulsar-client-python/archive/refs/tags/$TAG.tar.gz
 
 # Remove the "-candidate-N" suffix
 VERSION=$(echo $VERSION | sed 's/-candidate-.*//')
 mv $TAG.tar.gz pulsar-client-python-$VERSION.tar.gz
 
 # Download the Python wheels
-URLS=$(curl -L https://api.github.com/repos/apache/pulsar-client-python/actions/runs/$WORKFLOW_ID/artifacts \
-  | jq -r '.artifacts[]
-      | select(((.name // "") | contains("dockerbuild")) | not)
-      | .archive_download_url')
-for URL in $URLS; do
-    curl -O -L "$URL" -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN"
-    unzip -q zip
+ARTIFACTS_API=https://api.github.com/repos/apache/pulsar-client-python/actions/runs/$WORKFLOW_ID/artifacts
+URLS=()
+PAGE=1
+while true; do
+    RESPONSE=$(curl --fail --silent --show-error --location \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        "$ARTIFACTS_API?per_page=100&page=$PAGE")
+    while IFS= read -r URL; do
+        [[ -n $URL ]] && URLS+=("$URL")
+    done < <(jq -r '.artifacts[]
+        | select(((.name // "") | contains("dockerbuild")) | not)
+        | .archive_download_url' <<< "$RESPONSE")
+
+    if [[ $(jq '.artifacts | length' <<< "$RESPONSE") -lt 100 ]]; then
+        break
+    fi
+    PAGE=$((PAGE + 1))
+done
+
+if [[ ${#URLS[@]} -eq 0 ]]; then
+    echo "No wheel artifacts found for workflow run $WORKFLOW_ID"
+    exit 3
+fi
+
+for URL in "${URLS[@]}"; do
+    curl --fail --location --output zip \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        "$URL"
+    unzip -oq zip
     rm -f zip
 done
 
