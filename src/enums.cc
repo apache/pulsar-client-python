@@ -22,6 +22,7 @@
 #include <pulsar/ConsumerCryptoFailureAction.h>
 #include <pulsar/ProducerConfiguration.h>
 #include <pulsar/KeySharedPolicy.h>
+#include <pulsar/Result.h>
 #include <pybind11/pybind11.h>
 
 using namespace pulsar;
@@ -147,4 +148,12 @@ void export_enums(py::module_& m) {
         .value("FAIL", ConsumerCryptoFailureAction::FAIL)
         .value("DISCARD", ConsumerCryptoFailureAction::DISCARD)
         .value("CONSUME", ConsumerCryptoFailureAction::CONSUME);
+
+    class_<Error>(m, "Error")
+        .def_readonly("error", &Error::result)
+        .def_readonly("message", &Error::message);
+
+    class_<TopicRegex>(m, "TopicRegex")
+        .def(py::init<const std::string&>(), py::arg("pattern"))
+        .def_readonly("pattern", &TopicRegex::pattern);
 }

@@ -193,6 +193,13 @@ void export_client(py::module_& m) {
                     py::arg("client_configuration"))
         .def("create_producer", &Client_createProducer)
         .def("create_producer_async", &Client_createProducerAsync)
+        .def("create_producer_async_v2",
+             [](Client& client, const std::string& topic, ProducerConfiguration conf,
+                CreateProducerV2Callback callback) {
+                 py::gil_scoped_release release;
+                 client.createProducerAsyncV2(
+                     topic, conf, [callback = std::move(callback)](auto&& variant) { callback(variant); });
+             })
         .def("subscribe", &Client_subscribe)
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
@@ -212,5 +219,11 @@ void export_client(py::module_& m) {
         .def("subscribe_async", &Client_subscribeAsync)
         .def("subscribe_async_topics", &Client_subscribeAsync_topics)
         .def("subscribe_async_pattern", &Client_subscribeAsync_pattern)
+        .def("subscribe_async_v2",
+             [](Client& client, const SubscribeTopics& topics, const std::string& subscriptionName,
+                ConsumerConfiguration conf, SubscribeV2Callback callback) {
+                 py::gil_scoped_release release;
+                 client.subscribeAsyncV2(topics, subscriptionName, conf, std::move(callback));
+             })
         .def("shutdown", &Client::shutdown);
 }
