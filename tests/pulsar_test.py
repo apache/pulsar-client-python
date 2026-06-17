@@ -330,8 +330,11 @@ class PulsarTest(TestCase):
         client = Client(self.serviceUrl)
         consumer = client.subscribe("my-python-topic-deliver-at", "my-sub", consumer_type=ConsumerType.Shared)
         producer = client.create_producer("my-python-topic-deliver-at")
-        # Delay message in 1.1s
-        producer.send(b"hello", deliver_at=int(round(time.time() * 1000)) + 1100)
+        # Delay must exceed receive(1000) timeout plus broker early-delivery slack.
+        # Pulsar 4.2.x buckets deliverAt timestamps (trimLowerBit, ~512ms with 1s tick),
+        # so short delays (e.g. 1100ms) can be delivered immediately on broker >= 4.0.1.
+        delay_ms = 2500
+        producer.send(b"hello", deliver_at=int(round(time.time() * 1000)) + delay_ms)
 
         # Message should not be available in the next second
         with self.assertRaises(pulsar.Timeout):
@@ -349,8 +352,9 @@ class PulsarTest(TestCase):
         client = Client(self.serviceUrl)
         consumer = client.subscribe("my-python-topic-deliver-after", "my-sub", consumer_type=ConsumerType.Shared)
         producer = client.create_producer("my-python-topic-deliver-after")
-        # Delay message in 1.1s
-        producer.send(b"hello", deliver_after=timedelta(milliseconds=1100))
+        # Same margin as test_deliver_at; see comment there for broker 4.2.x bucketing.
+        delay_ms = 2500
+        producer.send(b"hello", deliver_after=timedelta(milliseconds=delay_ms))
 
         # Message should not be available in the next second
         with self.assertRaises(pulsar.Timeout):
