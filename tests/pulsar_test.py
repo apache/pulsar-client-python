@@ -2140,6 +2140,146 @@ class PulsarTest(TestCase):
 
         client.close()
 
+    def test_null_value_message(self):
+        client = Client(self.serviceUrl)
+        topic = "null-value-%s" % uuid.uuid4()
+        producer = client.create_producer(topic, batching_enabled=False)
+        consumer = client.subscribe(topic, "sub", initial_position=InitialPosition.Earliest)
+
+        producer.send(b"not null", partition_key="k1")
+        producer.send(None, partition_key="k2")
+        producer.send(b"also not null", partition_key="k3")
+
+        msg1 = consumer.receive(TM)
+        self.assertEqual(msg1.data(), b"not null")
+        self.assertFalse(msg1.has_null_value())
+
+        msg2 = consumer.receive(TM)
+        self.assertTrue(msg2.has_null_value())
+        self.assertEqual(msg2.data(), b"")
+
+        msg3 = consumer.receive(TM)
+        self.assertEqual(msg3.data(), b"also not null")
+        self.assertFalse(msg3.has_null_value())
+
+        consumer.close()
+        producer.close()
+        client.close()
+
+    def test_null_value_vs_empty_bytes(self):
+        client = Client(self.serviceUrl)
+        topic = "null-vs-empty-%s" % uuid.uuid4()
+        producer = client.create_producer(topic, batching_enabled=False)
+        consumer = client.subscribe(topic, "sub", initial_position=InitialPosition.Earliest)
+
+        producer.send(b"", partition_key="k1")
+        producer.send(None, partition_key="k2")
+
+        msg1 = consumer.receive(TM)
+        self.assertFalse(msg1.has_null_value())
+        self.assertEqual(msg1.data(), b"")
+
+        msg2 = consumer.receive(TM)
+        self.assertTrue(msg2.has_null_value())
+
+        consumer.close()
+        producer.close()
+        client.close()
+
+    def test_null_value_compaction(self):
+        client = Client(self.serviceUrl)
+        topic = "null-compact-%s" % uuid.uuid4()
+        producer = client.create_producer(topic, batching_enabled=False)
+
+        consumer = client.subscribe(topic, "my-sub1", is_read_compacted=True)
+        consumer.close()
+
+        # key1: value then tombstone -> removed after compaction
+        producer.send(b"hello-1", partition_key="key1")
+        producer.send(None, partition_key="key1")
+
+        # key2: value only -> survives
+        producer.send(b"hello-2", partition_key="key2")
+
+        # key3: value then tombstone -> removed
+        producer.send(b"hello-3", partition_key="key3")
+        producer.send(None, partition_key="key3")
+
+        # key4: value only -> survives
+        producer.send(b"hello-4", partition_key="key4")
+        producer.close()
+
+        url = "%s/admin/v2/persistent/public/default/%s/compaction" % (self.adminUrl, topic)
+        doHttpPut(url, "")
+        while True:
+            s = doHttpGet(url).decode("utf-8")
+            if "RUNNING" in s:
+                time.sleep(0.2)
+            else:
+                self.assertTrue("SUCCESS" in s)
+                break
+
+        # The compacted ledger cursor update is async on the broker side,
+        # wait for it to be persisted before reading.
+        time.sleep(1.0)
+
+        consumer = client.subscribe(topic, "my-sub1", is_read_compacted=True)
+        messages = []
+        while True:
+            try:
+                msg = consumer.receive(2000)
+                messages.append(msg)
+            except pulsar.Timeout:
+                break
+
+        keys = [m.partition_key() for m in messages]
+        self.assertIn("key2", keys)
+        self.assertIn("key4", keys)
+        self.assertNotIn("key1", keys)
+        self.assertNotIn("key3", keys)
+        self.assertEqual(len(messages), 2)
+
+        consumer.close()
+        client.close()
+
+    def test_null_value_table_view(self):
+        client = Client(self.serviceUrl)
+        topic = "null-tv-%s" % uuid.uuid4()
+        producer = client.create_producer(topic, batching_enabled=False)
+
+        producer.send(b"hello", partition_key="key1")
+
+        tv = client.create_table_view(topic)
+        self.assertEqual(tv.get("key1"), b"hello")
+
+        producer.send(None, partition_key="key1")
+        for _ in range(50):
+            if tv.get("key1") is None:
+                break
+            time.sleep(0.1)
+        self.assertIsNone(tv.get("key1"))
+
+        tv.close()
+        producer.close()
+        client.close()
+
+    def test_null_value_with_properties(self):
+        client = Client(self.serviceUrl)
+        topic = "null-props-%s" % uuid.uuid4()
+        producer = client.create_producer(topic, batching_enabled=False)
+        consumer = client.subscribe(topic, "sub", initial_position=InitialPosition.Earliest)
+
+        producer.send(None, partition_key="k1", properties={"action": "delete"})
+
+        msg = consumer.receive(TM)
+        self.assertTrue(msg.has_null_value())
+        self.assertEqual(msg.properties(), {"action": "delete"})
+        self.assertEqual(msg.partition_key(), "k1")
+
+        consumer.close()
+        producer.close()
+        client.close()
+
 
 if __name__ == "__main__":
     main()

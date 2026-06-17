@@ -366,6 +366,19 @@ class Message:
         """
         return self._message.producer_name()
 
+    def has_null_value(self) -> bool:
+        """
+        Check if the message has a null value (tombstone).
+
+        Messages with null values are used on compacted topics to delete
+        the entry for a specific key.
+
+        Returns
+        ----------
+        True if the message has a null value, False otherwise.
+        """
+        return self._message.has_null_value()
+
     def encryption_context(self) -> EncryptionContext | None:
         """
         Get the encryption context for this message or None if it's not encrypted.
@@ -1693,7 +1706,9 @@ class Producer:
         ----------
 
         content:
-            A ``bytes`` object with the message payload.
+            A ``bytes`` object with the message payload, or ``None`` to send a null value
+            message (tombstone). Null value messages are used on compacted topics to delete
+            the entry for a specific key.
         properties: optional
             A dict of application-defined string properties.
         partition_key: optional
@@ -1775,7 +1790,9 @@ class Producer:
         ----------
 
         content
-            A `bytes` object with the message payload.
+            A ``bytes`` object with the message payload, or ``None`` to send a null value
+            message (tombstone). Null value messages are used on compacted topics to delete
+            the entry for a specific key.
         callback
             A callback that is invoked once the message has been acknowledged by the broker.
         properties: optional
@@ -1823,9 +1840,12 @@ class Producer:
     def _build_msg(self, content, properties, partition_key, ordering_key, sequence_id,
                    replication_clusters, disable_replication, event_timestamp,
                    deliver_at, deliver_after):
-        data = self._schema.encode(content)
+        if content is not None:
+            data = self._schema.encode(content)
+            _check_type(bytes, data, 'data')
+        else:
+            data = None
 
-        _check_type(bytes, data, 'data')
         _check_type_or_none(dict, properties, 'properties')
         _check_type_or_none(str, partition_key, 'partition_key')
         _check_type_or_none(str, ordering_key, 'ordering_key')
@@ -1837,7 +1857,10 @@ class Producer:
         _check_type_or_none(timedelta, deliver_after, 'deliver_after')
 
         mb = _pulsar.MessageBuilder()
-        mb.content(data)
+        if data is not None:
+            mb.content(data)
+        else:
+            mb.set_null_value()
         if properties:
             for k, v in properties.items():
                 mb.property(k, v)
