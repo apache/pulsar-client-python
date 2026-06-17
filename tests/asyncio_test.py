@@ -484,6 +484,31 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertEqual(msg.value().str_field, 'test')
         self.assertEqual(msg.value().int_field, 42)
 
+    async def test_token_auth_supplier_exception(self):
+        def raise_exception():
+            raise Exception("token supplier failed")
+
+        client = Client(SERVICE_URL,
+                        authentication=pulsar.AuthenticationToken(raise_exception))
+        topic = "private/auth/asyncio-test-token-auth"
+
+        with self.assertRaises(PulsarException) as e:
+            await client.create_producer(topic)
+        self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
+        self.assertIn("token supplier failed", str(e.exception))
+
+        with self.assertRaises(PulsarException) as e:
+            await client.subscribe(topic, 'sub')
+        self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
+        self.assertIn("token supplier failed", str(e.exception))
+
+        with self.assertRaises(PulsarException) as e:
+            await client.subscribe("private/auth/.*", 'sub', is_pattern_topic=True)
+        self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
+        # TODO: we should fix the error message not included in pattern subscription case
+
+        await client.close()
+
 
 class AsyncioSetFutureTest(IsolatedAsyncioTestCase):
     """Tests for asyncio bridge helpers (no live Pulsar broker)."""

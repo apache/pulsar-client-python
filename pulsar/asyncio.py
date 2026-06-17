@@ -41,12 +41,12 @@ from _pulsar import (
 import pulsar
 from pulsar import _check_type
 
-class PulsarException(BaseException):
+class PulsarException(Exception):
     """
     The exception that wraps the Pulsar error code
     """
 
-    def __init__(self, result: pulsar.Result) -> None:
+    def __init__(self, result: pulsar.Result, msg: str | None = None) -> None:
         """
         Create the Pulsar exception.
 
@@ -54,8 +54,11 @@ class PulsarException(BaseException):
         ----------
         result: pulsar.Result
             The error code of the underlying Pulsar APIs.
+        msg: str | None
+            An optional error message providing more details.
         """
         self._result = result
+        self._msg = msg
 
     def error(self) -> pulsar.Result:
         """
@@ -67,6 +70,8 @@ class PulsarException(BaseException):
         """
         Convert the exception to string.
         """
+        if self._msg:
+            return f'{self._result.value} {self._result.name}: {self._msg}'
         return f'{self._result.value} {self._result.name}'
 
 class Producer:
@@ -591,8 +596,8 @@ class Client:
                 return message_router(pulsar.Message._wrap(msg), num_partitions)
             conf.message_router(underlying_router)
 
-        self._client.create_producer_async(
-            topic, conf, functools.partial(_set_future, future)
+        self._client.create_producer_async_v2(
+            topic, conf, functools.partial(_set_future_v2, future)
         )
         return Producer(await future, schema)
 
@@ -751,15 +756,9 @@ class Client:
 
         if isinstance(topic, str):
             if is_pattern_topic:
-                self._client.subscribe_async_pattern(
-                    topic, subscription_name, conf,
-                    functools.partial(_set_future, future)
-                )
+                topics = _pulsar.TopicRegex(topic)
             else:
-                self._client.subscribe_async(
-                    topic, subscription_name, conf,
-                    functools.partial(_set_future, future)
-                )
+                topics = topic
         elif isinstance(topic, list):
             if is_pattern_topic:
                 raise ValueError(
@@ -767,12 +766,13 @@ class Client:
                     "'is_pattern_topic' is True; lists of topics do not "
                     "support pattern subscriptions"
                 )
-            self._client.subscribe_async_topics(
-                topic, subscription_name, conf,
-                functools.partial(_set_future, future)
-            )
+            topics = topic
         else:
             raise ValueError( "Argument 'topic' is expected to be of type 'str' or 'list'")
+        self._client.subscribe_async_v2(
+            topics, subscription_name, conf,
+            functools.partial(_set_future_v2, future)
+        )
 
         schema.attach_client(self._client)
         return Consumer(await future, schema)
@@ -835,3 +835,14 @@ def _set_future(future: asyncio.Future, result: _pulsar.Result, value: Any):
         else:
             future.set_exception(PulsarException(result))
     future.get_loop().call_soon_threadsafe(complete)
+
+def _set_future_v2(future: asyncio.Future, value: Any):
+    def callback():
+        if future.done():
+            return
+        if isinstance(value, _pulsar.Error):
+            exc = PulsarException(value.error, value.message)
+            future.get_loop().call_soon_threadsafe(future.set_exception, exc)
+        else:
+            future.get_loop().call_soon_threadsafe(future.set_result, value)
+    future.get_loop().call_soon_threadsafe(callback)
