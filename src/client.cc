@@ -118,6 +118,12 @@ Reader Client_createReader(Client& client, const std::string& topic, const Messa
         [&](ReaderCallback callback) { client.createReaderAsync(topic, startMessageId, conf, callback); });
 }
 
+void Client_createReaderAsync(Client& client, const std::string& topic, const MessageId& startMessageId,
+                              ReaderConfiguration conf, ReaderCallback callback) {
+    py::gil_scoped_release release;
+    client.createReaderAsync(topic, startMessageId, conf, callback);
+}
+
 std::vector<std::string> Client_getTopicPartitions(Client& client, const std::string& topic) {
     return waitForAsyncValue<std::vector<std::string>>(
         [&](GetPartitionsCallback callback) { client.getPartitionsForTopicAsync(topic, callback); });
@@ -204,6 +210,7 @@ void export_client(py::module_& m) {
         .def("subscribe_topics", &Client_subscribe_topics)
         .def("subscribe_pattern", &Client_subscribe_pattern)
         .def("create_reader", &Client_createReader)
+        .def("create_reader_async", &Client_createReaderAsync)
         .def("create_table_view",
              [](Client& client, const std::string& topic, const TableViewConfiguration& config) {
                  return waitForAsyncValue<TableView>([&](TableViewCallback callback) {

@@ -17,6 +17,7 @@
  * under the License.
  */
 #include "utils.h"
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -54,6 +55,31 @@ void Reader_seek_timestamp(Reader& reader, uint64_t timestamp) {
 
 bool Reader_is_connected(Reader& reader) { return reader.isConnected(); }
 
+void Reader_readNextAsync(Reader& reader, ReadNextCallback callback) {
+    py::gil_scoped_release release;
+    reader.readNextAsync(callback);
+}
+
+void Reader_closeAsync(Reader& reader, ResultCallback callback) {
+    py::gil_scoped_release release;
+    reader.closeAsync(callback);
+}
+
+void Reader_seekAsync(Reader& reader, const MessageId& msgId, ResultCallback callback) {
+    py::gil_scoped_release release;
+    reader.seekAsync(msgId, callback);
+}
+
+void Reader_seekAsync_timestamp(Reader& reader, uint64_t timestamp, ResultCallback callback) {
+    py::gil_scoped_release release;
+    reader.seekAsync(timestamp, callback);
+}
+
+void Reader_hasMessageAvailableAsync(Reader& reader, HasMessageAvailableCallback callback) {
+    py::gil_scoped_release release;
+    reader.hasMessageAvailableAsync(callback);
+}
+
 void export_reader(py::module_& m) {
     using namespace py;
 
@@ -61,9 +87,14 @@ void export_reader(py::module_& m) {
         .def("topic", &Reader::getTopic, return_value_policy::copy)
         .def("read_next", &Reader_readNext)
         .def("read_next", &Reader_readNextTimeout)
+        .def("read_next_async", &Reader_readNextAsync)
         .def("has_message_available", &Reader_hasMessageAvailable)
+        .def("has_message_available_async", &Reader_hasMessageAvailableAsync)
         .def("close", &Reader_close)
+        .def("close_async", &Reader_closeAsync)
         .def("seek", &Reader_seek)
         .def("seek", &Reader_seek_timestamp)
+        .def("seek_async", &Reader_seekAsync)
+        .def("seek_async", &Reader_seekAsync_timestamp)
         .def("is_connected", &Reader_is_connected);
 }
