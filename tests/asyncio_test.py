@@ -469,6 +469,9 @@ class AsyncioTest(IsolatedAsyncioTestCase):
     async def test_reader_simple(self):
         topic = f'asyncio-test-reader-simple-{time.time()}'
         reader = await self._client.create_reader(topic, pulsar.MessageId.earliest)
+        self.assertTrue(reader.is_connected())
+        self.assertEqual(reader.topic(), f'persistent://public/default/{topic}')
+
         producer = await self._client.create_producer(topic)
         await producer.send(b'hello')
         msg = await reader.read_next()
@@ -476,6 +479,7 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.TimeoutError):
             await asyncio.wait_for(reader.read_next(), 1)
         await reader.close()
+        self.assertFalse(reader.is_connected())
 
     async def test_reader_on_last_message(self):
         topic = f'asyncio-test-reader-on-last-message-{time.time()}'
@@ -516,8 +520,8 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertFalse(await reader.has_message_available())
         for i in range(10):
             await producer.send(f'hello-{i}'.encode())
-        self.assertTrue(await reader.has_message_available())
         for _ in range(10):
+            self.assertTrue(await reader.has_message_available())
             await reader.read_next()
         self.assertFalse(await reader.has_message_available())
         await reader.close()
@@ -541,19 +545,6 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         msg = await reader_inclusive.read_next()
         self.assertEqual(msg.data(), b'msg-2')
         await reader_inclusive.close()
-
-    async def test_reader_is_connected(self):
-        topic = f'asyncio-test-reader-is-connected-{time.time()}'
-        reader = await self._client.create_reader(topic, pulsar.MessageId.earliest)
-        self.assertTrue(reader.is_connected())
-        await reader.close()
-        self.assertFalse(reader.is_connected())
-
-    async def test_reader_topic(self):
-        topic = f'asyncio-test-reader-topic-{time.time()}'
-        reader = await self._client.create_reader(topic, pulsar.MessageId.earliest)
-        self.assertEqual(reader.topic(), f'persistent://public/default/{topic}')
-        await reader.close()
 
     async def test_schema(self):
         class ExampleRecord(Record):  # pylint: disable=too-few-public-methods
