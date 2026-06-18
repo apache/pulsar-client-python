@@ -968,8 +968,8 @@ class Client:
         conf.crypto_failure_action(crypto_failure_action)
 
         future = asyncio.get_running_loop().create_future()
-        self._client.create_reader_async(
-            topic, start_message_id, conf, functools.partial(_set_future, future)
+        self._client.create_reader_async_v2(
+            topic, start_message_id, conf, functools.partial(_set_future_v2, future)
         )
         reader = await future
         schema.attach_client(self._client)

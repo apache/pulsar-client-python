@@ -597,6 +597,12 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
         # TODO: we should fix the error message not included in pattern subscription case
 
+        with self.assertRaises(PulsarException) as e:
+            await client.create_reader("private/auth/asyncio-test-token-auth-reader",
+                                       pulsar.MessageId.earliest)
+        self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
+        self.assertIn("token supplier failed", str(e.exception))
+
         await client.close()
 
 
