@@ -449,6 +449,107 @@ class Consumer:
         """
         return self._consumer.consumer_name()
 
+class Reader:
+    """
+    The Pulsar topic reader, used to read messages from a topic.
+    """
+
+    def __init__(self, reader: _pulsar.Reader, schema: pulsar.schema.Schema) -> None:
+        """
+        Create the reader.
+        Users should not call this constructor directly. Instead, create the
+        reader via ``Client.create_reader``.
+
+        Parameters
+        ----------
+        reader: _pulsar.Reader
+            The underlying Reader object from the C extension.
+        schema: pulsar.schema.Schema
+            The schema of the data that will be received by this reader.
+        """
+        self._reader = reader
+        self._schema = schema
+
+    async def read_next(self) -> pulsar.Message:
+        """
+        Read a single message asynchronously.
+
+        Returns
+        -------
+        pulsar.Message
+            The message received.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._reader.read_next_async(functools.partial(_set_future, future))
+        msg = await future
+        m = pulsar.Message()
+        m._message = msg
+        m._schema = self._schema
+        return m
+
+    async def has_message_available(self) -> bool:
+        """
+        Check if there is any message available to read from the current
+        position.
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._reader.has_message_available_async(functools.partial(_set_future, future))
+        return await future
+
+    async def seek(self, messageid: Union[pulsar.MessageId, int]) -> None:
+        """
+        Reset this reader to a specific message id or publish timestamp
+        asynchronously.
+
+        Parameters
+        ----------
+        messageid : MessageId or int
+            The message id for seek, OR an integer event time (timestamp) to
+            seek to.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        if isinstance(messageid, pulsar.MessageId):
+            msg_id = messageid._msg_id
+        elif isinstance(messageid, int):
+            msg_id = messageid
+        else:
+            raise ValueError(f"invalid messageid type {type(messageid)}")
+        self._reader.seek_async(msg_id, functools.partial(_set_future, future, value=None))
+        await future
+
+    async def close(self) -> None:
+        """
+        Close the reader asynchronously.
+
+        Raises
+        ------
+        PulsarException
+        """
+        future = asyncio.get_running_loop().create_future()
+        self._reader.close_async(functools.partial(_set_future, future, value=None))
+        await future
+
+    def topic(self) -> str:
+        """
+        Return the topic this reader is reading from.
+        """
+        return self._reader.topic()
+
+    def is_connected(self) -> bool:
+        """
+        Check if the reader is connected or not.
+        """
+        return self._reader.is_connected()
+
+
 class Client:
     """
     The asynchronous version of `pulsar.Client`.
@@ -777,6 +878,93 @@ class Client:
         schema.attach_client(self._client)
         return Consumer(await future, schema)
     
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-positional-arguments
+    async def create_reader(self, topic: str,
+                            start_message_id: Union[pulsar.MessageId, _pulsar.MessageId],
+                            schema: pulsar.schema.Schema | None = None,
+                            receiver_queue_size: int = 1000,
+                            reader_name: str | None = None,
+                            subscription_role_prefix: str | None = None,
+                            is_read_compacted: bool = False,
+                            crypto_key_reader: pulsar.CryptoKeyReader | None = None,
+                            start_message_id_inclusive: bool = False,
+                            crypto_failure_action: ConsumerCryptoFailureAction =
+                            ConsumerCryptoFailureAction.FAIL,
+                            ) -> Reader:
+        """
+        Create a reader on a particular topic.
+
+        Parameters
+        ----------
+        topic: str
+            The name of the topic.
+        start_message_id: MessageId or _pulsar.MessageId
+            The initial reader positioning is done by specifying a message id.
+            The options are:
+
+            * ``MessageId.earliest``: Start reading from the earliest message
+              available in the topic.
+            * ``MessageId.latest``: Start reading from the end topic, only
+              getting messages published after the reader was created.
+            * ``MessageId``: When passing a particular message id, the reader
+              will position itself on that specific position.
+        schema: pulsar.schema.Schema | None, default=None
+            Define the schema of the data that will be received by this reader.
+        receiver_queue_size: int, default=1000
+            Sets the size of the reader receive queue.
+        reader_name: str | None, default=None
+            Sets the reader name.
+        subscription_role_prefix: str | None, default=None
+            Sets the subscription role prefix.
+        is_read_compacted: bool, default=False
+            Selects whether to read the compacted version of the topic.
+        crypto_key_reader: pulsar.CryptoKeyReader | None, default=None
+            Symmetric encryption class implementation.
+        start_message_id_inclusive: bool, default=False
+            Set the reader to include the startMessageId or given position of
+            any reset operation like Reader.seek.
+        crypto_failure_action: ConsumerCryptoFailureAction, \
+            default=ConsumerCryptoFailureAction.FAIL
+            Set the behavior when the decryption fails.
+
+        Returns
+        -------
+        Reader
+            The reader created
+
+        Raises
+        ------
+        PulsarException
+        """
+        if schema is None:
+            schema = pulsar.schema.BytesSchema()
+
+        if isinstance(start_message_id, pulsar.MessageId):
+            start_message_id = start_message_id._msg_id
+
+        _check_type(_pulsar.MessageId, start_message_id, 'start_message_id')
+
+        conf = _pulsar.ReaderConfiguration()
+        conf.receiver_queue_size(receiver_queue_size)
+        if reader_name is not None:
+            conf.reader_name(reader_name)
+        if subscription_role_prefix is not None:
+            conf.subscription_role_prefix(subscription_role_prefix)
+        conf.schema(schema.schema_info())
+        conf.read_compacted(is_read_compacted)
+        if crypto_key_reader is not None:
+            conf.crypto_key_reader(crypto_key_reader.cryptoKeyReader)
+        conf.start_message_id_inclusive(start_message_id_inclusive)
+        conf.crypto_failure_action(crypto_failure_action)
+
+        future = asyncio.get_running_loop().create_future()
+        self._client.create_reader_async_v2(
+            topic, start_message_id, conf, functools.partial(_set_future_v2, future)
+        )
+        reader = await future
+        schema.attach_client(self._client)
+        return Reader(reader, schema)
+
     def shutdown(self) -> None:
         """
         Shutdown the client and all the associated producers and consumers
