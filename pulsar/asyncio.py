@@ -470,15 +470,9 @@ class Reader:
         self._reader = reader
         self._schema = schema
 
-    async def read_next(self, timeout_millis: int | None = None) -> pulsar.Message:
+    async def read_next(self) -> pulsar.Message:
         """
         Read a single message asynchronously.
-
-        Parameters
-        ----------
-        timeout_millis: int | None, optional
-            If specified, the reader will raise an exception if a message is not
-            available within the timeout.
 
         Returns
         -------
@@ -490,11 +484,7 @@ class Reader:
         PulsarException
         """
         future = asyncio.get_running_loop().create_future()
-        if timeout_millis is None:
-            self._reader.read_next_async(functools.partial(_set_future, future))
-        else:
-            _check_type(int, timeout_millis, 'timeout_millis')
-            self._reader.read_next_async(functools.partial(_set_future, future))
+        self._reader.read_next_async(functools.partial(_set_future, future))
         msg = await future
         m = pulsar.Message()
         m._message = msg
