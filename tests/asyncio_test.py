@@ -39,6 +39,7 @@ from pulsar.asyncio import (  # pylint: disable=import-error
     Consumer,
     Producer,
     PulsarException,
+    Reader,
     _set_future,
 )
 from pulsar.schema import (  # pylint: disable=import-error
@@ -465,6 +466,86 @@ class AsyncioTest(IsolatedAsyncioTestCase):
         msg = await consumer.receive()
         self.assertEqual(msg.data(), b'msg-3')
 
+    async def test_reader_simple(self):
+        topic = f'asyncio-test-reader-simple-{time.time()}'
+        reader = await self._client.create_reader(topic, pulsar.MessageId.earliest)
+        self.assertTrue(reader.is_connected())
+        self.assertEqual(reader.topic(), f'persistent://public/default/{topic}')
+
+        producer = await self._client.create_producer(topic)
+        await producer.send(b'hello')
+        msg = await reader.read_next()
+        self.assertEqual(msg.data(), b'hello')
+        with self.assertRaises(asyncio.TimeoutError):
+            await asyncio.wait_for(reader.read_next(), 1)
+        await reader.close()
+        self.assertFalse(reader.is_connected())
+
+    async def test_reader_on_last_message(self):
+        topic = f'asyncio-test-reader-on-last-message-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        for i in range(10):
+            await producer.send(f'hello-{i}'.encode())
+        reader = await self._client.create_reader(topic, pulsar.MessageId.latest)
+        for i in range(10, 20):
+            await producer.send(f'hello-{i}'.encode())
+        for i in range(10, 20):
+            msg = await reader.read_next()
+            self.assertEqual(msg.data(), f'hello-{i}'.encode())
+        await reader.close()
+
+    async def test_reader_on_specific_message(self):
+        topic = f'asyncio-test-reader-on-specific-msg-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        msg_ids = []
+        for i in range(10):
+            msg_id = await producer.send(f'hello-{i}'.encode())
+            msg_ids.append(msg_id)
+        reader1 = await self._client.create_reader(topic, pulsar.MessageId.earliest)
+        for i in range(5):
+            msg = await reader1.read_next()
+            self.assertEqual(msg.data(), f'hello-{i}'.encode())
+        last_msg_id = msg_ids[4]
+        reader2 = await self._client.create_reader(topic, last_msg_id)
+        for i in range(5, 10):
+            msg = await reader2.read_next()
+            self.assertEqual(msg.data(), f'hello-{i}'.encode())
+        await reader1.close()
+        await reader2.close()
+
+    async def test_reader_has_message_available(self):
+        topic = f'asyncio-test-reader-has-message-available-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        reader = await self._client.create_reader(topic, pulsar.MessageId.latest)
+        self.assertFalse(await reader.has_message_available())
+        for i in range(10):
+            await producer.send(f'hello-{i}'.encode())
+        for _ in range(10):
+            self.assertTrue(await reader.has_message_available())
+            await reader.read_next()
+        self.assertFalse(await reader.has_message_available())
+        await reader.close()
+
+    async def test_reader_seek(self):
+        topic = f'asyncio-test-reader-seek-{time.time()}'
+        producer = await self._client.create_producer(topic)
+        msg_ids = []
+        for i in range(10):
+            msg_id = await producer.send(f'msg-{i}'.encode())
+            msg_ids.append(msg_id)
+        reader = await self._client.create_reader(topic, pulsar.MessageId.latest,
+                                                   start_message_id_inclusive=False)
+        await reader.seek(msg_ids[2])
+        msg = await reader.read_next()
+        self.assertEqual(msg.data(), b'msg-3')
+        await reader.close()
+        reader_inclusive = await self._client.create_reader(topic, pulsar.MessageId.latest,
+                                                             start_message_id_inclusive=True)
+        await reader_inclusive.seek(msg_ids[2])
+        msg = await reader_inclusive.read_next()
+        self.assertEqual(msg.data(), b'msg-2')
+        await reader_inclusive.close()
+
     async def test_schema(self):
         class ExampleRecord(Record):  # pylint: disable=too-few-public-methods
             """Example record schema for testing."""
@@ -506,6 +587,12 @@ class AsyncioTest(IsolatedAsyncioTestCase):
             await client.subscribe("private/auth/.*", 'sub', is_pattern_topic=True)
         self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
         # TODO: we should fix the error message not included in pattern subscription case
+
+        with self.assertRaises(PulsarException) as e:
+            await client.create_reader("private/auth/asyncio-test-token-auth-reader",
+                                       pulsar.MessageId.earliest)
+        self.assertEqual(e.exception.error(), pulsar.Result.AuthenticationError)
+        self.assertIn("token supplier failed", str(e.exception))
 
         await client.close()
 
