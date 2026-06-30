@@ -31,7 +31,7 @@ jobs:
 
   linux-wheel:
     name: Wheel ${{matrix.image.name}} - Py ${{matrix.python.version}} - ${{matrix.cpu.platform}}
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.cpu.runner}}
     timeout-minutes: 360
 
     strategy:
@@ -47,15 +47,12 @@ jobs:
           - {version: '3.13', spec: 'cp313-cp313'}
           - {version: '3.14', spec: 'cp314-cp314'}
         cpu:
-          - {arch: 'x86_64', platform: 'x86_64'}
-          - {arch: 'aarch64', platform: 'arm64'}
+          - {arch: 'x86_64', platform: 'x86_64', runner: 'ubuntu-latest'}
+          - {arch: 'aarch64', platform: 'arm64', runner: 'ubuntu-24.04-arm'}
 
     steps:
       - name: checkout
         uses: actions/checkout@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
       - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
@@ -82,7 +79,6 @@ jobs:
       - name: Test wheel file
         run: |
           docker run -i -v $PWD:/pulsar-client-python \
-              --platform linux/${{matrix.cpu.arch}} \
               python:${{matrix.python.version}}${{matrix.image.py_suffix}} \
               /pulsar-client-python/pkg/test-wheel.sh
 
