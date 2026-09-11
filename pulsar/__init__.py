@@ -507,14 +507,17 @@ class AuthenticationOauth2(Authentication):
 
         .. code-block:: python
 
-            auth = AuthenticationOauth2('{"issuer_url": "xxx", "private_key": "yyy"}')
+            auth = AuthenticationOauth2('{"issuer_url": "xxx", "private_key": "yyy", "audience": "zzz"}')
 
         The valid JSON fields are:
 
-        * issuer_url (required)
+        * tokenEndpointAuthMethod (optional, default="client_secret_post")
+            The authentication method used by the OAuth 2.0 token endpoint. Supported values are
+            ``client_secret_post`` and ``tls_client_auth``.
+        * issuer_url (required for both authentication methods)
             The URL of the authentication provider which allows the Pulsar client to obtain an
             access token.
-        * private_key (required)
+        * private_key (required for ``client_secret_post``)
             The URL to the JSON credentials file. It supports the following pattern formats:
 
             * ``/path/to/file``
@@ -527,10 +530,23 @@ class AuthenticationOauth2(Authentication):
 
             * ``client_id``
             * ``client_secret``
-        * audience
+        * audience (required for ``client_secret_post``, optional for ``tls_client_auth``)
             The OAuth 2.0 "resource server" identifier for a Pulsar cluster.
         * scope
             The scope of an access request.
+        * tls_cert_file (required for ``tls_client_auth``, optional for ``client_secret_post``)
+            Path to the TLS client certificate file.
+        * tls_key_file (required for ``tls_client_auth``, optional for ``client_secret_post``)
+            Path to the TLS client private key file. ``tls_cert_file`` and ``tls_key_file`` must
+            be specified together.
+        * client_id (optional for ``tls_client_auth``)
+            The OAuth 2.0 client identifier. If omitted, ``pulsar-client`` is used. For
+            ``client_secret_post``, set this field in the JSON credentials file referenced by
+            ``private_key``.
+
+        For ``client_secret_post``, ``issuer_url``, ``private_key``, and ``audience`` are required.
+        For ``tls_client_auth``, ``private_key`` is not required and ``tls_cert_file`` and
+        ``tls_key_file`` are required.
 
         Parameters
         ----------
