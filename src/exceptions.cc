@@ -143,7 +143,7 @@ static PythonExceptionMap createPythonExceptionMap(py::module_& m, py::exception
 void export_exceptions(py::module_& m) {
     static py::exception<PulsarException> base{m, "PulsarException"};
     static auto exceptions = createPythonExceptionMap(m, base);
-    py::register_exception_translator([](std::exception_ptr e) {
+    py::register_local_exception_translator([](std::exception_ptr e) {
         try {
             if (e) {
                 std::rethrow_exception(e);
