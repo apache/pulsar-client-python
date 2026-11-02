@@ -46,6 +46,7 @@ jobs:
           - {version: '3.12', spec: 'cp312-cp312'}
           - {version: '3.13', spec: 'cp313-cp313'}
           - {version: '3.14', spec: 'cp314-cp314'}
+          - {version: '3.15', spec: 'cp315-cp315'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64', runner: 'ubuntu-latest'}
           - {arch: 'aarch64', platform: 'arm64', runner: 'ubuntu-24.04-arm'}
@@ -102,6 +103,7 @@ jobs:
           - {version: '3.12', version_long:  '3.12.8'}
           - {version: '3.13', version_long:  '3.13.1'}
           - {version: '3.14', version_long:  '3.14.0'}
+          - {version: '3.15', version_long:  '3.15.0'}
 
     steps:
       - name: checkout
@@ -132,6 +134,7 @@ jobs:
           - {version: '3.12'}
           - {version: '3.13'}
           - {version: '3.14'}
+          - {version: '3.15'}
 
     steps:
       - uses: actions/checkout@v3
@@ -161,9 +164,16 @@ jobs:
           tar zxf v${PYBIND11_VERSION}.tar.gz
           rm -rf pybind11
           mv pybind11-${PYBIND11_VERSION} pybind11
+          # CMake 3.31 on the runner predates Python 3.15, so FindPython needs the paths
+          PY_EXE=$(python -c 'import pathlib, sys; print(pathlib.Path(sys.executable).as_posix())')
+          PY_INCLUDE=$(python -c 'import pathlib, sysconfig; print(pathlib.Path(sysconfig.get_paths()["include"]).as_posix())')
+          PY_LIB=$(python -c 'import pathlib, sys; print(pathlib.Path(sys.base_prefix, "libs", "python%d%d.lib" % sys.version_info[:2]).as_posix())')
           cmake -B build -A x64 \
             -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
-            -DLINK_STATIC=ON
+            -DLINK_STATIC=ON \
+            -DPython3_EXECUTABLE="$PY_EXE" \
+            -DPython3_INCLUDE_DIR="$PY_INCLUDE" \
+            -DPython3_LIBRARY="$PY_LIB"
 
       - name: Build Python wheel
         shell: bash
