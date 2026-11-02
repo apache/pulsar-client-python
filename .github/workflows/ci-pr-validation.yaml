@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['3.10', '3.14']
+        version: ['3.10', '3.15']
 
     steps:
       - name: checkout
@@ -71,8 +71,12 @@ jobs:
       - name: Install Pulsar C++ client
         run: build-support/install-dependencies.sh
 
+      # CMake 3.31 on the runner predates Python 3.15, so FindPython needs the paths
       - name: CMake
-        run: cmake .
+        run: |
+          cmake . \
+            -DPython3_EXECUTABLE="$(which python3)" \
+            -DPython3_INCLUDE_DIR="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["include"])')"
 
       - name: Build
         run: make -j8
@@ -119,7 +123,7 @@ jobs:
           - {name: 'manylinux', py_suffix: ''}
           - {name: 'manylinux_musl', py_suffix: '-alpine'}
         python:
-          - {version: '3.14', spec: 'cp314-cp314'}
+          - {version: '3.15', spec: 'cp315-cp315'}
         cpu:
           - {arch: 'x86_64', platform: 'x86_64'}
 
@@ -166,7 +170,7 @@ jobs:
     strategy:
       matrix:
         py:
-          - {version: '3.14', version_long:  '3.14.0'}
+          - {version: '3.15', version_long:  '3.15.0'}
 
     steps:
       - name: checkout
@@ -188,7 +192,7 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - version: '3.14'
+          - version: '3.15'
 
     steps:
       - uses: actions/checkout@v3
@@ -218,9 +222,16 @@ jobs:
           tar zxf v${PYBIND11_VERSION}.tar.gz
           rm -rf pybind11
           mv pybind11-${PYBIND11_VERSION} pybind11
+          # CMake 3.31 on the runner predates Python 3.15, so FindPython needs the paths
+          PY_EXE=$(python -c 'import pathlib, sys; print(pathlib.Path(sys.executable).as_posix())')
+          PY_INCLUDE=$(python -c 'import pathlib, sysconfig; print(pathlib.Path(sysconfig.get_paths()["include"]).as_posix())')
+          PY_LIB=$(python -c 'import pathlib, sys; print(pathlib.Path(sys.base_prefix, "libs", "python%d%d.lib" % sys.version_info[:2]).as_posix())')
           cmake -B build -A x64 \
             -DCMAKE_PREFIX_PATH=${{ env.PULSAR_CPP_DIR }} \
-            -DLINK_STATIC=ON
+            -DLINK_STATIC=ON \
+            -DPython3_EXECUTABLE="$PY_EXE" \
+            -DPython3_INCLUDE_DIR="$PY_INCLUDE" \
+            -DPython3_LIBRARY="$PY_LIB"
 
       - name: Build Python wheel
         shell: bash
