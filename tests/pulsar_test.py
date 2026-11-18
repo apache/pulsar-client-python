@@ -964,6 +964,8 @@ class PulsarTest(TestCase):
         self._check_value_error(lambda: Client(self.serviceUrl, use_tls="test"))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_trust_certs_file_path=5))
         self._check_value_error(lambda: Client(self.serviceUrl, tls_allow_insecure_connection="test"))
+        self._check_value_error(lambda: Client(self.serviceUrl, keep_alive_interval_seconds="test"))
+        self._check_value_error(lambda: Client(self.serviceUrl, keep_alive_interval_seconds=0))
 
     def test_service_info_argument_errors(self):
         self._check_value_error(lambda: ServiceInfo(None))

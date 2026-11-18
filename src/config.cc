@@ -184,6 +184,9 @@ void export_config(py::module_& m) {
              return_value_policy::reference)
         .def("connection_timeout", &ClientConfiguration::getConnectionTimeout)
         .def("connection_timeout", &ClientConfiguration::setConnectionTimeout, return_value_policy::reference)
+        .def("keep_alive_interval_in_seconds", &ClientConfiguration::getKeepAliveIntervalInSeconds)
+        .def("keep_alive_interval_in_seconds", &ClientConfiguration::setKeepAliveIntervalInSeconds,
+             return_value_policy::reference)
         .def("io_threads", &ClientConfiguration::getIOThreads)
         .def("io_threads", &ClientConfiguration::setIOThreads, return_value_policy::reference)
         .def("message_listener_threads", &ClientConfiguration::getMessageListenerThreads)

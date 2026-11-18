@@ -856,6 +856,7 @@ class Client:
                  listener_name=None,
                  tls_private_key_file_path: Optional[str] = None,
                  tls_certificate_file_path: Optional[str] = None,
+                 keep_alive_interval_seconds: int = 30,
                  ):
         """
         Create a new Pulsar client instance.
@@ -925,6 +926,11 @@ class Client:
             The path to the TLS private key file
         tls_certificate_file_path: str, optional
             The path to the TLS certificate file.
+        keep_alive_interval_seconds: int, default=30
+            Set the interval in seconds between keep-alive pings on each broker connection. A connection
+            that has received nothing from the broker since its last ping when the next one is due is
+            closed and reconnected. Raise it on slow or congested links, where the broker's replies can
+            wait behind queued messages for longer than this.
         """
         if not isinstance(service_url, (str, AutoClusterFailover, ServiceInfoProvider)):
             raise ValueError(
@@ -961,12 +967,16 @@ class Client:
         _check_type_or_none(str, listener_name, 'listener_name')
         _check_type_or_none(str, tls_private_key_file_path, 'tls_private_key_file_path')
         _check_type_or_none(str, tls_certificate_file_path, 'tls_certificate_file_path')
+        _check_type(int, keep_alive_interval_seconds, 'keep_alive_interval_seconds')
+        if keep_alive_interval_seconds <= 0:
+            raise ValueError("Argument keep_alive_interval_seconds is expected to be positive")
 
         conf = _pulsar.ClientConfiguration()
         if authentication:
             conf.authentication(authentication.auth)
         conf.operation_timeout_seconds(operation_timeout_seconds)
         conf.connection_timeout(connection_timeout_ms)
+        conf.keep_alive_interval_in_seconds(keep_alive_interval_seconds)
         conf.io_threads(io_threads)
         conf.message_listener_threads(message_listener_threads)
         conf.concurrent_lookup_requests(concurrent_lookup_requests)
